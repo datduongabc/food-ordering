@@ -10,6 +10,10 @@ export default mergeConfig(
       setupFiles: ['tests/setup.ts'],
       restoreMocks: true,
       unstubGlobals: true,
+      // Every jsdom worker loads the whole environment at start; with one per core they
+      // contend for disk and one can miss Vitest's fixed 60 s start timeout, silently dropping
+      // its test file from the run.
+      maxWorkers: '50%',
     },
   }),
 )
