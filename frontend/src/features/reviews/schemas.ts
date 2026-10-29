@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { localizedTextSchema } from '@/lib/localized'
 
 export const reviewSchema = z.object({
   id: z.number(),
@@ -9,7 +10,7 @@ export const reviewSchema = z.object({
 })
 
 export const topReviewSchema = reviewSchema.extend({
-  product_name: z.string(),
+  product_name: localizedTextSchema,
   product_slug: z.string(),
 })
 

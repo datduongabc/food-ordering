@@ -12,7 +12,7 @@ test.describe('browsing the seeded menu', () => {
     await expect(directions).toHaveCount(3)
     await expect(directions.first()).toHaveAttribute(
       'href',
-      /^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=123\+Le\+Loi/,
+      /^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=123\+L%C3%AA\+L%E1%BB%A3i/,
     )
 
     await page.getByRole('link', { name: 'Xem thực đơn' }).click()
@@ -63,8 +63,12 @@ test.describe('browsing the seeded menu', () => {
 
   test('remembers English across pages and reloads', async ({ page }) => {
     await page.goto('/menu')
+    await expect(page.getByRole('heading', { name: 'Gỏi cuốn tôm thịt' })).toBeVisible()
     await page.getByRole('button', { name: 'EN' }).click()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Our menu')
+    // Dish names come from the API in both languages and switch with the interface.
+    await expect(page.getByRole('heading', { name: 'Shrimp & Pork Spring Rolls' })).toBeVisible()
+    await expect(page.getByText('DaTeNO - District 1', { exact: true })).toBeVisible()
 
     await page.reload()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Our menu')

@@ -8,16 +8,16 @@ import { EmptyView, ErrorView, Loading } from '@/components/ui/StatusView'
 import { useAddToCart } from '@/features/cart/useAddToCart'
 import { ReviewSection } from '@/features/reviews/components/ReviewSection'
 import { useI18n } from '@/i18n/context'
+import { useLocalize } from '@/i18n/useLocalize'
 import { isApiError } from '@/lib/api/client'
 import { formatPrice, interpolate } from '@/lib/format'
 import { catalogQueries } from '../queries'
-import { useCategoryLabel } from '../useCategoryLabel'
 import styles from './DishPage.module.css'
 
 export function DishPage() {
   const { slug = '' } = useParams()
   const { t } = useI18n()
-  const categoryLabel = useCategoryLabel()
+  const localize = useLocalize()
   const addToCart = useAddToCart()
   const [quantity, setQuantity] = useState(1)
   const [adding, setAdding] = useState(false)
@@ -42,6 +42,7 @@ export function DishPage() {
   }
 
   const dish = product.data
+  const name = localize(dish.name)
   const rating = dish.average_rating === null ? null : Number(dish.average_rating)
 
   return (
@@ -51,24 +52,24 @@ export function DishPage() {
         {dish.category && (
           <>
             <span aria-hidden="true">/</span>
-            <Link to={`/menu?category=${dish.category.slug}`}>{categoryLabel(dish.category)}</Link>
+            <Link to={`/menu?category=${dish.category.slug}`}>{localize(dish.category.name)}</Link>
           </>
         )}
         <span aria-hidden="true">/</span>
-        <span aria-current="page">{dish.name}</span>
+        <span aria-current="page">{name}</span>
       </nav>
 
       <section className={styles.hero}>
-        <img src={dish.image_url} alt={dish.name} className={styles.image} />
+        <img src={dish.image_url} alt={name} className={styles.image} />
         <div className={styles.info}>
-          {dish.category && <span className={styles.category}>{categoryLabel(dish.category)}</span>}
-          <h1 className={styles.name}>{dish.name}</h1>
+          {dish.category && <span className={styles.category}>{localize(dish.category.name)}</span>}
+          <h1 className={styles.name}>{name}</h1>
           <div className={styles.rating}>
             <Stars rating={rating} />
             <a href="#reviews">{rating === null ? t.common.noReviews : t.reviews.title}</a>
           </div>
           <span className={styles.price}>{formatPrice(dish.price)}</span>
-          <p className={styles.description}>{dish.description}</p>
+          <p className={styles.description}>{localize(dish.description)}</p>
 
           <div className={styles.branches}>
             <span className={styles.label}>{t.dish.availableAt}</span>
@@ -76,7 +77,7 @@ export function DishPage() {
               <ul className={styles.chips}>
                 {dish.locations.map((location) => (
                   <li key={location.id} className={styles.chip}>
-                    <span aria-hidden="true">✓</span> {location.name}
+                    <span aria-hidden="true">✓</span> {localize(location.name)}
                   </li>
                 ))}
               </ul>

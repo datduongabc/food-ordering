@@ -33,11 +33,6 @@ export const vi = {
     directions: 'Chỉ đường',
     copyright: '© DaTeNO · Nhà hàng Việt',
   },
-  categories: {
-    all: 'Tất cả',
-    starters: 'Khai vị',
-    main_dishes: 'Món chính',
-  } as Record<string, string>,
   home: {
     heroKicker: 'Hương vị Sài Gòn',
     heroTitle: 'Ẩm thực Việt trọn vị, phục vụ tận tâm.',
@@ -56,6 +51,7 @@ export const vi = {
     kicker: 'Mời quý khách',
     title: 'Thực đơn',
     search: 'Tìm món ăn',
+    allCategories: 'Tất cả',
     category: 'Danh mục',
     sort: 'Sắp xếp',
     sorts: {

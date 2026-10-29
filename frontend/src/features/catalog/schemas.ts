@@ -1,23 +1,24 @@
 import { z } from 'zod'
+import { localizedTextSchema } from '@/lib/localized'
 
 export const categorySchema = z.object({
   id: z.number(),
-  name: z.string(),
+  name: localizedTextSchema,
   slug: z.string(),
 })
 
 export const locationSchema = z.object({
   id: z.number(),
-  name: z.string(),
-  address: z.string(),
+  name: localizedTextSchema,
+  address: localizedTextSchema,
   map_url: z.url(),
 })
 
 export const productSchema = z.object({
   id: z.number(),
-  name: z.string(),
+  name: localizedTextSchema,
   slug: z.string(),
-  description: z.string(),
+  description: localizedTextSchema,
   price: z.string(),
   average_rating: z.string().nullable(),
   category: categorySchema.nullable(),

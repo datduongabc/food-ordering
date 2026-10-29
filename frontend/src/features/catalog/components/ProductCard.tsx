@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/Button'
 import { Stars } from '@/components/ui/Stars'
 import { useAddToCart } from '@/features/cart/useAddToCart'
 import { useI18n } from '@/i18n/context'
+import { useLocalize } from '@/i18n/useLocalize'
 import { formatPrice, interpolate } from '@/lib/format'
 import type { Product } from '../schemas'
-import { useCategoryLabel } from '../useCategoryLabel'
 import styles from './ProductCard.module.css'
 
 export function ProductCard({
@@ -16,7 +16,8 @@ export function ProductCard({
   headingLevel?: 2 | 3
 }) {
   const { t } = useI18n()
-  const categoryLabel = useCategoryLabel()
+  const localize = useLocalize()
+  const name = localize(product.name)
   const addToCart = useAddToCart()
   const Heading = `h${headingLevel}` as const
   const href = `/menu/${product.slug}`
@@ -28,18 +29,18 @@ export function ProductCard({
       </Link>
       <div className={styles.body}>
         {product.category && (
-          <span className={styles.category}>{categoryLabel(product.category)}</span>
+          <span className={styles.category}>{localize(product.category.name)}</span>
         )}
         <Heading className={styles.name}>
-          <Link to={href}>{product.name}</Link>
+          <Link to={href}>{name}</Link>
         </Heading>
-        <p className={styles.description}>{product.description}</p>
+        <p className={styles.description}>{localize(product.description)}</p>
         <Stars rating={product.average_rating === null ? null : Number(product.average_rating)} />
         <div className={styles.footer}>
           <span className={styles.price}>{formatPrice(product.price)}</span>
           <Button
             variant="dark"
-            aria-label={interpolate(t.common.addToCartLabel, { name: product.name })}
+            aria-label={interpolate(t.common.addToCartLabel, { name })}
             onClick={() => void addToCart(product)}
           >
             {t.common.add}

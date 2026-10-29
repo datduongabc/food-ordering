@@ -2,13 +2,21 @@ import type { Category, Location, Product } from '@/features/catalog/schemas'
 import type { Cart } from '@/features/cart/schemas'
 import type { User } from '@/features/auth/schemas'
 
-export const starters: Category = { id: 1, name: 'Starters', slug: 'starters' }
-export const mains: Category = { id: 2, name: 'Main Dishes', slug: 'main_dishes' }
+export const starters: Category = {
+  id: 1,
+  name: { vi: 'Khai vị', en: 'Starters' },
+  slug: 'starters',
+}
+export const mains: Category = {
+  id: 2,
+  name: { vi: 'Món chính', en: 'Main Dishes' },
+  slug: 'main_dishes',
+}
 
 export const district1: Location = {
   id: 1,
-  name: 'DaTeNO - District 1',
-  address: '123 Le Loi Street, District 1',
+  name: { vi: 'DaTeNO - Quận 1', en: 'DaTeNO - District 1' },
+  address: { vi: '123 Lê Lợi, Quận 1', en: '123 Le Loi Street, District 1' },
   map_url: 'https://www.google.com/maps/search/?api=1&query=123+Le+Loi+Street%2C+District+1',
 }
 
@@ -18,9 +26,9 @@ export function product(overrides: Partial<Product> = {}): Product {
   const id = overrides.id ?? nextId++
   return {
     id,
-    name: `Dish ${id}`,
+    name: { vi: `Món ${id}`, en: `Dish ${id}` },
     slug: `dish-${id}`,
-    description: 'A tasty dish.',
+    description: { vi: 'Món ăn ngon.', en: 'A tasty dish.' },
     price: '10.00',
     average_rating: null,
     category: starters,
@@ -32,14 +40,14 @@ export function product(overrides: Partial<Product> = {}): Product {
 
 export const springRolls = product({
   id: 1,
-  name: 'Shrimp Spring Rolls',
+  name: { vi: 'Gỏi cuốn tôm thịt', en: 'Shrimp Spring Rolls' },
   slug: 'shrimp-spring-rolls',
   price: '9.50',
 })
 
 export const shakingBeef = product({
   id: 2,
-  name: 'Shaking Beef',
+  name: { vi: 'Bò lúc lắc', en: 'Shaking Beef' },
   slug: 'shaking-beef',
   price: '18.00',
   category: mains,

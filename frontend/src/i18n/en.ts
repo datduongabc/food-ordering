@@ -34,11 +34,6 @@ export const en: Dictionary = {
     directions: 'Get directions',
     copyright: '© DaTeNO · Vietnamese restaurant',
   },
-  categories: {
-    all: 'All',
-    starters: 'Starters',
-    main_dishes: 'Main courses',
-  },
   home: {
     heroKicker: 'A taste of Saigon',
     heroTitle: 'Authentic Vietnamese cuisine, served with care.',
@@ -57,6 +52,7 @@ export const en: Dictionary = {
     kicker: 'Welcome',
     title: 'Our menu',
     search: 'Search dishes',
+    allCategories: 'All',
     category: 'Category',
     sort: 'Sort by',
     sorts: {

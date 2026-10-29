@@ -21,8 +21,8 @@ describe('dish page', () => {
 
     renderApp(`/menu/${SLUG}`)
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Shrimp Spring Rolls' }))
-    expect(within(screen.getByRole('main')).getByText('DaTeNO - District 1')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Gỏi cuốn tôm thịt' }))
+    expect(within(screen.getByRole('main')).getByText('DaTeNO - Quận 1')).toBeInTheDocument()
     expect(
       await screen.findByText('Món này chưa có đánh giá. Hãy là người đầu tiên chia sẻ cảm nhận.'),
     ).toBeInTheDocument()
@@ -55,7 +55,7 @@ describe('dish page', () => {
     await user.click(await screen.findByRole('button', { name: 'Tăng số lượng' }))
     await user.click(screen.getByRole('button', { name: /^Thêm vào giỏ · 475\.000\s₫$/ }))
 
-    expect(await screen.findByText('Đã thêm Shrimp Spring Rolls vào giỏ hàng.')).toBeInTheDocument()
+    expect(await screen.findByText('Đã thêm Gỏi cuốn tôm thịt vào giỏ hàng.')).toBeInTheDocument()
     expect(JSON.parse(window.localStorage.getItem('dateno_guest_cart')!)).toEqual([
       { product_id: springRolls.id, quantity: 2 },
     ])

@@ -31,7 +31,7 @@ describe('menu page', () => {
 
     renderApp('/menu')
 
-    const card = (await screen.findByRole('heading', { name: 'Shrimp Spring Rolls' })).closest(
+    const card = (await screen.findByRole('heading', { name: 'Gỏi cuốn tôm thịt' })).closest(
       'article',
     )!
     expect(within(card).getByText(/^237\.500\s₫$/)).toBeInTheDocument()
@@ -64,18 +64,25 @@ describe('menu page', () => {
     const user = userEvent.setup()
     mockLayout()
     const requests = mockProductList((params) =>
-      page([product({ name: `Page ${params.get('page') ?? '1'} dish` })], {
-        page: Number(params.get('page') ?? '1'),
-        total_pages: 3,
-      }),
+      page(
+        [
+          product({
+            name: { vi: `Món trang ${params.get('page') ?? '1'}`, en: 'Page dish' },
+          }),
+        ],
+        {
+          page: Number(params.get('page') ?? '1'),
+          total_pages: 3,
+        },
+      ),
     )
     renderApp('/menu')
 
-    await screen.findByText('Page 1 dish')
+    await screen.findByText('Món trang 1')
     expect(screen.getByRole('button', { name: 'Trang trước' })).toBeDisabled()
     await user.click(screen.getByRole('button', { name: 'Trang 3' }))
 
-    expect(await screen.findByText('Page 3 dish')).toBeInTheDocument()
+    expect(await screen.findByText('Món trang 3')).toBeInTheDocument()
     expect(requests.at(-1)!.get('page')).toBe('3')
     expect(screen.getByRole('button', { name: 'Trang sau' })).toBeDisabled()
   })
@@ -94,8 +101,8 @@ describe('menu page', () => {
 
     await user.type(await screen.findByRole('searchbox', { name: 'Tìm món ăn' }), 'pho')
     expect(await screen.findByText('Kết quả cho “pho”')).toBeInTheDocument()
-    expect(await screen.findByRole('heading', { name: 'Shaking Beef' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Shrimp Spring Rolls' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Bò lúc lắc' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Gỏi cuốn tôm thịt' })).not.toBeInTheDocument()
 
     await user.clear(screen.getByRole('searchbox'))
     await user.type(screen.getByRole('searchbox'), 'zzz')
@@ -108,11 +115,13 @@ describe('menu page', () => {
     mockProductList()
     renderApp('/menu')
 
-    await screen.findByRole('heading', { name: 'Shrimp Spring Rolls' })
+    await screen.findByRole('heading', { name: 'Gỏi cuốn tôm thịt' })
     await user.click(screen.getByRole('button', { name: 'EN' }))
 
     expect(screen.getByRole('heading', { level: 1, name: 'Our menu' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Main courses' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Main Dishes' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Shrimp Spring Rolls' })).toBeInTheDocument()
+    expect(screen.getAllByText('A tasty dish.')).toHaveLength(2)
     expect(document.documentElement.lang).toBe('en')
     expect(window.localStorage.getItem('dateno_lang')).toBe('en')
   })
@@ -131,6 +140,6 @@ describe('menu page', () => {
     expect(await screen.findByText('Không tải được nội dung.')).toBeInTheDocument()
     fail = false
     await user.click(screen.getByRole('button', { name: 'Thử lại' }))
-    expect(await screen.findByRole('heading', { name: 'Shrimp Spring Rolls' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Gỏi cuốn tôm thịt' })).toBeInTheDocument()
   })
 })

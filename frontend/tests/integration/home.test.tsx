@@ -24,11 +24,11 @@ describe('home page', () => {
     renderApp('/')
 
     expect(await screen.findByText('Món nổi bật')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Shaking Beef' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Bò lúc lắc' })).toHaveAttribute(
       'href',
       '/menu/shaking-beef',
     )
-    expect(await screen.findByRole('heading', { name: 'Shrimp Spring Rolls' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Gỏi cuốn tôm thịt' })).toBeInTheDocument()
     const directions = await screen.findByRole('link', { name: /Chỉ đường/ })
     expect(directions).toHaveAttribute('href', district1.map_url)
     expect(directions).toHaveAttribute('target', '_blank')
@@ -44,7 +44,7 @@ describe('home page', () => {
         comment: 'Rất ngon!',
         created_at: '2026-10-28T03:00:00Z',
         user_name: 'Chi',
-        product_name: 'Shaking Beef',
+        product_name: { vi: 'Bò lúc lắc', en: 'Bò lúc lắc' },
         product_slug: 'shaking-beef',
       },
     ])

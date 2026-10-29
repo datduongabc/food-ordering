@@ -6,6 +6,7 @@ import { ProductCard } from '@/features/catalog/components/ProductCard'
 import { catalogQueries } from '@/features/catalog/queries'
 import { reviewQueries } from '@/features/reviews/queries'
 import { useI18n } from '@/i18n/context'
+import { useLocalize } from '@/i18n/useLocalize'
 import { formatPrice } from '@/lib/format'
 import styles from './HomePage.module.css'
 
@@ -13,6 +14,7 @@ const PICKS = 4
 
 export function HomePage() {
   const { t } = useI18n()
+  const localize = useLocalize()
   const featured = useQuery(catalogQueries.featured())
   // One extra so the featured dish can be left out without leaving a gap.
   const picks = useQuery(catalogQueries.products({ page: 1, sort: 'default', pageSize: PICKS + 1 }))
@@ -44,7 +46,7 @@ export function HomePage() {
               <span className={styles.tagPrice}>{formatPrice(dish.price)}</span>
             </div>
             <figcaption className={styles.caption}>
-              <Link to={`/menu/${dish.slug}`}>{dish.name}</Link>
+              <Link to={`/menu/${dish.slug}`}>{localize(dish.name)}</Link>
             </figcaption>
           </figure>
         )}
@@ -85,7 +87,7 @@ export function HomePage() {
                 <p className={styles.quoteText}>{review.comment}</p>
                 <footer className={styles.quoteFooter}>
                   <strong>{review.user_name}</strong> ·{' '}
-                  <Link to={`/menu/${review.product_slug}`}>{review.product_name}</Link>
+                  <Link to={`/menu/${review.product_slug}`}>{localize(review.product_name)}</Link>
                 </footer>
               </blockquote>
             ))}

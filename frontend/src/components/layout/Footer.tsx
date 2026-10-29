@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { catalogQueries } from '@/features/catalog/queries'
 import { useI18n } from '@/i18n/context'
+import { useLocalize } from '@/i18n/useLocalize'
 import styles from './Footer.module.css'
 
 export function Footer() {
   const { t } = useI18n()
+  const localize = useLocalize()
   const { data: locations } = useQuery(catalogQueries.locations())
 
   return (
@@ -13,8 +15,8 @@ export function Footer() {
       <div className={styles.branches}>
         {locations?.map((location) => (
           <div key={location.id} className={styles.branch}>
-            <span className={styles.name}>{location.name}</span>
-            <p className={styles.address}>{location.address}</p>
+            <span className={styles.name}>{localize(location.name)}</span>
+            <p className={styles.address}>{localize(location.address)}</p>
             {/* Google Maps refuses to render inside a frame, so it always opens a new tab. */}
             <a
               href={location.map_url}
@@ -25,7 +27,7 @@ export function Footer() {
               {t.footer.directions} →
               <span className="visually-hidden">
                 {' '}
-                {location.name} {t.common.opensNewTab}
+                {localize(location.name)} {t.common.opensNewTab}
               </span>
             </a>
           </div>

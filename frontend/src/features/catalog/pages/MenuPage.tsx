@@ -3,12 +3,12 @@ import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router'
 import { EmptyView, ErrorView, Loading } from '@/components/ui/StatusView'
 import { useI18n } from '@/i18n/context'
+import { useLocalize } from '@/i18n/useLocalize'
 import { interpolate } from '@/lib/format'
 import { ProductCard } from '../components/ProductCard'
 import { Pagination } from '../components/Pagination'
 import { catalogQueries } from '../queries'
 import { PRODUCT_SORTS, productSortSchema, type Product } from '../schemas'
-import { useCategoryLabel } from '../useCategoryLabel'
 import styles from './MenuPage.module.css'
 
 const SEARCH_DELAY_MS = 300
@@ -52,7 +52,7 @@ function DishGrid({ products }: { products: Product[] }) {
 
 export function MenuPage() {
   const { t } = useI18n()
-  const categoryLabel = useCategoryLabel()
+  const localize = useLocalize()
   const { page, sort, category, query, update } = useMenuParams()
   const [searchText, setSearchText] = useState(query)
 
@@ -118,7 +118,7 @@ export function MenuPage() {
               className={styles.tab}
               onClick={() => update({ category: undefined })}
             >
-              {t.categories.all}
+              {t.menu.allCategories}
             </button>
             {categories.data?.map((item) => (
               <button
@@ -128,7 +128,7 @@ export function MenuPage() {
                 className={styles.tab}
                 onClick={() => update({ category: item.slug })}
               >
-                {categoryLabel(item)}
+                {localize(item.name)}
               </button>
             ))}
           </div>
