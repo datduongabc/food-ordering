@@ -1,5 +1,4 @@
 from datetime import date, datetime, time, timedelta, timezone
-from decimal import Decimal
 
 import pytest
 from sqlalchemy import select
@@ -51,7 +50,7 @@ def make_order(
         items=[OrderItem(product=p, price_at_purchase=p.price, quantity=q) for p, q in lines],
         events=[OrderEvent(from_status=None, to_status=OrderStatus.PENDING)],
     )
-    order.total_price = sum((i.price_at_purchase * i.quantity for i in order.items), Decimal(0))
+    order.total_price = sum(i.price_at_purchase * i.quantity for i in order.items)
     db.add(order)
     db.commit()
     return order
@@ -241,7 +240,7 @@ class TestProducts:
             json={
                 "name": {"vi": "Phở Bò Đặc Biệt", "en": "Special Beef Pho"},
                 "description": {"vi": "Phở bò đặc biệt", "en": "Special beef noodle soup"},
-                "price": "14.50",
+                "price": 145_000,
                 "category_id": catalog.mains.id,
                 "location_ids": [catalog.district1.id, catalog.district7.id],
                 **overrides,
@@ -261,7 +260,7 @@ class TestProducts:
         assert dish["name"] == {"vi": "Phở Bò Đặc Biệt", "en": "Special Beef Pho"}
         assert dish["description"]["vi"] == "Phở bò đặc biệt"
         assert dish["slug"] == "special-beef-pho"
-        assert dish["price"] == "14.50"
+        assert dish["price"] == 145_000
         assert dish["image_url"] == "/media/products/placeholder.webp"
         assert [loc["id"] for loc in dish["locations"]] == [
             catalog.district1.id,
@@ -293,11 +292,11 @@ class TestProducts:
         pho = catalog.products["pho-bo"]
         response = admin_client.patch(
             f"/api/admin/products/{pho.id}",
-            json={"price": "13.00", "location_ids": [catalog.district1.id]},
+            json={"price": 130_000, "location_ids": [catalog.district1.id]},
         )
 
         dish = response.json()
-        assert (dish["name"]["en"], dish["price"]) == ("Pho Bo", "13.00")
+        assert (dish["name"]["en"], dish["price"]) == ("Pho Bo", 130_000)
         assert [loc["name"]["en"] for loc in dish["locations"]] == ["District 1"]
 
     def test_update_replaces_both_translations(self, admin_client, catalog):
@@ -505,9 +504,9 @@ class TestDashboardAndStats:
 
     def test_summary(self, admin_client, history):
         assert admin_client.get("/api/admin/dashboard").json() == {
-            "completed_revenue": "141.50",  # 24.00 + 70.00 + 47.50
+            "completed_revenue": 1_415_000,  # 240,000 + 700,000 + 475,000
             "completed_orders": 3,
-            "average_order_value": "47.17",
+            "average_order_value": 471_667,
             "total_orders": 5,
             "pending_orders": 1,
             "active_products": 4,
@@ -520,11 +519,11 @@ class TestDashboardAndStats:
         trend = admin_client.get("/api/admin/stats/revenue", params={"days": 3}).json()
 
         assert trend["days"] == [
-            {"date": "2026-10-27", "orders": 0, "revenue": "0.00"},
-            {"date": "2026-10-28", "orders": 1, "revenue": "70.00"},
-            {"date": "2026-10-29", "orders": 2, "revenue": "24.00"},
+            {"date": "2026-10-27", "orders": 0, "revenue": 0},
+            {"date": "2026-10-28", "orders": 1, "revenue": 700_000},
+            {"date": "2026-10-29", "orders": 2, "revenue": 240_000},
         ]
-        assert (trend["total_orders"], trend["total_revenue"]) == (3, "94.00")
+        assert (trend["total_orders"], trend["total_revenue"]) == (3, 940_000)
 
     def test_top_dishes(self, admin_client, history):
         top = admin_client.get(
@@ -532,8 +531,8 @@ class TestDashboardAndStats:
         ).json()
 
         assert [(d["slug"], d["quantity"], d["revenue"]) for d in top["by_quantity"]] == [
-            ("beef-steak", 3, "105.00"),
-            ("pho-bo", 2, "24.00"),
+            ("beef-steak", 3, 1_050_000),
+            ("pho-bo", 2, 240_000),
         ]
         assert [d["slug"] for d in top["by_revenue"]] == ["beef-steak", "pho-bo"]
         # Spring rolls only sold in a cancelled order and 40 days ago: zero in this window.
@@ -565,4 +564,4 @@ class TestDashboardAndStats:
 
     def test_empty_shop(self, admin_client):
         assert admin_client.get("/api/admin/stats/payments").json()["momo"]["success_rate"] is None
-        assert admin_client.get("/api/admin/dashboard").json()["average_order_value"] == "0.00"
+        assert admin_client.get("/api/admin/dashboard").json()["average_order_value"] == 0

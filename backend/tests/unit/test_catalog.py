@@ -1,4 +1,3 @@
-from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
@@ -27,7 +26,7 @@ def test_product_out_exposes_public_image_url_not_storage_path():
         name={"vi": "Phở bò", "en": "Pho Bo"},
         slug="pho-bo",
         description={"vi": "Phở bò tái", "en": "Beef noodle soup"},
-        price=Decimal("12.00"),
+        price=120_000,
         average_rating=None,
         category=None,
         locations=[],

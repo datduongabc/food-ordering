@@ -1,8 +1,7 @@
 from datetime import datetime
-from decimal import Decimal
 from enum import StrEnum
 
-from sqlalchemy import CheckConstraint, Enum, ForeignKey, Integer, Numeric, String, Text, func
+from sqlalchemy import BigInteger, CheckConstraint, Enum, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base, UTCDateTime
@@ -43,7 +42,7 @@ class Order(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
-    total_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))
+    total_price: Mapped[int] = mapped_column(BigInteger, default=0)
     status: Mapped[OrderStatus] = mapped_column(
         Enum(OrderStatus, name="order_status", native_enum=False, length=20),
         default=OrderStatus.PENDING,
@@ -91,7 +90,7 @@ class OrderItem(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True)
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id", ondelete="RESTRICT"))
-    price_at_purchase: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    price_at_purchase: Mapped[int] = mapped_column(BigInteger)
     quantity: Mapped[int] = mapped_column(Integer)
 
     order: Mapped[Order] = relationship(back_populates="items")

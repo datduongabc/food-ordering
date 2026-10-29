@@ -1,4 +1,3 @@
-from decimal import Decimal
 from typing import Annotated
 
 from pydantic import BaseModel, Field
@@ -27,10 +26,10 @@ class GuestCartIn(BaseModel):
 class CartLineOut(BaseModel):
     product: ProductOut
     quantity: int
-    subtotal: Decimal
+    subtotal: int
 
 
 class CartOut(BaseModel):
     items: list[CartLineOut]
     total_count: int
-    total_price: Decimal
+    total_price: int

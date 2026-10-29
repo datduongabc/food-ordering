@@ -1,6 +1,5 @@
 from collections import defaultdict
 from datetime import datetime, time, timedelta
-from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import Select, case, func, select
@@ -25,14 +24,6 @@ from app.modules.reservations.models import Reservation, ReservationStatus
 from app.modules.reservations.service import restaurant_now
 from app.modules.users.models import Role, User
 
-ZERO = Decimal("0.00")
-CENT = Decimal("0.01")
-
-
-def _money(value) -> Decimal:
-    # SQLite returns SQL sums of NUMERIC as float; going through str avoids binary-float noise.
-    return Decimal(str(value)).quantize(CENT)
-
 
 def _window_start(days: int) -> datetime:
     """Start of the restaurant-local day `days - 1` days ago, so `days=7` means this week."""
@@ -47,7 +38,7 @@ def summary(db: Session) -> DashboardSummary:
     completed_revenue, completed_orders, total_orders, pending_orders = db.execute(
         select(
             func.coalesce(
-                func.sum(case((Order.status == OrderStatus.COMPLETED, Order.total_price))), ZERO
+                func.sum(case((Order.status == OrderStatus.COMPLETED, Order.total_price))), 0
             ),
             func.count().filter(Order.status == OrderStatus.COMPLETED),
             func.count(),
@@ -60,13 +51,11 @@ def summary(db: Session) -> DashboardSummary:
         ).select_from(Reservation)
     ).one()
 
-    revenue = _money(completed_revenue)
+    revenue = int(completed_revenue)
     return DashboardSummary(
         completed_revenue=revenue,
         completed_orders=completed_orders,
-        average_order_value=(
-            (revenue / completed_orders).quantize(CENT) if completed_orders else ZERO
-        ),
+        average_order_value=round(revenue / completed_orders) if completed_orders else 0,
         total_orders=total_orders,
         pending_orders=pending_orders,
         active_products=db.scalar(
@@ -97,7 +86,7 @@ def revenue_trend(db: Session, days: int) -> RevenueTrend:
     ).all()
 
     orders: dict = defaultdict(int)
-    revenue: dict = defaultdict(lambda: ZERO)
+    revenue: dict = defaultdict(int)
     for created_at, status, total in rows:
         day = created_at.astimezone(tz).date()
         orders[day] += 1
@@ -111,7 +100,7 @@ def revenue_trend(db: Session, days: int) -> RevenueTrend:
     return RevenueTrend(
         days=series,
         total_orders=sum(day.orders for day in series),
-        total_revenue=sum((day.revenue for day in series), ZERO),
+        total_revenue=sum(day.revenue for day in series),
     )
 
 
@@ -123,7 +112,7 @@ def _sales_query(start: datetime) -> Select:
     quantity = func.coalesce(func.sum(case((counted, OrderItem.quantity), else_=0)), 0)
     revenue = func.coalesce(
         func.sum(case((counted, OrderItem.price_at_purchase * OrderItem.quantity), else_=0)),
-        ZERO,
+        0,
     )
     return (
         select(
@@ -156,7 +145,7 @@ def top_dishes(db: Session, days: int, limit: int) -> TopDishes:
                 name={"vi": r.name_vi, "en": r.name_en},
                 slug=r.slug,
                 quantity=r.qty,
-                revenue=_money(r.rev),
+                revenue=int(r.rev),
             )
             for r in db.execute(select(query).order_by(*order_by).limit(limit))
         ]

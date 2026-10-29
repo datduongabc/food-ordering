@@ -6,7 +6,6 @@ simulation explicit and impossible to reach outside local development.
 """
 
 import secrets
-from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -30,10 +29,6 @@ def _require_sandbox() -> None:
         )
 
 
-def to_vnd(amount_usd: Decimal, rate: int) -> int:
-    return int((amount_usd * rate).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
-
-
 def _ensure_payable(order: Order) -> None:
     if order.payment_status == PaymentStatus.PAID:
         raise ConflictError(
@@ -54,9 +49,7 @@ def start_momo_payment(db: Session, user: User, order_id: int) -> MomoPaymentOut
     order = get_order(db, user, order_id, for_update=True)
     _ensure_payable(order)
 
-    rate = get_settings().momo_usd_to_vnd_rate
-    amount_vnd = to_vnd(order.total_price, rate)
-    if not MOMO_MIN_VND <= amount_vnd <= MOMO_MAX_VND:
+    if not MOMO_MIN_VND <= order.total_price <= MOMO_MAX_VND:
         # The PHP app silently clamped the charge into range; charging a different amount
         # than the order total is worse than refusing.
         raise BadRequestError(
@@ -74,9 +67,7 @@ def start_momo_payment(db: Session, user: User, order_id: int) -> MomoPaymentOut
     return MomoPaymentOut(
         order_id=order.id,
         momo_order_id=order.momo_order_id,
-        amount_usd=order.total_price,
-        amount_vnd=amount_vnd,
-        exchange_rate=rate,
+        amount=order.total_price,
     )
 
 

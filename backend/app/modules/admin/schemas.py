@@ -26,9 +26,9 @@ class Page[T](BaseModel):
 
 
 class DashboardSummary(BaseModel):
-    completed_revenue: Decimal
+    completed_revenue: int
     completed_orders: int
-    average_order_value: Decimal
+    average_order_value: int
     total_orders: int
     pending_orders: int
     active_products: int
@@ -40,13 +40,13 @@ class DashboardSummary(BaseModel):
 class RevenueDay(BaseModel):
     date: date
     orders: int
-    revenue: Decimal
+    revenue: int
 
 
 class RevenueTrend(BaseModel):
     days: list[RevenueDay]
     total_orders: int
-    total_revenue: Decimal
+    total_revenue: int
 
 
 class DishSales(BaseModel):
@@ -54,7 +54,7 @@ class DishSales(BaseModel):
     name: LocalizedText
     slug: str
     quantity: int
-    revenue: Decimal
+    revenue: int
 
 
 class TopDishes(BaseModel):
@@ -102,7 +102,8 @@ class RatingStats(BaseModel):
 
 # --- Products ---------------------------------------------------------------------------
 
-Price = Annotated[Decimal, Field(gt=0, max_digits=10, decimal_places=2)]
+# Whole dong, capped well above any dish so a typo with extra zeros is rejected.
+Price = Annotated[int, Field(gt=0, le=100_000_000)]
 Slug = Annotated[
     str,
     StringConstraints(strip_whitespace=True, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$", max_length=255),

@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Column, ForeignKey, Integer, Numeric, String, Table, Text, func
+from sqlalchemy import BigInteger, Column, ForeignKey, Integer, Numeric, String, Table, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base, UTCDateTime
@@ -53,7 +53,8 @@ class Product(Base):
     name_en: Mapped[str] = mapped_column(String(255))
     description_vi: Mapped[str] = mapped_column(String(500))
     description_en: Mapped[str] = mapped_column(String(500))
-    price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    # Whole Vietnamese dong; VND has no minor unit.
+    price: Mapped[int] = mapped_column(BigInteger)
     # Denormalised from reviews so menu sorting by rating needs no aggregate join.
     average_rating: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
     slug: Mapped[str] = mapped_column(String(255), unique=True)

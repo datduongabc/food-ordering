@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated
 
@@ -42,7 +41,7 @@ class OrderItemOut(BaseModel):
     product_name: LocalizedText = Field(validation_alias=AliasPath("product", "name"))
     product_slug: str = Field(validation_alias=AliasPath("product", "slug"))
     image_path: str = Field(validation_alias=AliasPath("product", "image_url"), exclude=True)
-    price_at_purchase: Decimal
+    price_at_purchase: int
     quantity: int
 
     @computed_field
@@ -52,7 +51,7 @@ class OrderItemOut(BaseModel):
 
     @computed_field
     @property
-    def subtotal(self) -> Decimal:
+    def subtotal(self) -> int:
         return self.price_at_purchase * self.quantity
 
 
@@ -63,7 +62,7 @@ class OrderOut(BaseModel):
     status: OrderStatus
     payment_method: PaymentMethod
     payment_status: PaymentStatus
-    total_price: Decimal
+    total_price: int
     created_at: datetime
     location: LocationOut | None
     delivery_name: str | None
@@ -92,9 +91,7 @@ class SandboxResult(StrEnum):
 class MomoPaymentOut(BaseModel):
     order_id: int
     momo_order_id: str
-    amount_usd: Decimal
-    amount_vnd: int
-    exchange_rate: int
+    amount: int
     # Only the sandbox exists today; a live MoMo integration would return its payUrl here.
     mode: str = "sandbox"
 

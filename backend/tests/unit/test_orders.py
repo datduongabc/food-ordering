@@ -1,25 +1,9 @@
 from datetime import UTC, datetime
-from decimal import Decimal
 
 import pytest
 
 from app.modules.orders.models import OrderStatus, PaymentMethod, PaymentStatus
-from app.modules.orders.payments import to_vnd
 from app.modules.orders.schemas import OrderOut
-
-
-@pytest.mark.parametrize(
-    ("usd", "vnd"),
-    [
-        (Decimal("59.00"), 1_475_000),
-        (Decimal("0.04"), 1_000),
-        (Decimal("12.34"), 308_500),
-        # Half a dong rounds up, never truncates the charge.
-        (Decimal("0.00002"), 1),
-    ],
-)
-def test_to_vnd(usd, vnd):
-    assert to_vnd(usd, 25_000) == vnd
 
 
 def order(status: OrderStatus, payment_status: PaymentStatus) -> OrderOut:
@@ -28,7 +12,7 @@ def order(status: OrderStatus, payment_status: PaymentStatus) -> OrderOut:
         status=status,
         payment_method=PaymentMethod.MOMO,
         payment_status=payment_status,
-        total_price=Decimal("10.00"),
+        total_price=100_000,
         created_at=datetime(2026, 10, 29, tzinfo=UTC),
         location=None,
         delivery_name="Nguyen Van A",

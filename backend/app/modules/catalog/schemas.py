@@ -48,7 +48,7 @@ class ProductOut(BaseModel):
     name: LocalizedText
     slug: str
     description: LocalizedText
-    price: Decimal
+    price: int
     average_rating: Decimal | None
     category: CategoryOut | None
     locations: list[LocationOut]

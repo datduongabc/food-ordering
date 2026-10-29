@@ -1,5 +1,4 @@
 from collections.abc import Iterable, Sequence
-from decimal import Decimal
 
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
@@ -25,7 +24,7 @@ def _build_cart(lines: Iterable[tuple[Product, int]]) -> CartOut:
     return CartOut(
         items=items,
         total_count=sum(item.quantity for item in items),
-        total_price=sum((item.subtotal for item in items), Decimal("0.00")),
+        total_price=sum(item.subtotal for item in items),
     )
 
 

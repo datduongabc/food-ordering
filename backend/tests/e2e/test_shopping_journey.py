@@ -51,18 +51,18 @@ def test_guest_cart_merges_then_pays_with_momo_after_a_decline(new_browser):
         "items": [{"product_id": pho, "quantity": 2}, {"product_id": prawns, "quantity": 1}]
     }
     preview = browser.post("/api/cart/preview", json=guest_cart).json()
-    assert preview["total_price"] == "58.00"  # 2 x 16.50 + 25.00
+    assert preview["total_price"] == 1_450_000  # 2 x 412,500 + 625,000
 
     sign_up_and_in(browser, new_customer())
     merged = browser.post("/api/cart/merge", json=guest_cart).json()
-    assert merged["total_price"] == "58.00"
+    assert merged["total_price"] == 1_450_000
 
     order = browser.post("/api/orders", json=checkout_form(browser, "MOMO")).json()
     assert order["status"] == "PENDING"
     assert browser.get("/api/cart").json()["total_count"] == 0
 
     first = browser.post(f"/api/orders/{order['id']}/payments/momo").json()
-    assert first["amount_vnd"] == 1_450_000
+    assert first["amount"] == 1_450_000
     declined = browser.post(
         "/api/payments/momo/sandbox/complete",
         json={"momo_order_id": first["momo_order_id"], "result": "declined"},

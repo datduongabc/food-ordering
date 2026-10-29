@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from decimal import Decimal
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -88,9 +87,7 @@ def place_order(db: Session, user: User, data: CheckoutIn) -> Order:
             for line in cart
         ],
     )
-    order.total_price = sum(
-        (item.price_at_purchase * item.quantity for item in order.items), Decimal("0.00")
-    )
+    order.total_price = sum(item.price_at_purchase * item.quantity for item in order.items)
     db.add(order)
     db.execute(delete(CartItem).where(CartItem.user_id == user.id))
     db.commit()

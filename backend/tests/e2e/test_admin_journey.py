@@ -28,7 +28,7 @@ def test_admin_adds_dish_and_fulfils_an_order(server, new_browser):
                 "vi": "Chả nướng ăn kèm bún và rau thơm",
                 "en": "Grilled pork with rice vermicelli and herbs",
             },
-            "price": "11.50",
+            "price": 290_000,
             "category_id": mains["id"],
             "location_ids": [branches[0]["id"]],
         },
@@ -76,7 +76,7 @@ def test_admin_adds_dish_and_fulfils_an_order(server, new_browser):
 
     after = admin.get("/api/admin/dashboard").json()
     assert after["completed_orders"] == before["completed_orders"] + 1
-    assert float(after["completed_revenue"]) == float(before["completed_revenue"]) + 23.00
+    assert after["completed_revenue"] == before["completed_revenue"] + 580_000
     top = admin.get("/api/admin/stats/top-dishes", params={"limit": 20}).json()
     assert any(d["slug"] == dish["slug"] and d["quantity"] == 2 for d in top["by_quantity"])
     today = admin.get("/api/admin/stats/revenue", params={"days": 1}).json()

@@ -1,5 +1,3 @@
-from decimal import Decimal
-
 import pytest
 
 from app.core.config import get_settings
@@ -53,21 +51,21 @@ class TestCheckout:
         assert order["status"] == "PENDING"
         assert order["payment_method"] == "COD"
         assert order["payment_status"] == "UNPAID"
-        assert order["total_price"] == "59.00"
+        assert order["total_price"] == 590_000
         assert order["can_cancel"] is True
         assert [(i["product_slug"], i["quantity"], i["subtotal"]) for i in order["items"]] == [
-            ("pho-bo", 2, "24.00"),
-            ("beef-steak", 1, "35.00"),
+            ("pho-bo", 2, 240_000),
+            ("beef-steak", 1, 350_000),
         ]
         assert order["items"][0]["image_url"] == "/media/products/main_dishes/pho-bo.webp"
         assert shopper.get("/api/cart").json()["items"] == []
 
         # A later menu price change must not rewrite what the customer was charged.
-        db.get(Product, catalog.products["pho-bo"].id).price = Decimal("99.00")
+        db.get(Product, catalog.products["pho-bo"].id).price = 990_000
         db.commit()
         again = shopper.get(f"/api/orders/{order['id']}").json()
-        assert again["total_price"] == "59.00"
-        assert again["items"][0]["price_at_purchase"] == "12.00"
+        assert again["total_price"] == 590_000
+        assert again["items"][0]["price_at_purchase"] == 120_000
 
     def test_empty_cart_is_rejected(self, shopper):
         response = checkout(shopper)
@@ -90,7 +88,7 @@ class TestCheckout:
         order = checkout(shopper).json()
 
         assert [i["product_slug"] for i in order["items"]] == ["pho-bo"]
-        assert order["total_price"] == "12.00"
+        assert order["total_price"] == 120_000
 
     def test_rejects_unknown_payment_method(self, shopper, catalog):
         fill_cart(shopper, catalog, pho_bo=1)
@@ -151,14 +149,12 @@ class TestMomoSandbox:
             json={"momo_order_id": momo_order_id, "result": result},
         )
 
-    def test_start_converts_total_to_vnd(self, shopper, order_id):
+    def test_start_charges_the_order_total(self, shopper, order_id):
         response = self.start(shopper, order_id)
 
         assert response.status_code == 200
         body = response.json()
-        assert body["amount_usd"] == "59.00"
-        assert body["amount_vnd"] == 1_475_000
-        assert body["exchange_rate"] == 25_000
+        assert body["amount"] == 590_000
         assert body["mode"] == "sandbox"
         assert body["momo_order_id"].startswith(f"DATENO_{order_id}_")
 
@@ -202,9 +198,9 @@ class TestMomoSandbox:
         assert shopper.get(f"/api/orders/{order_id}").json()["payment_method"] == "MOMO"
 
     def test_amount_outside_momo_limits_is_refused_not_clamped(self, shopper, catalog, db):
-        db.get(Product, catalog.products["pho-bo"].id).price = Decimal("0.01")
+        db.get(Product, catalog.products["pho-bo"].id).price = 500
         db.commit()
-        fill_cart(shopper, catalog, pho_bo=1)  # 250 VND, below MoMo's 1,000 VND minimum
+        fill_cart(shopper, catalog, pho_bo=1)  # 500 VND, below MoMo's 1,000 VND minimum
         order_id = checkout(shopper, "MOMO").json()["id"]
 
         response = self.start(shopper, order_id)

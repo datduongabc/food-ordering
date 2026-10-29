@@ -35,9 +35,6 @@ class Settings(BaseSettings):
     reservation_max_days_ahead: int = 3
     reservation_max_guests: int = 10
 
-    # Menu prices are in USD; MoMo charges in VND.
-    momo_usd_to_vnd_rate: int = 25000
-
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
     smtp_username: str = ""

@@ -28,7 +28,7 @@ class TestMemberCart:
         assert shopper.get("/api/cart").json() == {
             "items": [],
             "total_count": 0,
-            "total_price": "0.00",
+            "total_price": 0,
         }
 
     def test_add_increments_and_totals(self, shopper, catalog):
@@ -40,9 +40,9 @@ class TestMemberCart:
         cart = response.json()
         assert response.status_code == 200
         assert lines(cart) == [("pho-bo", 3), ("beef-steak", 1)]
-        assert cart["items"][0]["subtotal"] == "36.00"
+        assert cart["items"][0]["subtotal"] == 360_000
         assert cart["total_count"] == 4
-        assert cart["total_price"] == "71.00"
+        assert cart["total_price"] == 710_000
 
     def test_quantity_is_capped_at_99(self, shopper, catalog):
         add(shopper, catalog.products["pho-bo"], 60)
@@ -89,7 +89,7 @@ class TestMemberCart:
         cart = shopper.get("/api/cart").json()
 
         assert lines(cart) == [("beef-steak", 1)]
-        assert cart["total_price"] == "35.00"
+        assert cart["total_price"] == 350_000
 
     def test_carts_are_private(self, client, catalog):
         register_and_login(client, USER)
@@ -117,7 +117,7 @@ class TestGuestCart:
 
         assert response.status_code == 200
         assert lines(response.json()) == [("beef-steak", 3)]
-        assert response.json()["total_price"] == "105.00"
+        assert response.json()["total_price"] == 1_050_000
 
     def test_preview_is_bounded(self, client, catalog):
         items = [{"product_id": 1, "quantity": 1}] * 101

@@ -38,7 +38,7 @@ class TestListProducts:
             "total_pages": 1,
         }
         steak = body["items"][2]
-        assert steak["price"] == "35.00"
+        assert steak["price"] == 350_000
         assert steak["average_rating"] == "5.00"
         assert steak["image_url"] == "/media/products/main_dishes/beef-steak.webp"
         assert steak["category"] == {
