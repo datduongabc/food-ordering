@@ -3,6 +3,9 @@ import { cleanup } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll } from 'vitest'
 import { server } from './support/server'
 
+// jsdom has no layout, so it does not implement scrolling; the app scrolls on navigation.
+window.scrollTo = () => {}
+
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 afterEach(() => {
   cleanup()
