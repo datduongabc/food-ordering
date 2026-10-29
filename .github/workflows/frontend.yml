@@ -14,6 +14,21 @@ jobs:
       run:
         working-directory: frontend
 
+    # Production runs on Postgres, so the end-to-end journeys do too.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: dateno_e2e
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d dateno_e2e"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -43,6 +58,8 @@ jobs:
         run: npm test
 
       - name: End-to-end tests
+        env:
+          E2E_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/dateno_e2e
         run: |
           npx playwright install --with-deps chromium
           npm run test:e2e
