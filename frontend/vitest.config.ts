@@ -5,15 +5,32 @@ export default mergeConfig(
   viteConfig,
   defineConfig({
     test: {
-      environment: 'jsdom',
-      include: ['tests/unit/**/*.test.{ts,tsx}', 'tests/integration/**/*.test.{ts,tsx}'],
-      setupFiles: ['tests/setup.ts'],
       restoreMocks: true,
       unstubGlobals: true,
-      // Every jsdom worker loads the whole environment at start; with one per core they
-      // contend for disk and one can miss Vitest's fixed 60 s start timeout, silently dropping
-      // its test file from the run.
-      maxWorkers: '50%',
+      // Starting a jsdom worker is mostly disk reads; on a slow filesystem (e.g. WSL reading a
+      // Windows drive) one per core can miss Vitest's fixed 60 s worker start timeout, which
+      // silently drops that worker's test file from the run.
+      maxWorkers: 4,
+      projects: [
+        {
+          extends: true,
+          test: {
+            // Pure logic needs no DOM, so it skips the cost of a browser environment.
+            name: 'unit',
+            environment: 'node',
+            include: ['tests/unit/*.test.ts'],
+          },
+        },
+        {
+          extends: true,
+          test: {
+            name: 'dom',
+            environment: 'jsdom',
+            include: ['tests/unit/browser/**/*.test.ts', 'tests/integration/**/*.test.tsx'],
+            setupFiles: ['tests/setup.ts'],
+          },
+        },
+      ],
     },
   }),
 )

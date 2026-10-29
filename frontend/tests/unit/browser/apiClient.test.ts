@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw/http'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { api, ApiError, ContractError } from '@/lib/api/client'
-import { server } from '../support/server'
+import { server } from '../../support/server'
 
 const ok = z.object({ ok: z.boolean() })
 

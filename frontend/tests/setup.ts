@@ -1,8 +1,12 @@
 import '@testing-library/jest-dom/vitest'
-import { act, cleanup, waitFor } from '@testing-library/react'
+import { act, cleanup, configure, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll } from 'vitest'
 import { renderedClients } from './support/render'
 import { server } from './support/server'
+
+// The first visit to a lazy route compiles its modules on demand, which can take longer than
+// Testing Library's default 1 s on a busy machine; waits still end as soon as the UI is ready.
+configure({ asyncUtilTimeout: 5000 })
 
 // jsdom has no layout, so it does not implement scrolling; the app scrolls on navigation.
 window.scrollTo = () => {}
