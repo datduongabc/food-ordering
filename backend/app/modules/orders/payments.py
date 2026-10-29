@@ -87,7 +87,7 @@ def complete_sandbox_payment(db: Session, user: User, data: SandboxCompleteIn) -
     if data.result == SandboxResult.APPROVED:
         order.payment_status = PaymentStatus.PAID
         order.momo_trans_id = f"SANDBOX-{secrets.token_hex(6).upper()}"
-        transition(order, OrderStatus.CONFIRMED, None, "MoMo payment received.")
+        transition(order, OrderStatus.CONFIRMED, None)
     else:
         order.payment_status = PaymentStatus.FAILED
     db.commit()

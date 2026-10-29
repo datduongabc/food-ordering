@@ -268,9 +268,9 @@ class TestDeliveryDetails:
     def test_history_records_customer_cancel_and_momo_confirmation(self, shopper, catalog):
         fill_cart(shopper, catalog, pho_bo=1)
         cancelled = shopper.post(f"/api/orders/{checkout(shopper).json()['id']}/cancel").json()
-        assert [(e["to_status"], e["note"]) for e in cancelled["events"]] == [
-            ("PENDING", ""),
-            ("CANCELLED", "Cancelled by customer."),
+        assert [(e["to_status"], e["actor"], e["note"]) for e in cancelled["events"]] == [
+            ("PENDING", "customer", ""),
+            ("CANCELLED", "customer", ""),
         ]
 
         fill_cart(shopper, catalog, pho_bo=1)
@@ -282,5 +282,5 @@ class TestDeliveryDetails:
         ).json()
         assert paid["events"][-1]["from_status"] == "PENDING"
         assert paid["events"][-1]["to_status"] == "CONFIRMED"
-        assert paid["events"][-1]["note"] == "MoMo payment received."
+        assert (paid["events"][-1]["actor"], paid["events"][-1]["note"]) == ("system", "")
         assert "actor_name" not in paid["events"][-1]  # staff identities stay internal

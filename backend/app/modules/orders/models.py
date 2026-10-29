@@ -25,6 +25,12 @@ ORDER_TRANSITIONS: dict[OrderStatus, frozenset[OrderStatus]] = {
 }
 
 
+class EventActor(StrEnum):
+    CUSTOMER = "customer"
+    STAFF = "staff"
+    SYSTEM = "system"
+
+
 class PaymentMethod(StrEnum):
     COD = "COD"
     MOMO = "MOMO"
@@ -117,3 +123,10 @@ class OrderEvent(Base):
 
     order: Mapped[Order] = relationship(back_populates="events")
     actor: Mapped[User | None] = relationship(lazy="joined")
+
+    @property
+    def actor_role(self) -> EventActor:
+        # Customers see who moved their order without learning which staff member it was.
+        if self.actor_id is None:
+            return EventActor.SYSTEM
+        return EventActor.CUSTOMER if self.actor_id == self.order.user_id else EventActor.STAFF

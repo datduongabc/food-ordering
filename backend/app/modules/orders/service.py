@@ -32,7 +32,6 @@ def transition(order: Order, to: OrderStatus, actor: User | None, note: str = ""
     if to == OrderStatus.CANCELLED and order.payment_status == PaymentStatus.PAID:
         # Money already taken must go back; staff refund MoMo payments from the MoMo portal.
         order.payment_status = PaymentStatus.REFUNDED
-        note = note or "Payment to be refunded."
     if to == OrderStatus.COMPLETED and order.payment_method == PaymentMethod.COD:
         order.payment_status = PaymentStatus.PAID  # cash collected on delivery
 
@@ -122,6 +121,6 @@ def cancel_order(db: Session, user: User, order_id: int) -> Order:
             "Only pending orders can be cancelled. Please call the restaurant.",
             code="order_not_cancellable",
         )
-    transition(order, OrderStatus.CANCELLED, user, "Cancelled by customer.")
+    transition(order, OrderStatus.CANCELLED, user)
     db.commit()
     return order

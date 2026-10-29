@@ -47,3 +47,5 @@ class ReservationPolicyOut(BaseModel):
     today: date
     last_bookable_date: date
     max_guests: int
+    opening_time: time
+    last_seating_time: time

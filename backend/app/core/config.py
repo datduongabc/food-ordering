@@ -1,3 +1,4 @@
+from datetime import time
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -34,6 +35,9 @@ class Settings(BaseSettings):
     restaurant_timezone: str = "Asia/Ho_Chi_Minh"
     reservation_max_days_ahead: int = 3
     reservation_max_guests: int = 10
+    # First and last time a table can be booked for; the kitchen closes an hour after.
+    reservation_opening_time: time = time(10, 0)
+    reservation_last_seating_time: time = time(21, 0)
 
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587

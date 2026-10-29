@@ -40,6 +40,8 @@ class TestPolicy:
             "today": "2026-10-29",
             "last_bookable_date": "2026-11-01",
             "max_guests": 10,
+            "opening_time": "10:00:00",
+            "last_seating_time": "21:00:00",
         }
 
 
@@ -67,6 +69,8 @@ class TestCreate:
         [
             (TODAY, "18:30"),  # later today
             (TODAY + timedelta(days=3), "11:00"),  # last bookable day
+            (TODAY + timedelta(days=1), "10:00"),  # opening
+            (TODAY + timedelta(days=1), "21:00"),  # last seating
         ],
     )
     def test_accepts_dates_inside_window(self, client, catalog, day, time):
@@ -80,6 +84,8 @@ class TestCreate:
             (TODAY - timedelta(days=1), "19:00", "date_in_past"),
             (TODAY, "17:59", "time_passed"),
             (TODAY, "18:00", "time_passed"),
+            (TODAY + timedelta(days=1), "09:59", "outside_opening_hours"),
+            (TODAY + timedelta(days=1), "21:01", "outside_opening_hours"),
         ],
     )
     def test_rejects_dates_outside_window(self, client, catalog, day, time, code):

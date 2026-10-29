@@ -27,6 +27,8 @@ def get_policy() -> ReservationPolicyOut:
         today=today,
         last_bookable_date=today + timedelta(days=settings.reservation_max_days_ahead),
         max_guests=settings.reservation_max_guests,
+        opening_time=settings.reservation_opening_time,
+        last_seating_time=settings.reservation_last_seating_time,
     )
 
 
@@ -49,6 +51,14 @@ def _validate_slot(data: ReservationIn) -> None:
             f"Tables can be booked at most {days} days in advance.",
             code="date_too_far",
             params={"days": days},
+        )
+    if not policy.opening_time <= data.reservation_time <= policy.last_seating_time:
+        opening = policy.opening_time.strftime("%H:%M")
+        last_seating = policy.last_seating_time.strftime("%H:%M")
+        raise BadRequestError(
+            f"We take bookings from {opening} to {last_seating}.",
+            code="outside_opening_hours",
+            params={"opening": opening, "last_seating": last_seating},
         )
     if data.reservation_date == policy.today and data.reservation_time <= now.time():
         raise BadRequestError(

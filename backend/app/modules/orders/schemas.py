@@ -8,7 +8,7 @@ from app.core.config import get_settings
 from app.core.localized import LocalizedText
 from app.modules.auth.schemas import Name, Phone
 from app.modules.catalog.schemas import LocationOut
-from app.modules.orders.models import OrderStatus, PaymentMethod, PaymentStatus
+from app.modules.orders.models import EventActor, OrderStatus, PaymentMethod, PaymentStatus
 
 Note = Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)]
 
@@ -30,6 +30,8 @@ class OrderEventOut(BaseModel):
 
     from_status: OrderStatus | None
     to_status: OrderStatus
+    actor: EventActor = Field(validation_alias="actor_role")
+    # Free text written by staff; the UI words system and customer events itself.
     note: str
     created_at: datetime
 

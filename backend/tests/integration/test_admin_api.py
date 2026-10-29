@@ -179,7 +179,7 @@ class TestOrders:
         ).json()
 
         assert cancelled["payment_status"] == "REFUNDED"
-        assert cancelled["events"][-1]["note"] == "Payment to be refunded."
+        assert (cancelled["events"][-1]["actor"], cancelled["events"][-1]["note"]) == ("staff", "")
 
     def test_missing_order(self, admin_client):
         assert admin_client.get("/api/admin/orders/999").status_code == 404
