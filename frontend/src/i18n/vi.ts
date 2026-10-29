@@ -469,8 +469,6 @@ export const vi = {
     auth_required: 'Vui lòng đăng nhập để tiếp tục.',
     admin_required: 'Chỉ quản trị viên mới có quyền thực hiện thao tác này.',
     invalid_credentials: 'Email hoặc mật khẩu không đúng.',
-    login_locked:
-      'Tài khoản tạm khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau {minutes} phút.',
     rate_limited: 'Quý khách thao tác quá nhanh. Vui lòng thử lại sau {seconds}.',
     email_taken: 'Email này đã được đăng ký.',
     phone_taken: 'Số điện thoại này đã được đăng ký.',

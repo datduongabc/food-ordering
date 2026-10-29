@@ -471,7 +471,6 @@ export const en: Dictionary = {
     auth_required: 'Please sign in to continue.',
     admin_required: 'Only administrators can do this.',
     invalid_credentials: 'Email or password is incorrect.',
-    login_locked: 'Too many failed sign-in attempts. Try again in {minutes} minutes.',
     rate_limited: "You're going a little fast. Please try again in {seconds}.",
     email_taken: 'This email is already registered.',
     phone_taken: 'This phone number is already registered.',

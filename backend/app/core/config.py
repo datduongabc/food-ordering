@@ -33,8 +33,6 @@ class Settings(BaseSettings):
 
     otp_ttl_minutes: int = 15
     otp_max_attempts: int = 5
-    login_max_failures: int = 5
-    login_lockout_minutes: int = 15
 
     # Booking rules are evaluated in the restaurant's local time, not the server's.
     restaurant_timezone: str = "Asia/Ho_Chi_Minh"
@@ -45,6 +43,7 @@ class Settings(BaseSettings):
     reservation_last_seating_time: time = time(21, 0)
 
     # Off only for end-to-end suites, which sign up many accounts from one address in seconds.
+    # Failed sign-ins and reset codes are always counted.
     rate_limits_enabled: bool = True
 
     smtp_host: str = "smtp.gmail.com"

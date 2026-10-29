@@ -16,7 +16,8 @@
 ### Accounts & Security
 - **Sign-up and sign-in** with Argon2 password hashing and server-side sessions in HTTP-only cookies; "remember me" keeps a session for 7 days.
 - **Email verification and password reset** with 6-digit codes that expire after 15 minutes and lock after 5 wrong tries.
-- **Brute-force protection:** an account locks for 15 minutes after 5 failed sign-ins.
+- **Brute-force protection:** 5 failed sign-ins for one email from one address block that pair for 15 minutes. Unknown emails are blocked the same way, and no account is ever locked, so neither the block nor the error reveals whether an account exists, and nobody can lock someone else out.
+- **No account discovery through sign-in or password reset:** wrong passwords and unknown emails get the same answer in the same time; reset requests always get the same reply; and a reset for an unknown email runs out of tries exactly like a real code.
 - **CSRF protection** on every state-changing request.
 - **Rate limits** per client address on the whole API (300 reads and 60 writes a minute), with tighter ones where abuse costs most: sign-in (10/min), sign-up (5/hour), password-reset and verification emails (3 per inbox or account every 15 min), code entry, orders, payments, bookings and reviews. Over the limit the API answers `429` with a `Retry-After` header.
 - **Hardened responses:** a Content-Security-Policy, `nosniff`, no framing, a strict referrer policy and `no-store` on API answers; API docs are only served outside production, and production refuses to start without a random `SECRET_KEY` of at least 32 characters.
@@ -116,8 +117,16 @@ All settings live in `.env`; see [`.env.example`](.env.example).
 
 - **`APP_ENV=local`** prints emails to the backend log, enables the MoMo sandbox, marks cookies non-Secure for plain HTTP and seeds the admin above. Use `production` only behind HTTPS; it seeds no admin, so create one with `docker compose exec backend python -m app.cli create-admin --email ... --name ... --phone ...`.
 - **Database password with special characters:** keep the raw password in `DB_PASSWORD` (Postgres uses it to create the user) and also set `DATABASE_URL` with the password URL-encoded (the backend connects with it).
-- **Rate limits** are counted in the backend's memory, which fits its single process. Running several backend processes or replicas needs a shared store (e.g. Redis) first. Behind another proxy or load balancer, make sure it overwrites `X-Forwarded-For` as the bundled nginx does, or every visitor shares one address. Add `Strict-Transport-Security` to `frontend/security-headers.conf` once the site is served over HTTPS.
 - **Real emails:** set `SMTP_USERNAME` to a Gmail address and `SMTP_PASSWORD` to a Google [App Password](https://myaccount.google.com/apppasswords); `MAIL_FROM` defaults to the username.
+
+### Known Security Limitations
+
+- **Sign-up reveals taken emails and phone numbers.** It answers `email_taken` or `phone_taken`, so anyone can check whether an address has an account. Closing this needs a sign-up that always replies "check your inbox" and tells an existing owner by email instead, and phone numbers would still give it away.
+- **Guesses spread over many addresses are not stopped.** Failed sign-ins are counted per address and email, never per account, by design: a per-account lock leaks which accounts exist and lets anyone lock a customer out. Someone with many IPs can therefore keep guessing one account's password slowly; the 8-character minimum is the remaining defence.
+- **Counters live in one process's memory.** Rate limits, failed sign-ins and the stand-in reset codes for unknown emails reset when the backend restarts, and several backend processes or replicas would each count separately. Scaling out needs a shared store such as Redis first.
+- **Small timing differences remain.** A reset request for a real account writes a code to the database and one for an unknown email does not; the difference is a few milliseconds, well inside normal network jitter, but it is not zero.
+- **Client addresses come from the proxy.** The bundled nginx overwrites `X-Forwarded-For`; behind another proxy or load balancer, make sure it does too, or visitors share one address (or can pick their own).
+- **No HSTS yet.** Add `Strict-Transport-Security` to `frontend/security-headers.conf` once the site is served over HTTPS.
 
 ---
 

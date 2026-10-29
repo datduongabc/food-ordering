@@ -124,10 +124,10 @@ describe('sign in', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Gỏi cuốn tôm thịt' }))
   })
 
-  it('translates wrong credentials and lockouts', async () => {
+  it('translates a blocked sign-in', async () => {
     const user = userEvent.setup()
     mockLayout()
-    mockApi('post', '/auth/login', apiError('login_locked', { minutes: 12 }), 429)
+    mockApi('post', '/auth/login', apiError('rate_limited', { seconds: 720 }), 429)
     renderApp('/login')
 
     await user.type(await screen.findByLabelText('Email'), 'a@example.com')
@@ -135,7 +135,7 @@ describe('sign in', () => {
     await user.click(screen.getByRole('button', { name: 'Đăng nhập' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Tài khoản tạm khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau 12 phút.',
+      'Quý khách thao tác quá nhanh. Vui lòng thử lại sau 12 phút.',
     )
   })
 

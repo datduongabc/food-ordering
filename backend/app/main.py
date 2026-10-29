@@ -7,6 +7,7 @@ from app.core.errors import register_error_handlers
 from app.core.headers import SecurityHeadersMiddleware
 from app.core.rate_limit import RateLimiter, RateLimitMiddleware
 from app.modules.admin.router import router as admin_router
+from app.modules.auth.phantom import PhantomResetCodes
 from app.modules.auth.router import router as auth_router
 from app.modules.cart.router import router as cart_router
 from app.modules.catalog.router import router as catalog_router
@@ -26,6 +27,7 @@ def create_app() -> FastAPI:
         openapi_url="/api/openapi.json" if settings.is_local else None,
     )
     app.state.rate_limiter = RateLimiter()
+    app.state.phantom_reset_codes = PhantomResetCodes()
     # Added last runs first: headers wrap every response, floods are refused before CSRF checks.
     app.add_middleware(CSRFMiddleware)
     app.add_middleware(RateLimitMiddleware)

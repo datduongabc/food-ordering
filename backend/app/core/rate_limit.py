@@ -37,6 +37,9 @@ API_WRITES = Limit("api-write", 60, 60)
 
 # Endpoints that send email, create accounts or accept guesses get their own, tighter limits.
 LOGIN = Limit("login", 10, 60)
+# Failed sign-ins per address and email, counted whether or not the account exists so the
+# block reveals nothing. Replaces a per-account lockout, which let anyone lock anyone out.
+LOGIN_FAILURES = Limit("login-failure", 5, 900)
 REGISTER = Limit("register", 5, 3600)
 PASSWORD_RESET_REQUESTS = Limit("password-reset-request", 10, 3600)
 PASSWORD_RESET_PER_EMAIL = Limit("password-reset-email", 3, 900)
@@ -64,20 +67,39 @@ class RateLimiter:
         """Counts a request; returns the seconds to wait instead when over the limit."""
         now = self._clock()
         with self._lock:
-            _, hits = self._hits.setdefault((limit.name, key), (limit.seconds, deque()))
-            while hits and hits[0] <= now - limit.seconds:
-                hits.popleft()
-            if len(hits) >= limit.requests:
-                return max(1, math.ceil(hits[0] + limit.seconds - now))
-            hits.append(now)
+            wait = self._wait(limit, key, now)
+            if wait is not None:
+                return wait
+            self._hits[(limit.name, key)][1].append(now)
             self._calls += 1
             if self._calls % self.SWEEP_EVERY == 0:
                 self._sweep(now)
             return None
 
+    def wait(self, limit: Limit, key: str) -> int | None:
+        """The seconds to wait if the limit is reached, without counting a request."""
+        with self._lock:
+            return self._wait(limit, key, self._clock())
+
+    def forget(self, limit: Limit, key: str) -> None:
+        with self._lock:
+            self._hits.pop((limit.name, key), None)
+
+    def _wait(self, limit: Limit, key: str, now: float) -> int | None:
+        _, hits = self._hits.setdefault((limit.name, key), (limit.seconds, deque()))
+        while hits and hits[0] <= now - limit.seconds:
+            hits.popleft()
+        if len(hits) >= limit.requests:
+            return max(1, math.ceil(hits[0] + limit.seconds - now))
+        return None
+
     def _sweep(self, now: float) -> None:
         # Forget clients whose every hit has left its window, so memory tracks active clients.
-        stale = [key for key, (seconds, hits) in self._hits.items() if hits[-1] <= now - seconds]
+        stale = [
+            key
+            for key, (seconds, hits) in self._hits.items()
+            if not hits or hits[-1] <= now - seconds
+        ]
         for key in stale:
             del self._hits[key]
 

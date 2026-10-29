@@ -74,3 +74,14 @@ def test_idle_clients_are_forgotten(monkeypatch):
     limiter.hit(LIMIT, "ip:active")  # second call: sweeps
 
     assert len(limiter) == 1
+
+
+def test_wait_peeks_without_counting_and_forget_starts_over():
+    limiter = RateLimiter(Clock())
+    assert limiter.wait(LIMIT, "ip:1") is None
+    for _ in range(3):
+        limiter.hit(LIMIT, "ip:1")
+
+    assert limiter.wait(LIMIT, "ip:1") == 60
+    limiter.forget(LIMIT, "ip:1")
+    assert limiter.wait(LIMIT, "ip:1") is None

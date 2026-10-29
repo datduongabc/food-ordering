@@ -23,6 +23,7 @@ from app.core.security import (
     verify_password,
 )
 from app.modules.auth.models import OtpCode, OtpPurpose, UserSession
+from app.modules.auth.phantom import PhantomResetCodes
 from app.modules.auth.schemas import RegisterIn
 from app.modules.users.models import User
 
@@ -64,35 +65,18 @@ def register(db: Session, data: RegisterIn) -> User:
 
 
 def authenticate(db: Session, email: str, password: str) -> User:
-    settings = get_settings()
     user = get_active_user_by_email(db, email)
     if user is None:
         verify_password(password, _DUMMY_HASH)
         raise UnauthorizedError(INVALID_CREDENTIALS, code="invalid_credentials")
 
-    now = utcnow()
-    if user.locked_until and user.locked_until > now:
-        minutes = max(1, int((user.locked_until - now).total_seconds() // 60) + 1)
-        raise TooManyRequestsError(
-            f"Too many failed sign-in attempts. Try again in {minutes} minute(s).",
-            code="login_locked",
-            params={"minutes": minutes},
-        )
-
     valid, upgraded_hash = verify_password(password, user.password_hash)
     if not valid:
-        user.failed_login_attempts += 1
-        if user.failed_login_attempts >= settings.login_max_failures:
-            user.locked_until = now + timedelta(minutes=settings.login_lockout_minutes)
-            user.failed_login_attempts = 0
-        db.commit()
         raise UnauthorizedError(INVALID_CREDENTIALS, code="invalid_credentials")
 
-    user.failed_login_attempts = 0
-    user.locked_until = None
     if upgraded_hash:
         user.password_hash = upgraded_hash
-    db.commit()
+        db.commit()
     return user
 
 
@@ -144,15 +128,19 @@ def issue_otp(db: Session, user: User, purpose: OtpPurpose) -> str:
     return code
 
 
+def _too_many_code_attempts() -> TooManyRequestsError:
+    return TooManyRequestsError(
+        "Too many incorrect codes. Request a new one.", code="too_many_code_attempts"
+    )
+
+
 def consume_otp(db: Session, user: User, purpose: OtpPurpose, code: str) -> None:
     settings = get_settings()
     otp = db.scalar(select(OtpCode).where(OtpCode.user_id == user.id, OtpCode.purpose == purpose))
     if otp is None or otp.expires_at <= utcnow():
         raise BadRequestError(INVALID_CODE, code="invalid_code")
     if otp.attempts >= settings.otp_max_attempts:
-        raise TooManyRequestsError(
-            "Too many incorrect codes. Request a new one.", code="too_many_code_attempts"
-        )
+        raise _too_many_code_attempts()
 
     if not hmac.compare_digest(otp.code_hash, hash_otp_code(code)):
         otp.attempts += 1
@@ -182,23 +170,26 @@ def otp_email(user: User, purpose: OtpPurpose, code: str) -> Email:
     return Email(to=user.email, subject=subject, text=text)
 
 
-def start_password_reset(db: Session, email: str) -> Email | None:
+def start_password_reset(db: Session, email: str, phantoms: PhantomResetCodes) -> Email | None:
     """Returns the email to send, or None for unknown accounts (the caller responds identically)."""
     user = get_active_user_by_email(db, email)
     if user is None:
+        phantoms.issue(email)
         return None
     code = issue_otp(db, user, OtpPurpose.PASSWORD_RESET)
     return otp_email(user, OtpPurpose.PASSWORD_RESET, code)
 
 
-def reset_password(db: Session, email: str, code: str, new_password: str) -> None:
+def reset_password(
+    db: Session, email: str, code: str, new_password: str, phantoms: PhantomResetCodes
+) -> None:
     user = get_active_user_by_email(db, email)
     if user is None:
+        if not phantoms.record_guess(email):
+            raise _too_many_code_attempts()
         raise BadRequestError(INVALID_CODE, code="invalid_code")
     consume_otp(db, user, OtpPurpose.PASSWORD_RESET, code)
     user.password_hash = hash_password(new_password)
-    user.failed_login_attempts = 0
-    user.locked_until = None
     # Whoever triggered the reset may be locking out an attacker, so every session goes.
     revoke_all_sessions(db, user.id)
     db.commit()

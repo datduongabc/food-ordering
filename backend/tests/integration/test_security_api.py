@@ -22,8 +22,9 @@ def assert_rate_limited(response, window: int) -> None:
 
 class TestRouteLimits:
     def test_login_attempts_are_limited_per_address(self, client):
-        for _ in range(LOGIN.requests):
-            assert login(client).status_code == 401
+        # A new email each time, so the per-email failure count never steps in.
+        for n in range(LOGIN.requests):
+            assert login(client, f"nobody{n}@example.com").status_code == 401
 
         assert_rate_limited(login(client), LOGIN.seconds)
         # The limit is on the caller, not the account they try.
@@ -60,8 +61,8 @@ class TestRouteLimits:
 
     def test_limits_can_be_switched_off(self, client, monkeypatch):
         monkeypatch.setattr(get_settings(), "rate_limits_enabled", False)
-        for _ in range(LOGIN.requests + 1):
-            assert login(client).status_code == 401
+        for n in range(LOGIN.requests + 1):
+            assert login(client, f"nobody{n}@example.com").status_code == 401
 
 
 class TestApiWideLimit:

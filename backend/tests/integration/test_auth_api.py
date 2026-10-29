@@ -5,6 +5,7 @@ from sqlalchemy import select
 
 from app.core.config import get_settings
 from app.core.db import utcnow
+from app.core.rate_limit import CODE_ENTRY, LOGIN, LOGIN_FAILURES
 from app.modules.auth import service as auth_service
 from app.modules.auth.models import UserSession
 from app.modules.users.models import User
@@ -70,14 +71,35 @@ class TestLogin:
         assert wrong_password.status_code == unknown_email.status_code == 401
         assert wrong_password.json() == unknown_email.json()
 
-    def test_locks_account_after_repeated_failures(self, client, registered_user):
-        for _ in range(get_settings().login_max_failures):
+    def test_blocks_repeated_failures_the_same_way_for_unknown_emails(
+        self, client, registered_user
+    ):
+        def blocked_after_failures(email):
+            # Both runs together pass the per-address cap on sign-in attempts; keep it out.
+            client.app.state.rate_limiter.forget(LOGIN, "ip:testclient")
+            for _ in range(LOGIN_FAILURES.requests):
+                assert login(client, email=email, password="wrong-password").status_code == 401
+            return login(client, email=email, password=USER["password"])
+
+        real = blocked_after_failures(USER["email"])
+        unknown = blocked_after_failures("nobody@example.com")
+
+        assert real.status_code == unknown.status_code == 429
+        assert real.json()["code"] == unknown.json()["code"] == "rate_limited"
+
+    def test_success_clears_earlier_failures(self, client, registered_user):
+        for _ in range(LOGIN_FAILURES.requests - 1):
+            login(client, password="wrong-password")
+        assert login(client).status_code == 200
+
+        for _ in range(LOGIN_FAILURES.requests - 1):
             assert login(client, password="wrong-password").status_code == 401
 
-        locked = login(client)
-        assert locked.status_code == 429
-        assert locked.json()["code"] == "login_locked"
-        assert locked.json()["params"] == {"minutes": 15}
+    def test_failures_still_count_with_rate_limits_off(self, client, registered_user, monkeypatch):
+        monkeypatch.setattr(get_settings(), "rate_limits_enabled", False)
+        for _ in range(LOGIN_FAILURES.requests):
+            login(client, password="wrong-password")
+        assert login(client).status_code == 429
 
     def test_deactivated_user_cannot_login_and_loses_sessions(self, client, registered_user, db):
         login(client)
@@ -173,6 +195,36 @@ class TestPasswordReset:
 
         blocked = client.post("/api/auth/password/reset", json={**payload, "code": real_code})
         assert blocked.status_code == 429
+
+    def test_unknown_email_blocks_after_max_wrong_codes_like_a_real_one(self, client):
+        email = "nobody@example.com"
+        client.post("/api/auth/password/forgot", json={"email": email})
+        payload = {"email": email, "code": "000000", "new_password": "new-password-1"}
+
+        for _ in range(get_settings().otp_max_attempts):
+            response = client.post("/api/auth/password/reset", json=payload)
+            assert response.status_code == 400
+            assert response.json()["code"] == "invalid_code"
+
+        blocked = client.post("/api/auth/password/reset", json=payload)
+        assert blocked.status_code == 429
+        assert blocked.json()["code"] == "too_many_code_attempts"
+
+        # A new request starts a fresh code, as it would for a real account.
+        client.post("/api/auth/password/forgot", json={"email": email})
+        assert client.post("/api/auth/password/reset", json=payload).json()["code"] == (
+            "invalid_code"
+        )
+
+    def test_without_a_request_any_email_only_ever_hears_invalid_code(
+        self, client, registered_user
+    ):
+        for email in (USER["email"], "nobody@example.com"):
+            client.app.state.rate_limiter.forget(CODE_ENTRY, "ip:testclient")
+            payload = {"email": email, "code": "000000", "new_password": "new-password-1"}
+            for _ in range(get_settings().otp_max_attempts + 1):
+                response = client.post("/api/auth/password/reset", json=payload)
+                assert response.json()["code"] == "invalid_code"
 
 
 class TestChangePassword:
