@@ -1,0 +1,31 @@
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 48px;
+}
+
+.button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1.5px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-card);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button[aria-current='page'] {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-ground);
+  font-weight: 700;
+}
+
+.button:disabled {
+  border-color: var(--color-border-strong);
+  background: transparent;
+  color: var(--color-faint);
+  cursor: not-allowed;
+}

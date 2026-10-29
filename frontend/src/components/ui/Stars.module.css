@@ -1,0 +1,9 @@
+.stars {
+  color: var(--color-red);
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+
+.empty {
+  color: var(--color-disabled);
+}

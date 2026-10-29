@@ -1,0 +1,51 @@
+.footer {
+  background: var(--color-ink);
+  color: #eadbc4;
+  border-top: 6px solid var(--color-yellow);
+  scroll-margin-top: 16px;
+}
+
+.branches {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 48px var(--gutter) 32px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 32px;
+}
+
+.branch {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.name {
+  font-family: var(--font-hand);
+  font-size: 22px;
+  color: var(--color-yellow);
+}
+
+.address {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.directions {
+  align-self: flex-start;
+  padding: 8px 0;
+  color: var(--color-yellow);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.directions:hover {
+  color: #ffd65a;
+}
+
+.copyright {
+  text-align: center;
+  padding: 0 var(--gutter) 32px;
+  font-size: 13px;
+  color: #bfa98c;
+}

@@ -1,0 +1,9 @@
+.error {
+  padding: 14px 16px;
+  background: var(--color-error-soft);
+  color: var(--color-red-dark);
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+}

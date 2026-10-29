@@ -1,0 +1,137 @@
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.breadcrumb a {
+  padding: 4px 0;
+}
+
+.breadcrumb [aria-current='page'] {
+  padding: 4px 0;
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 48px;
+  align-items: flex-start;
+}
+
+.image {
+  flex: 1 1 420px;
+  min-width: 0;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border: 3px solid var(--color-ink);
+  border-radius: var(--radius-lg);
+  box-shadow: 10px 10px 0 var(--color-green);
+  background: var(--color-border);
+}
+
+.info {
+  flex: 1 1 400px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.category {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--color-green);
+}
+
+.name {
+  font-size: 44px;
+  font-weight: 800;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.price {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--color-red);
+}
+
+.description {
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--color-ink-soft);
+}
+
+.branches {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.label {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  padding: 8px 14px;
+  background: var(--color-green-soft);
+  color: var(--color-green);
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.buy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 2px dashed var(--color-border-strong);
+}
+
+.addButton {
+  flex: 1 1 240px;
+}
+
+@media (max-width: 640px) {
+  .image {
+    box-shadow: 6px 6px 0 var(--color-green);
+  }
+
+  .hero {
+    gap: 32px;
+  }
+
+  .name {
+    font-size: 34px;
+  }
+}
