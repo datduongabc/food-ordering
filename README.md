@@ -18,6 +18,8 @@
 - **Email verification and password reset** with 6-digit codes that expire after 15 minutes and lock after 5 wrong tries.
 - **Brute-force protection:** an account locks for 15 minutes after 5 failed sign-ins.
 - **CSRF protection** on every state-changing request.
+- **Rate limits** per client address on the whole API (300 reads and 60 writes a minute), with tighter ones where abuse costs most: sign-in (10/min), sign-up (5/hour), password-reset and verification emails (3 per inbox or account every 15 min), code entry, orders, payments, bookings and reviews. Over the limit the API answers `429` with a `Retry-After` header.
+- **Hardened responses:** a Content-Security-Policy, `nosniff`, no framing, a strict referrer policy and `no-store` on API answers; API docs are only served outside production, and production refuses to start without a random `SECRET_KEY` of at least 32 characters.
 - **Guest cart merge:** a cart built before signing in is kept in the browser and merged into the account on sign-in.
 
 ### Menu & Reviews
@@ -114,6 +116,7 @@ All settings live in `.env`; see [`.env.example`](.env.example).
 
 - **`APP_ENV=local`** prints emails to the backend log, enables the MoMo sandbox, marks cookies non-Secure for plain HTTP and seeds the admin above. Use `production` only behind HTTPS; it seeds no admin, so create one with `docker compose exec backend python -m app.cli create-admin --email ... --name ... --phone ...`.
 - **Database password with special characters:** keep the raw password in `DB_PASSWORD` (Postgres uses it to create the user) and also set `DATABASE_URL` with the password URL-encoded (the backend connects with it).
+- **Rate limits** are counted in the backend's memory, which fits its single process. Running several backend processes or replicas needs a shared store (e.g. Redis) first. Behind another proxy or load balancer, make sure it overwrites `X-Forwarded-For` as the bundled nginx does, or every visitor shares one address. Add `Strict-Transport-Security` to `frontend/security-headers.conf` once the site is served over HTTPS.
 - **Real emails:** set `SMTP_USERNAME` to a Gmail address and `SMTP_PASSWORD` to a Google [App Password](https://myaccount.google.com/apppasswords); `MAIL_FROM` defaults to the username.
 
 ---
@@ -184,7 +187,7 @@ GitHub Actions runs on every push and pull request:
 restaurant_project/
 ├── backend/
 │   ├── app/
-│   │   ├── core/              # Settings, database, sessions & security, CSRF, errors, email
+│   │   ├── core/              # Settings, database, sessions & security, CSRF, rate limits, headers, email
 │   │   ├── modules/           # auth, catalog, cart, orders (incl. MoMo sandbox),
 │   │   │                      # reservations, feedback, users, admin
 │   │   ├── cli.py             # create-admin command

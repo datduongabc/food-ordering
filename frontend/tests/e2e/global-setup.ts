@@ -45,6 +45,8 @@ export default async function globalSetup() {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     APP_ENV: 'local',
+    // Journeys sign up many accounts from one address; the API tests cover the limits.
+    RATE_LIMITS_ENABLED: 'false',
     SECRET_KEY: 'e2e-secret-key-not-for-production-0123456789',
     DATABASE_URL: process.env.E2E_DATABASE_URL ?? `sqlite:///${join(workDir, 'e2e.db')}`,
     MEDIA_DIR: mediaDir,
