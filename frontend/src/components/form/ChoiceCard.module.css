@@ -1,0 +1,83 @@
+.card {
+  flex: 1 1 200px;
+  min-width: 0;
+  min-height: 72px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  background: var(--color-card);
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.card:hover {
+  border-color: var(--color-ink);
+}
+
+.card:has(.input:checked) {
+  background: var(--color-yellow-soft);
+  border: 2.5px solid var(--color-ink);
+  box-shadow: 3px 3px 0 var(--color-ink);
+  /* The thicker border would otherwise nudge the content. */
+  padding: 13px 15px;
+}
+
+.card:has(.input:focus-visible) {
+  outline: 3px solid var(--color-yellow);
+  outline-offset: 2px;
+}
+
+.card:has(.input:disabled) {
+  background: var(--color-ground);
+  border-style: dashed;
+  color: var(--color-faint);
+  cursor: not-allowed;
+}
+
+.input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.compact {
+  flex: 1 1 0;
+  min-height: 64px;
+  padding: 10px 8px;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+}
+
+.compact:has(.input:checked) {
+  padding: 9px 7px;
+}
+
+.compact .title {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.compact .hint {
+  order: -1;
+  font-size: 12px;
+  font-weight: 600;
+  color: inherit;
+}

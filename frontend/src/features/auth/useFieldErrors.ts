@@ -1,4 +1,4 @@
-import type { FieldValues, Path, UseFormReturn } from 'react-hook-form'
+import type { FieldValues, Path, UseFormSetError } from 'react-hook-form'
 import { ApiError } from '@/lib/api/client'
 import { useErrorMessage } from '@/i18n/errors'
 
@@ -7,7 +7,7 @@ import { useErrorMessage } from '@/i18n/errors'
  * that field; returns the message for anything else, to show above the submit button.
  */
 export function useServerErrors<T extends FieldValues>(
-  form: UseFormReturn<T>,
+  form: { setError: UseFormSetError<T> },
   fieldsByCode: Partial<Record<string, Path<T>>>,
 ) {
   const message = useErrorMessage()

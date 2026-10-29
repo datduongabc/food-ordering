@@ -1,11 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { emailedCode, uniqueEmail, uniquePhone } from './support/email.ts'
-
-async function openMenu(page: Page) {
-  // On phones the navigation sits behind the menu button.
-  const toggle = page.getByRole('button', { name: 'Điều hướng chính' })
-  if (await toggle.isVisible()) await toggle.click()
-}
+import { openMenu } from './support/session.ts'
 
 async function signOut(page: Page) {
   await openMenu(page)

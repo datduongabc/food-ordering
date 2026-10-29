@@ -1,0 +1,218 @@
+.detail {
+  flex: 2 1 560px;
+  min-width: 0;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: var(--color-card);
+  border: 2px solid var(--color-ink);
+  border-radius: var(--radius-lg);
+  box-shadow: 6px 6px 0 var(--color-yellow);
+  scroll-margin-top: 16px;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.headText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.muted {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.boxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.box {
+  flex: 1 1 180px;
+  min-width: 0;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--color-ground);
+  border-radius: var(--radius-md);
+  overflow-wrap: anywhere;
+}
+
+.boxLabel {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.boxText {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.thumb {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border: 1.5px solid var(--color-ink);
+  border-radius: var(--radius-sm);
+  background: var(--color-border);
+}
+
+.itemName {
+  flex: 1;
+  min-width: 0;
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 2px dashed var(--color-border-strong);
+  font-size: 20px;
+}
+
+.totalValue {
+  color: var(--color-red);
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.timelineTitle {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.events {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.event {
+  display: flex;
+  gap: 14px;
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.dot {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 4px;
+  border: 2px solid var(--color-ink);
+  border-radius: 50%;
+}
+
+.dot[data-status='PENDING'] {
+  background: #d9a400;
+}
+
+.dot[data-status='CONFIRMED'] {
+  background: #2c5a94;
+}
+
+.dot[data-status='COMPLETED'] {
+  background: var(--color-green);
+}
+
+.dot[data-status='CANCELLED'] {
+  background: #8a7462;
+}
+
+.line {
+  flex: 1;
+  width: 2px;
+  min-height: 18px;
+  background: var(--color-border-strong);
+}
+
+.event:last-child .line {
+  display: none;
+}
+
+.eventText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 16px;
+  font-size: 15px;
+}
+
+.eventWhen {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.eventNote {
+  font-size: 14px;
+  color: var(--color-ink-soft);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.confirm {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--color-error-soft);
+  border-radius: var(--radius-md);
+}
+
+.confirmText {
+  color: var(--color-red-dark);
+}
+
+@media (max-width: 640px) {
+  .detail {
+    padding: 20px 16px;
+    box-shadow: 4px 4px 0 var(--color-yellow);
+  }
+}

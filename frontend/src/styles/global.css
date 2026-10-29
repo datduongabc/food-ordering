@@ -20,6 +20,13 @@
   --color-disabled: #cdbba0;
   --color-momo: #a50064;
 
+  /* Status badges: text and ground pairs that pass 4.5:1 and differ in lightness, not only hue. */
+  --color-amber-soft: #fff1c2;
+  --color-amber-ink: #6b4e00;
+  --color-blue-soft: #e3ecf7;
+  --color-blue-ink: #1d3f6e;
+  --color-stone-soft: #efe6da;
+
   --font-body: 'Be Vietnam Pro', system-ui, sans-serif;
   --font-hand: 'Patrick Hand', cursive;
 

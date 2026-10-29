@@ -4,6 +4,7 @@ import { ButtonLink } from '@/components/ui/Button'
 import { Stars } from '@/components/ui/Stars'
 import { ProductCard } from '@/features/catalog/components/ProductCard'
 import { catalogQueries } from '@/features/catalog/queries'
+import { BookingSection } from '@/features/reservations/components/BookingSection'
 import { reviewQueries } from '@/features/reviews/queries'
 import { useI18n } from '@/i18n/context'
 import { useLocalize } from '@/i18n/useLocalize'
@@ -32,6 +33,9 @@ export function HomePage() {
           <div className={styles.actions}>
             <ButtonLink to="/menu" size="lg">
               {t.home.ctaMenu}
+            </ButtonLink>
+            <ButtonLink to="/#book" size="lg" variant="outline">
+              {t.home.ctaBook}
             </ButtonLink>
           </div>
         </div>
@@ -70,6 +74,8 @@ export function HomePage() {
           ))}
         </div>
       </section>
+
+      <BookingSection />
 
       {/* Hidden until guests have written reviews, rather than showing placeholder quotes. */}
       {reviews.data && reviews.data.length > 0 && (

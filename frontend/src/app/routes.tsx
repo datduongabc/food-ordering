@@ -38,6 +38,11 @@ export const routes: RouteObject[] = [
           import('@/features/auth/pages/ForgotPasswordPage').then((m) => m.ForgotPasswordPage),
         'reset-password': () =>
           import('@/features/auth/pages/ResetPasswordPage').then((m) => m.ResetPasswordPage),
+        cart: () => import('@/features/cart/pages/CartPage').then((m) => m.CartPage),
+        checkout: () => import('@/features/orders/pages/CheckoutPage').then((m) => m.CheckoutPage),
+        'orders/:id/pay': () =>
+          import('@/features/orders/pages/PaymentPage').then((m) => m.PaymentPage),
+        account: () => import('@/features/account/AccountPage').then((m) => m.AccountPage),
       }),
       { path: '*', element: <NotFoundPage /> },
     ],

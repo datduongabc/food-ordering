@@ -74,6 +74,17 @@
   background: var(--color-yellow-soft);
 }
 
+.danger {
+  background: var(--color-card);
+  color: var(--color-red);
+  border: 2px solid var(--color-red);
+}
+
+.danger:hover:not(:disabled) {
+  color: var(--color-red-dark);
+  background: var(--color-error-soft);
+}
+
 .green {
   background: var(--color-green);
   color: var(--color-ground);

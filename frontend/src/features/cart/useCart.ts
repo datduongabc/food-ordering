@@ -5,9 +5,9 @@ import { useCurrentUser } from '@/features/auth/queries'
 import { guestCart, useGuestCartLines } from './guestCart'
 import { cartSchema, type Cart, type GuestLine } from './schemas'
 
-const ACCOUNT_CART_KEY = ['cart', 'account'] as const
+export const ACCOUNT_CART_KEY = ['cart', 'account'] as const
 
-const EMPTY_CART: Cart = { items: [], total_count: 0, total_price: 0 }
+export const EMPTY_CART: Cart = { items: [], total_count: 0, total_price: 0 }
 
 function previewGuestCart(lines: readonly GuestLine[]): Promise<Cart> {
   if (lines.length === 0) return Promise.resolve(EMPTY_CART)

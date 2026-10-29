@@ -3,25 +3,10 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw/http'
 import { describe, expect, it } from 'vitest'
 import { guestCart } from '@/features/cart/guestCart'
-import { apiError, mockApi, mockLayout } from '../support/api'
+import { apiError, mockApi, mockLayout, recordCalls } from '../support/api'
 import { cartOf, customer, springRolls } from '../support/fixtures'
 import { renderApp } from '../support/render'
 import { server } from '../support/server'
-
-/** Records the JSON body of each call to these endpoints, in order. */
-function recordCalls(...handlers: [string, string, unknown, number?][]) {
-  const calls: { path: string; body: unknown }[] = []
-  for (const [method, path, response, status = 200] of handlers) {
-    server.use(
-      http[method as 'post'](`*/api${path}`, async ({ request }) => {
-        const text = await request.text()
-        calls.push({ path, body: text ? JSON.parse(text) : null })
-        return HttpResponse.json(response as never, { status })
-      }),
-    )
-  }
-  return calls
-}
 
 describe('sign up', () => {
   it('validates every field in Vietnamese before calling the API', async () => {
@@ -106,11 +91,20 @@ describe('sign up', () => {
   })
 })
 
+const EMPTY_PAGE = { items: [], page: 1, page_size: 12, total: 0, total_pages: 0 }
+
+/** The requests the menu page makes, so a test that ends there can wait for it to load. */
+function mockMenu() {
+  mockApi('get', '/products', EMPTY_PAGE)
+}
+
 describe('sign in', () => {
   it('signs in and returns to the page that asked for it', async () => {
     const user = userEvent.setup()
     mockLayout()
     mockApi('get', '/cart', cartOf())
+    mockApi('get', `/products/${springRolls.slug}`, springRolls)
+    mockApi('get', `/products/${springRolls.slug}/reviews`, [])
     const calls = recordCalls(['post', '/auth/login', customer])
     const { router } = renderApp('/login?next=/menu/shrimp-spring-rolls%23reviews')
 
@@ -127,6 +121,7 @@ describe('sign in', () => {
       remember: true,
     })
     expect(screen.getByRole('link', { name: 'Tài khoản' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Gỏi cuốn tôm thịt' }))
   })
 
   it('translates wrong credentials and lockouts', async () => {
@@ -146,14 +141,19 @@ describe('sign in', () => {
 
   it('sends signed-in visitors on instead of showing the form', async () => {
     mockLayout({ signedIn: customer })
+    mockMenu()
     const { router } = renderApp('/login?next=/menu')
-    await waitFor(() => expect(router.state.location.pathname).toBe('/menu'))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Thực đơn' }))
+    expect(router.state.location.pathname).toBe('/menu')
   })
 
   it('ignores a next parameter that points at another site', async () => {
     const user = userEvent.setup()
     mockLayout()
     mockApi('post', '/auth/login', customer)
+    mockApi('get', '/products/featured', null)
+    mockApi('get', '/products', EMPTY_PAGE)
+    mockApi('get', '/reviews/top', [])
     const { router } = renderApp('/login?next=//evil.example')
 
     await user.type(await screen.findByLabelText('Email'), 'a@example.com')
@@ -161,6 +161,7 @@ describe('sign in', () => {
     await user.click(screen.getByRole('button', { name: 'Đăng nhập' }))
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/'))
+    expect(await screen.findByRole('heading', { name: 'Đặt bàn' })).toBeInTheDocument()
   })
 })
 
@@ -176,6 +177,7 @@ describe('email verification', () => {
           : HttpResponse.json(customer),
       ),
     )
+    mockMenu()
     const { router } = renderApp('/verify-email?next=/menu')
 
     expect(await screen.findByText(/a@example\.com/)).toBeInTheDocument()
@@ -191,7 +193,8 @@ describe('email verification', () => {
     await user.type(screen.getByLabelText('Mã xác thực'), '222222')
     await user.click(screen.getByRole('button', { name: 'Xác thực' }))
 
-    await waitFor(() => expect(router.state.location.pathname).toBe('/menu'))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Thực đơn' }))
+    expect(router.state.location.pathname).toBe('/menu')
     expect(screen.getByText('Email đã được xác thực.')).toBeInTheDocument()
   })
 

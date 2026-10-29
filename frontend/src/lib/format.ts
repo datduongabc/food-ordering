@@ -24,6 +24,24 @@ export function formatDate(iso: string, lang: Lang): string {
   }).format(new Date(iso))
 }
 
+/** A calendar date (YYYY-MM-DD) split for a date tile: weekday, day of month, month. */
+export function formatDayParts(date: string, lang: Lang) {
+  const day = new Date(`${date}T00:00:00Z`)
+  const part = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(LOCALES[lang], { ...options, timeZone: 'UTC' }).format(day)
+  return {
+    weekday: part({ weekday: 'short' }),
+    day: day.getUTCDate(),
+    month: part({ month: 'short' }),
+    full: part({ weekday: 'long', day: 'numeric', month: 'numeric' }),
+  }
+}
+
+/** "19:30:00" from the API as "19:30". */
+export function formatClock(time: string): string {
+  return time.slice(0, 5)
+}
+
 /** Fills `{name}` placeholders in a translated string. */
 export function interpolate(template: string, values: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (match, key: string) =>

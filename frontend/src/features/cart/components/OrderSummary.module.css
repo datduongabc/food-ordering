@@ -1,0 +1,49 @@
+.summary {
+  flex: 1 1 320px;
+  min-width: 0;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--color-card);
+  border: 2px solid var(--color-ink);
+  border-radius: var(--radius-lg);
+  box-shadow: 6px 6px 0 var(--color-yellow);
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.rows {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.row dd {
+  margin: 0;
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.total {
+  padding-top: 14px;
+  border-top: 2px dashed var(--color-border-strong);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.total dd {
+  color: var(--color-red);
+}

@@ -1,0 +1,42 @@
+.badge {
+  display: inline-block;
+  align-self: flex-start;
+  border-radius: 999px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.md {
+  padding: 5px 12px;
+  font-size: 13px;
+}
+
+.lg {
+  padding: 7px 14px;
+  font-size: 14px;
+}
+
+.amber {
+  background: var(--color-amber-soft);
+  color: var(--color-amber-ink);
+}
+
+.blue {
+  background: var(--color-blue-soft);
+  color: var(--color-blue-ink);
+}
+
+.green {
+  background: var(--color-green-soft);
+  color: var(--color-green-dark);
+}
+
+.stone {
+  background: var(--color-stone-soft);
+  color: var(--color-muted);
+}
+
+.red {
+  background: var(--color-error-soft);
+  color: var(--color-red-dark);
+}

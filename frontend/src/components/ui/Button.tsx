@@ -2,7 +2,7 @@ import type { ComponentProps } from 'react'
 import { Link, type LinkProps } from 'react-router'
 import styles from './Button.module.css'
 
-type Variant = 'primary' | 'dark' | 'outline' | 'momo' | 'green'
+type Variant = 'primary' | 'dark' | 'outline' | 'danger' | 'momo' | 'green'
 type Size = 'md' | 'lg'
 
 function classes(variant: Variant, size: Size, block: boolean, extra?: string) {

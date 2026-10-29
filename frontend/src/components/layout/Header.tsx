@@ -76,6 +76,9 @@ export function Header() {
           <NavLink to="/menu" className={navClass}>
             {t.nav.menu}
           </NavLink>
+          <Link to="/#book" className={styles.navLink}>
+            {t.nav.book}
+          </Link>
           <a href="#branches" className={styles.navLink}>
             {t.nav.branches}
           </a>
