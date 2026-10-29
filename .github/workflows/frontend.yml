@@ -54,8 +54,8 @@ jobs:
           npm run lint
           npm run format:check
 
-      - name: Unit and integration tests
-        run: npm test
+      - name: Unit and integration tests (with coverage thresholds)
+        run: npm test -- --coverage
 
       - name: End-to-end tests
         env:

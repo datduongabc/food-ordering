@@ -149,6 +149,7 @@ Docker Compose also publishes port 8000; stop it, or set `WEB_PORT` in `.env`, b
 ```bash
 cd backend
 uv run pytest                                   # SQLite
+uv run pytest --cov                             # with coverage (fails under 85%)
 TEST_DATABASE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:5432/dateno_test uv run pytest
 uv run ruff check . && uv run ruff format --check .
 ```
@@ -158,6 +159,7 @@ uv run ruff check . && uv run ruff format --check .
 cd frontend
 npm run typecheck && npm run lint && npm run format:check
 npm test             # unit and integration (Vitest, Testing Library, MSW)
+npm test -- --coverage   # with coverage (fails under 85% of lines and statements, 80% of branches and functions)
 npx playwright install chromium   # once
 npm run test:e2e     # Playwright on desktop and mobile, against the real backend
 ```
@@ -170,8 +172,8 @@ The end-to-end suite migrates a throwaway SQLite database, starts the backend an
 
 GitHub Actions runs on every push and pull request:
 
-- **[`backend.yml`](.github/workflows/backend.yml):** ruff lint and format, migrations up, `alembic check` and back down on Postgres 16, then the test suite on SQLite and on Postgres.
-- **[`frontend.yml`](.github/workflows/frontend.yml):** type check, lint, format, unit and integration tests, then the Playwright suite against the real backend.
+- **[`backend.yml`](.github/workflows/backend.yml):** ruff lint and format, migrations up, `alembic check` and back down on Postgres 16, then the test suite on SQLite (with an 85% coverage gate) and on Postgres.
+- **[`frontend.yml`](.github/workflows/frontend.yml):** type check, lint, format, unit and integration tests with coverage thresholds, then the Playwright suite against the real backend.
 - **[`ci.yml`](.github/workflows/ci.yml):** validates `docker-compose.yml` and builds its images.
 
 ---

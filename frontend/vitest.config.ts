@@ -11,6 +11,13 @@ export default mergeConfig(
       // Windows drive) one per core can miss Vitest's fixed 60 s worker start timeout, which
       // silently drops that worker's test file from the run.
       maxWorkers: 4,
+      coverage: {
+        provider: 'v8',
+        include: ['src/**'],
+        // The entry point only mounts the app; every route is exercised through the router.
+        exclude: ['src/main.tsx'],
+        thresholds: { statements: 85, lines: 85, functions: 80, branches: 80 },
+      },
       projects: [
         {
           extends: true,

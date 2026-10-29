@@ -2,48 +2,11 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw/http'
 import { describe, expect, it } from 'vitest'
-import type { AdminOrder, AdminProduct, AdminUser } from '@/features/admin/schemas'
-import type { User } from '@/features/auth/schemas'
+import { admin, adminDish, adminOrder, adminUser, page } from '../support/adminFixtures'
 import { apiError, mockApi, mockLayout, recordCalls } from '../support/api'
-import {
-  customer,
-  district1,
-  district7,
-  mains,
-  order,
-  springRolls,
-  starters,
-} from '../support/fixtures'
+import { customer, district1, district7, mains, springRolls, starters } from '../support/fixtures'
 import { renderApp } from '../support/render'
 import { server } from '../support/server'
-
-const admin: User = { ...customer, id: 1, name: 'Quản lý Hà', role: 'ADMIN' }
-
-function page<T>(items: T[]) {
-  return { items, page: 1, page_size: 20, total: items.length, total_pages: 1 }
-}
-
-function adminOrder(overrides: Partial<AdminOrder> = {}): AdminOrder {
-  const base = order({ id: 31, delivery_note: 'Gọi trước khi giao' })
-  return {
-    ...base,
-    customer: { id: 7, name: 'Nguyen Van A', email: 'a@example.com', phone: '0901234567' },
-    momo_order_id: null,
-    momo_trans_id: null,
-    events: base.events.map((event) => ({ ...event, actor_name: null })),
-    ...overrides,
-  }
-}
-
-const adminDish: AdminProduct = {
-  ...springRolls,
-  created_at: '2026-10-01T03:00:00Z',
-  deleted_at: null,
-}
-
-function adminUser(overrides: Partial<AdminUser> = {}): AdminUser {
-  return { ...customer, deleted_at: null, ...overrides }
-}
 
 describe('admin pages', () => {
   it('turn customers away and hide the admin link from them', async () => {

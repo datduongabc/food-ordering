@@ -24,3 +24,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 *.db
+
+# Coverage reports
+coverage/
+.coverage
