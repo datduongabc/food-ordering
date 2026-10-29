@@ -22,7 +22,13 @@ export const orderQueries = {
   momo: (orderId: number) =>
     queryOptions({
       queryKey: ['orders', 'momo', orderId],
-      queryFn: () => api.post(`/orders/${orderId}/payments/momo`, momoPaymentSchema),
+      queryFn: async ({ client }) => {
+        const attempt = await api.post(`/orders/${orderId}/payments/momo`, momoPaymentSchema)
+        // Starting an attempt switches a cash order to MoMo; the cached order must not lag behind.
+        await client.invalidateQueries({ queryKey: ['orders', 'detail', orderId] })
+        await client.invalidateQueries({ queryKey: ['orders', 'list'] })
+        return attempt
+      },
       staleTime: Infinity,
       gcTime: 0,
       retry: false,
