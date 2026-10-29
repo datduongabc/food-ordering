@@ -232,6 +232,8 @@ export const vi = {
     timeline: 'Lịch sử đơn hàng',
     payNow: 'Thanh toán MoMo',
     switchToMomo: 'Chuyển sang thanh toán MoMo',
+    switchToCod: 'Đổi lại thanh toán khi nhận hàng',
+    switchedToCod: 'Đơn hàng #{id} sẽ thanh toán bằng tiền mặt khi nhận hàng.',
     cancelOrder: 'Hủy đơn hàng',
     cancelQuestion: 'Hủy đơn hàng #{id}? Thao tác này không thể hoàn tác.',
     cancelPaidQuestion: 'Hủy đơn hàng #{id}? Số tiền đã thanh toán sẽ được hoàn lại.',

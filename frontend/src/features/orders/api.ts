@@ -68,6 +68,14 @@ export function useCancelOrder() {
   })
 }
 
+export function useSwitchToCod() {
+  const store = useStoreOrder()
+  return useMutation({
+    mutationFn: (orderId: number) => api.post(`/orders/${orderId}/payments/cod`, orderSchema),
+    onSuccess: store,
+  })
+}
+
 export function useCompleteSandboxPayment() {
   const store = useStoreOrder()
   return useMutation({

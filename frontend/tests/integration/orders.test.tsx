@@ -336,6 +336,28 @@ describe('account orders', () => {
     )
   })
 
+  it('switches an unpaid MoMo order back to cash on delivery', async () => {
+    const user = userEvent.setup()
+    mockLayout({ signedIn: customer })
+    mockApi('get', '/orders', [order({ id: 7, payment_method: 'MOMO', payment_status: 'FAILED' })])
+    mockApi('post', '/orders/7/payments/cod', order({ id: 7 }))
+    renderApp('/account')
+
+    const detail = await screen.findByRole('region', { name: 'Đơn hàng #7' })
+    await user.click(
+      within(detail).getByRole('button', { name: 'Đổi lại thanh toán khi nhận hàng' }),
+    )
+
+    expect(
+      await screen.findByText('Đơn hàng #7 sẽ thanh toán bằng tiền mặt khi nhận hàng.'),
+    ).toBeInTheDocument()
+    expect(within(detail).getByText('Tiền mặt khi nhận hàng')).toBeInTheDocument()
+    expect(within(detail).getByRole('link', { name: 'Chuyển sang thanh toán MoMo' })).toBeVisible()
+    expect(
+      within(detail).queryByRole('button', { name: 'Đổi lại thanh toán khi nhận hàng' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('says when there are no orders yet', async () => {
     mockLayout({ signedIn: customer })
     mockApi('get', '/orders', [])

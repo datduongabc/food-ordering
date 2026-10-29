@@ -7,7 +7,7 @@ import { useI18n } from '@/i18n/context'
 import { useErrorMessage } from '@/i18n/errors'
 import { useLocalize } from '@/i18n/useLocalize'
 import { formatDateTime, formatVnd, interpolate } from '@/lib/format'
-import { useCancelOrder } from '../api'
+import { useCancelOrder, useSwitchToCod } from '../api'
 import type { Order, OrderEvent } from '../schemas'
 import { ORDER_TONE, PAYMENT_TONE } from '../status'
 import styles from './OrderDetail.module.css'
@@ -33,6 +33,7 @@ export function OrderDetail({ order, ref }: { order: Order; ref?: Ref<HTMLElemen
   const toast = useToast()
   const errorMessage = useErrorMessage()
   const cancel = useCancelOrder()
+  const switchToCod = useSwitchToCod()
   const [confirming, setConfirming] = useState(false)
   const titleId = `order-${order.id}-title`
 
@@ -153,6 +154,21 @@ export function OrderDetail({ order, ref }: { order: Order; ref?: Ref<HTMLElemen
                 {/* A cash order can still be paid online; starting the payment switches it. */}
                 {order.payment_method === 'COD' ? t.account.switchToMomo : t.account.payNow}
               </ButtonLink>
+            )}
+            {/* Way back for a MoMo payment that was declined or abandoned. */}
+            {order.can_pay && order.payment_method === 'MOMO' && (
+              <Button
+                variant="outline"
+                disabled={switchToCod.isPending}
+                onClick={() =>
+                  switchToCod.mutate(order.id, {
+                    onSuccess: () => toast(interpolate(t.account.switchedToCod, { id: order.id })),
+                    onError: (error) => toast(errorMessage(error)),
+                  })
+                }
+              >
+                {t.account.switchToCod}
+              </Button>
             )}
             {order.can_cancel && (
               <Button variant="danger" onClick={() => setConfirming(true)}>
