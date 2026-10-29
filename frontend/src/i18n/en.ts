@@ -234,6 +234,7 @@ export const en: Dictionary = {
     total: 'Total',
     timeline: 'Order history',
     payNow: 'Pay with MoMo',
+    switchToMomo: 'Pay with MoMo instead',
     cancelOrder: 'Cancel order',
     cancelQuestion: 'Cancel order #{id}? This cannot be undone.',
     cancelPaidQuestion: 'Cancel order #{id}? Your payment will be refunded.',

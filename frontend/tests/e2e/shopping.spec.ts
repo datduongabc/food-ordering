@@ -58,6 +58,7 @@ test('a customer cancels a cash order, then books and cancels a table', async ({
   await expect(page.getByText(/^Đã đặt đơn hàng #\d+\.$/)).toBeVisible()
   const detail = page.getByRole('region', { name: /^Đơn hàng #\d+$/ })
   await expect(detail.getByText('Chờ xác nhận', { exact: true })).toBeVisible()
+  await expect(detail.getByRole('link', { name: 'Chuyển sang thanh toán MoMo' })).toBeVisible()
   await detail.getByRole('button', { name: 'Hủy đơn hàng' }).click()
   await detail.getByRole('button', { name: 'Hủy đơn', exact: true }).click()
   await expect(detail.getByText('Quý khách đã hủy đơn')).toBeVisible()
@@ -88,4 +89,31 @@ test('a customer cancels a cash order, then books and cancels a table', async ({
   await page.getByRole('button', { name: 'Hủy đặt bàn' }).click()
   await expect(page.getByText('Đã hủy lịch đặt bàn.')).toBeVisible()
   await expect(page.getByText('Đã hủy', { exact: true })).toBeVisible()
+})
+
+test('a customer switches a pending cash order to MoMo and pays', async ({ page }) => {
+  await page.goto('/login')
+  await signUpHere(page, 'Phạm Thu Hà')
+
+  await page.goto('/menu')
+  await page
+    .locator('article')
+    .first()
+    .getByRole('button', { name: /^Thêm .* vào giỏ hàng$/ })
+    .click()
+  await expect(page.getByRole('link', { name: 'Giỏ hàng, 1 món' })).toBeVisible()
+  await page.goto('/checkout')
+  await page.getByLabel('Địa chỉ giao hàng').fill('45 Lý Tự Trọng, Quận 1')
+  await page.getByRole('button', { name: 'Xác nhận đặt hàng' }).click()
+
+  const detail = page.getByRole('region', { name: /^Đơn hàng #\d+$/ })
+  await expect(detail.getByText('Tiền mặt khi nhận hàng')).toBeVisible()
+  await detail.getByRole('link', { name: 'Chuyển sang thanh toán MoMo' }).click()
+  await page.getByRole('button', { name: 'Xác nhận thanh toán' }).click()
+  await page.getByRole('link', { name: 'Xem đơn hàng' }).click()
+
+  await expect(detail.getByText('Ví MoMo')).toBeVisible()
+  await expect(detail.getByText('Đã thanh toán')).toBeVisible()
+  await expect(detail.getByText('Đã xác nhận', { exact: true })).toBeVisible()
+  await expect(detail.getByRole('link', { name: /MoMo/ })).toHaveCount(0)
 })

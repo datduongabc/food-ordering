@@ -309,6 +309,9 @@ describe('account orders', () => {
     renderApp('/account')
 
     const detail = await screen.findByRole('region', { name: 'Đơn hàng #5' })
+    expect(
+      within(detail).getByRole('link', { name: 'Chuyển sang thanh toán MoMo' }),
+    ).toHaveAttribute('href', '/orders/5/pay')
     await user.click(within(detail).getByRole('button', { name: 'Hủy đơn hàng' }))
     expect(within(detail).getByRole('alertdialog')).toHaveTextContent(
       'Hủy đơn hàng #5? Thao tác này không thể hoàn tác.',
@@ -318,6 +321,19 @@ describe('account orders', () => {
     expect(await screen.findByText('Đã hủy đơn hàng #5.')).toBeInTheDocument()
     expect(within(detail).getByText('Quý khách đã hủy đơn')).toBeInTheDocument()
     expect(within(detail).queryByRole('button', { name: 'Hủy đơn hàng' })).not.toBeInTheDocument()
+  })
+
+  it('offers to retry MoMo on an unpaid MoMo order', async () => {
+    mockLayout({ signedIn: customer })
+    mockApi('get', '/orders', [order({ id: 6, payment_method: 'MOMO', payment_status: 'FAILED' })])
+    renderApp('/account')
+
+    const detail = await screen.findByRole('region', { name: 'Đơn hàng #6' })
+    expect(within(detail).getByText('Thanh toán lỗi')).toBeInTheDocument()
+    expect(within(detail).getByRole('link', { name: 'Thanh toán MoMo' })).toHaveAttribute(
+      'href',
+      '/orders/6/pay',
+    )
   })
 
   it('says when there are no orders yet', async () => {

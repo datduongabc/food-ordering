@@ -34,9 +34,6 @@ export function OrderDetail({ order, ref }: { order: Order; ref?: Ref<HTMLElemen
   const errorMessage = useErrorMessage()
   const cancel = useCancelOrder()
   const [confirming, setConfirming] = useState(false)
-  // Paying switches a cash order to MoMo, which the API allows; the button follows the mockup
-  // and is offered on MoMo orders, where the customer already chose to pay online.
-  const canPay = order.can_pay && order.payment_method === 'MOMO'
   const titleId = `order-${order.id}-title`
 
   return (
@@ -149,11 +146,12 @@ export function OrderDetail({ order, ref }: { order: Order; ref?: Ref<HTMLElemen
           </div>
         </div>
       ) : (
-        (canPay || order.can_cancel) && (
+        (order.can_pay || order.can_cancel) && (
           <div className={styles.actions}>
-            {canPay && (
+            {order.can_pay && (
               <ButtonLink to={`/orders/${order.id}/pay`} variant="momo">
-                {t.account.payNow}
+                {/* A cash order can still be paid online; starting the payment switches it. */}
+                {order.payment_method === 'COD' ? t.account.switchToMomo : t.account.payNow}
               </ButtonLink>
             )}
             {order.can_cancel && (

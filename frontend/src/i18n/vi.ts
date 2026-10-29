@@ -231,6 +231,7 @@ export const vi = {
     total: 'Tổng cộng',
     timeline: 'Lịch sử đơn hàng',
     payNow: 'Thanh toán MoMo',
+    switchToMomo: 'Chuyển sang thanh toán MoMo',
     cancelOrder: 'Hủy đơn hàng',
     cancelQuestion: 'Hủy đơn hàng #{id}? Thao tác này không thể hoàn tác.',
     cancelPaidQuestion: 'Hủy đơn hàng #{id}? Số tiền đã thanh toán sẽ được hoàn lại.',
