@@ -11,7 +11,6 @@ class AuthModel
         $this->db = Database::getInstance()->getConnection();
     }
 
-    // sign up
     public function checkDuplicateInfo($email, $phone)
     {
         try {
@@ -24,10 +23,7 @@ class AuthModel
             $stmt->execute([$email, $phone]);
             return $stmt->fetch();
         } catch (PDOException $e) {
-            return [
-                "success" => false,
-                "message" => $e->getMessage()
-            ];
+            return false;
         }
     }
 
@@ -40,10 +36,7 @@ class AuthModel
             );
             return $stmt->execute([$name, $email, $password, $phone]);
         } catch (PDOException $e) {
-            return [
-                "success" => false,
-                "message" => $e->getMessage()
-            ];
+            return false;
         }
     }
 
@@ -59,12 +52,13 @@ class AuthModel
             $stmt->execute([$email]);
             $user = $stmt->fetch();
             return [
-                "success" => true,
-                "user_record" => $user
+                "success" => (bool)$user,
+                "user_record" => $user ?: null
             ];
         } catch (PDOException $e) {
             return [
                 "success" => false,
+                "user_record" => null,
                 "message" => $e->getMessage()
             ];
         }
@@ -73,21 +67,24 @@ class AuthModel
     public function saveTokenData($user_id, $token, $type, $expired_at)
     {
         try {
-            // remove older token
             $this->deleteToken($user_id, $type);
 
-            $stmt = $this->db->prepare(
-                "INSERT INTO password_resets(user_id, token, type, expired_at)
-                VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL ? MINUTE))
-            "
-            );
+            $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'pgsql') {
+                $sql = "INSERT INTO password_resets(user_id, token, type, expired_at)
+                        VALUES (?, ?, ?, CURRENT_TIMESTAMP + (? * INTERVAL '1 minute'))";
+            } elseif ($driver === 'sqlite') {
+                $sql = "INSERT INTO password_resets(user_id, token, type, expired_at)
+                        VALUES (?, ?, ?, datetime('now', '+' || ? || ' minutes'))";
+            } else {
+                $sql = "INSERT INTO password_resets(user_id, token, type, expired_at)
+                        VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL ? MINUTE))";
+            }
 
-            return $stmt->execute([$user_id, $token, $type, $expired_at]);
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([$user_id, $token, $type, (int)$expired_at]);
         } catch (PDOException $e) {
-            return [
-                "success" => false,
-                "message" => $e->getMessage()
-            ];
+            return false;
         }
     }
 
@@ -98,19 +95,21 @@ class AuthModel
                 "SELECT u.*
                 FROM users u
                 JOIN password_resets pr ON u.id = pr.user_id
-                WHERE pr.token = ? AND pr.type = 'REMEMBER_ME' AND pr.expired_at > NOW()
+                WHERE pr.token = ? AND pr.type = 'REMEMBER_ME' AND pr.expired_at > CURRENT_TIMESTAMP AND u.deleted_at IS NULL
                 LIMIT 1"
             );
 
             $stmt->execute([$hash_token]);
+            $user = $stmt->fetch();
 
             return [
-                "success" => true,
-                "user_record" => $stmt->fetch()
+                "success" => (bool)$user,
+                "user_record" => $user ?: null
             ];
         } catch (PDOException $e) {
             return [
                 "success" => false,
+                "user_record" => null,
                 "message" => $e->getMessage()
             ];
         }
@@ -126,10 +125,7 @@ class AuthModel
 
             return $stmt->execute([$hash, $type]);
         } catch (PDOException $e) {
-            return [
-                "success" => false,
-                "message" => $e->getMessage()
-            ];
+            return false;
         }
     }
 
@@ -139,16 +135,14 @@ class AuthModel
             $stmt = $this->db->prepare(
                 "SELECT attempts
                 FROM password_resets
-                WHERE user_id = ? AND type = ?"
+                WHERE user_id = ? AND type = ?
+                LIMIT 1"
             );
 
             $stmt->execute([$user_id, $type]);
             return $stmt->fetch();
         } catch (PDOException $e) {
-            return [
-                "success" => false,
-                "message" => $e->getMessage()
-            ];
+            return false;
         }
     }
 
@@ -158,17 +152,14 @@ class AuthModel
             $stmt = $this->db->prepare(
                 "SELECT token
                 FROM password_resets
-                WHERE user_id = ? AND type = ? AND expired_at > NOW()
+                WHERE user_id = ? AND type = ? AND expired_at > CURRENT_TIMESTAMP
                 LIMIT 1"
             );
 
             $stmt->execute([$user_id, $type]);
             return $stmt->fetch();
         } catch (PDOException $e) {
-            return [
-                "success" => false,
-                "message" => $e->getMessage()
-            ];
+            return false;
         }
     }
 
@@ -177,15 +168,12 @@ class AuthModel
         try {
             $stmt = $this->db->prepare(
                 "UPDATE password_resets
-                SET attempts = attempts + 1
+                SET attempts = CASE WHEN attempts < 5 THEN attempts + 1 ELSE 5 END
                 WHERE user_id = ? AND type = ?"
             );
             return $stmt->execute([$user_id, $type]);
         } catch (PDOException $e) {
-            return [
-                "success" => false,
-                "message" => $e->getMessage()
-            ];
+            return false;
         }
     }
 
@@ -195,15 +183,12 @@ class AuthModel
             $stmt = $this->db->prepare(
                 "UPDATE users
                 SET password = ?
-                WHERE email = ?"
+                WHERE email = ? AND deleted_at IS NULL"
             );
 
             return $stmt->execute([$hash_password, $email]);
         } catch (PDOException $e) {
-            return [
-                "success" => false,
-                "message" => $e->getMessage()
-            ];
+            return false;
         }
     }
 
@@ -212,15 +197,12 @@ class AuthModel
         try {
             $stmt = $this->db->prepare(
                 "UPDATE users
-                SET is_email_verified = 1, email_verified_at = NOW()
+                SET is_email_verified = 1, email_verified_at = CURRENT_TIMESTAMP
                 WHERE email = ?"
             );
             return $stmt->execute([$email]);
         } catch (PDOException $e) {
-            return [
-                "success" => false,
-                "message" => $e->getMessage()
-            ];
+            return false;
         }
     }
 
@@ -229,15 +211,12 @@ class AuthModel
         try {
             $stmt = $this->db->prepare(
                 "DELETE FROM password_resets
-            WHERE user_id = ? AND type = ?"
+                WHERE user_id = ? AND type = ?"
             );
 
             return $stmt->execute([$user_id, $type]);
         } catch (PDOException $e) {
-            return [
-                "success" => false,
-                "message" => $e->getMessage()
-            ];
+            return false;
         }
     }
 
@@ -254,12 +233,13 @@ class AuthModel
             $stmt->execute([$id]);
             $user = $stmt->fetch();
             return [
-                "success" => true,
-                "user_record" => $user
+                "success" => (bool)$user,
+                "user_record" => $user ?: null
             ];
         } catch (PDOException $e) {
             return [
                 "success" => false,
+                "user_record" => null,
                 "message" => $e->getMessage()
             ];
         }

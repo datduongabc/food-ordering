@@ -1,42 +1,35 @@
-$(function () {
-  const $signupForm = $("#signupForm");
-  const $toggleIcon = $("#togglePasswordIcon");
+document.addEventListener("DOMContentLoaded", () => {
+  const signupForm = document.getElementById("signupForm");
+  const toggleIcon = document.getElementById("togglePasswordIcon");
+  const passwordInput = document.getElementById("password");
+  const phoneInput = document.getElementById("phone");
 
-  if ($signupForm.length) {
-    $signupForm.on("submit", handleSignupSubmit);
+  if (signupForm) {
+    signupForm.addEventListener("submit", (event) => {
+      const phoneVal = phoneInput ? phoneInput.value.trim() : "";
+      const passVal = passwordInput ? passwordInput.value : "";
+
+      if (!/^[0-9]{10}$/.test(phoneVal)) {
+        event.preventDefault();
+        alert("Phone number is invalid. Must have exactly 10 digits.");
+        if (phoneInput) phoneInput.focus();
+        return;
+      }
+
+      if (passVal.length < 8) {
+        event.preventDefault();
+        alert("The password must contain at least 8 characters.");
+        if (passwordInput) passwordInput.focus();
+      }
+    });
   }
 
-  if ($toggleIcon.length) {
-    $toggleIcon.on("click", togglePasswordVisibility);
+  if (toggleIcon && passwordInput) {
+    toggleIcon.addEventListener("click", () => {
+      const isPassword = passwordInput.getAttribute("type") === "password";
+      passwordInput.setAttribute("type", isPassword ? "text" : "password");
+      toggleIcon.classList.toggle("fa-eye");
+      toggleIcon.classList.toggle("fa-eye-slash");
+    });
   }
 });
-
-function handleSignupSubmit(event) {
-  const $phone = $("#phone");
-  const $password = $("#password");
-
-  const phoneInput = $phone.val().trim();
-  const passwordInput = $password.val();
-
-  const phoneRegex = /^[0-9]{10}$/;
-  if (!phoneRegex.test(phoneInput)) {
-    event.preventDefault();
-    alert("Phone number is invalid. Must have exactly 10 digits.");
-    $phone.focus();
-    return false;
-  }
-
-  if (passwordInput.length < 8) {
-    event.preventDefault();
-    alert("The password must contain at least 8 characters.");
-    $password.focus();
-    return false;
-  }
-}
-
-function togglePasswordVisibility() {
-  const $passwordInput = $("#password");
-  const isPassword = $passwordInput.attr("type") === "password";
-  $passwordInput.attr("type", isPassword ? "text" : "password");
-  $(this).toggleClass("fa-eye fa-eye-slash");
-}

@@ -3,22 +3,37 @@
 require_once ROOT_PATH . '/app/modules/auth/auth_model.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 class AuthService
 {
     private $authModel;
     const MAX_ATTEMPTS = 5;
-    const TTL_REMEMBER_TOKEN = 10080;
-    const TTL_SECURE_TOKEN = 15;
+    const TTL_REMEMBER_TOKEN = 10080; // 7 days in minutes
+    const TTL_SECURE_TOKEN = 15;      // 15 minutes
 
     public function __construct()
     {
         $this->authModel = new AuthModel();
     }
 
-    // Helper function: Send email to user
-    private function sendUniversalEmail($receiver, $token, $type)
+    // Helper function: Send email to user (returns true if sent via SMTP, false if fallback needed)
+    private function sendUniversalEmail($receiver, $token, $type): bool
     {
+        $mailEmail = trim((string)($_ENV['MAIL_EMAIL'] ?? getenv('MAIL_EMAIL') ?: ''));
+        $rawPassword = trim((string)($_ENV['MAIL_PASSWORD'] ?? getenv('MAIL_PASSWORD') ?: ''));
+        $mailPassword = str_replace(' ', '', $rawPassword);
+
+        // Gmail SMTP strictly requires a 16-character alphanumeric Google App Password.
+        // Skip blocking SMTP connection if credentials are missing or use a regular account password.
+        if (
+            empty($mailEmail) ||
+            $mailEmail === 'no-reply@dateno.com' ||
+            !preg_match('/^[a-zA-Z0-9]{16}$/', $mailPassword)
+        ) {
+            return false;
+        }
+
         $mail = new PHPMailer(true);
 
         try {
@@ -26,14 +41,15 @@ class AuthService
             $mail->isSMTP();
             $mail->Host       = 'smtp.gmail.com';
             $mail->SMTPAuth   = true;
-            $mail->Username   = $_ENV['MAIL_EMAIL'];
-            $mail->Password   = $_ENV['MAIL_PASSWORD'];
+            $mail->Username   = $mailEmail;
+            $mail->Password   = $mailPassword;
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port       = 587;
+            $mail->Timeout    = 4;
             $mail->CharSet    = 'UTF-8';
 
             // --- Sender & Receiver ---
-            $mail->setFrom($_ENV['MAIL_EMAIL'], 'DaTeNO Restaurant');
+            $mail->setFrom($mailEmail, 'DaTeNO Restaurant');
             $mail->addAddress($receiver);
 
             $emailContent = match ($type) {
@@ -71,7 +87,7 @@ class AuthService
                     <h2 style='color: #111827;'>{$emailContent['title']}</h2>
                     <p>{$emailContent['desc']}</p>
                     <div style='text-align: center; margin: 30px 0;'>
-                        <span style='font-size: 32px; font-weight: bold; color: #0d9488; letter-spacing: 5px; background: #f0fdfa; padding: 10px 20px; border-radius: 4px; border: 1px dashed #0d9488;'>
+                        <span style='font-size: 20px; font-weight: bold; color: #0d9488; letter-spacing: 2px; background: #f0fdfa; padding: 10px 20px; border-radius: 4px; border: 1px dashed #0d9488; word-break: break-all; display: inline-block;'>
                             $token
                         </span>
                     </div>
@@ -95,7 +111,6 @@ class AuthService
     // Sign up logic
     public function signUpLogic($name, $email, $password, $phone)
     {
-        // Server validation
         if (empty($name) || empty($email) || empty($password) || empty($phone)) {
             return [
                 'success' => false,
@@ -103,7 +118,14 @@ class AuthService
             ];
         }
 
-        // checking unique email and phone number
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return [
+                'success' => false,
+                'message' => 'Invalid email format.'
+            ];
+        }
+
+        // Checking unique email and phone number
         $duplicate = $this->authModel->checkDuplicateInfo($email, $phone);
 
         if ($duplicate) {
@@ -117,7 +139,7 @@ class AuthService
             if ($duplicate['phone'] === $phone) {
                 return [
                     'success' => false,
-                    'message' => 'Phone already registered.'
+                    'message' => 'Phone number already registered.'
                 ];
             }
         }
@@ -132,11 +154,10 @@ class AuthService
         if (strlen($phone) !== 10 || !ctype_digit($phone)) {
             return [
                 'success' => false,
-                'message' => 'Invalid phone number.'
+                'message' => 'Invalid phone number. Must be exactly 10 digits.'
             ];
         }
 
-        // create and save new user in database
         $create_user = $this->authModel->createNewUser(
             $name,
             $email,
@@ -153,14 +174,13 @@ class AuthService
 
         return [
             'success' => true,
-            'message' => 'Sign up successful.'
+            'message' => 'Sign up successful. Please sign in to continue.'
         ];
     }
 
     // Sign in logic
     public function signInLogic($email, $password)
     {
-        // Server validation
         if (empty($email) || empty($password)) {
             return [
                 'success' => false,
@@ -177,24 +197,24 @@ class AuthService
 
         $user = $this->authModel->getUserRecord($email)['user_record'];
 
-        // incorrect email or verify password not match
         if (!$user || !password_verify($password, $user["password"])) {
             return [
                 'success' => false,
-                'message' => 'Email or password are not correct.'
+                'message' => 'Email or password is incorrect.'
             ];
         }
 
-        // Otherwise, return user info
         return [
             'success' => true,
             'userInfo' => [
                 'id' => $user['id'],
                 'name' => $user['name'],
+                'email' => $user['email'],
+                'phone' => $user['phone'],
                 'role' => $user['role'],
-                'is_email_verified' => $user['is_email_verified']
+                'is_email_verified' => (int)$user['is_email_verified']
             ],
-            "message" => "Sign in successfully."
+            "message" => "Signed in successfully."
         ];
     }
 
@@ -213,12 +233,12 @@ class AuthService
         $hash_token = hash('sha256', $plain_token);
         $user = $this->authModel->autoLoginWithCookie($hash_token);
 
-        if (!$user["success"]) {
+        if (!$user["success"] || !$user["user_record"]) {
             setcookie('remember_me', '', time() - 3600, "/");
 
             return [
                 'success' => false,
-                'message' => 'Please login again.'
+                'message' => 'Session expired. Please login again.'
             ];
         }
 
@@ -227,18 +247,18 @@ class AuthService
             "userInfo" => [
                 'id' => $user["user_record"]['id'],
                 'name' => $user["user_record"]['name'],
+                'email' => $user["user_record"]['email'],
+                'phone' => $user["user_record"]['phone'],
                 'role' => $user["user_record"]['role'],
-                'is_email_verified' => $user["user_record"]['is_email_verified']
-
+                'is_email_verified' => (int)$user["user_record"]['is_email_verified']
             ],
-            "message" => 'Automatically login successfully.'
+            "message" => 'Automatically logged in.'
         ];
     }
 
     public function revokeToken($cookie_token)
     {
         $hash = hash('sha256', $cookie_token);
-
         $result = $this->authModel->deleteTokenByValue($hash, 'REMEMBER_ME');
 
         if (!$result) {
@@ -256,7 +276,6 @@ class AuthService
 
     public function initiateSecureProcess($email, $type)
     {
-        // Server validation
         if (empty($email) || empty($type)) {
             return [
                 'success' => false,
@@ -269,23 +288,53 @@ class AuthService
         if (!$user['user_record']) {
             return [
                 'success' => false,
-                "message" => "If email found. Secure token will send to your email."
+                'message' => 'No account found with that email address.'
             ];
         }
 
         $plain_token = bin2hex(random_bytes(32));
         $hash_token = hash('sha256', $plain_token);
 
-        $save_token = $this->authModel->saveTokenData($user["user_record"]["id"], $hash_token, $type, self::TTL_SECURE_TOKEN);
+        $save_token = $this->authModel->saveTokenData(
+            $user["user_record"]["id"],
+            $hash_token,
+            $type,
+            self::TTL_SECURE_TOKEN
+        );
 
         if (!$save_token) {
             return [
-                "success" => false,
-                "message" => "Internal server error."
+                'success' => false,
+                'message' => 'Internal server error while generating token.'
             ];
         }
 
-        return $this->sendUniversalEmail($email, $plain_token, $type);
+        $sent = $this->sendUniversalEmail($email, $plain_token, $type);
+        if (!$sent) {
+            // SECURITY: displaying the token on screen lets anyone reset any account,
+            // so this fallback is strictly limited to APP_ENV=local.
+            if (!app_is_local()) {
+                return [
+                    'success' => false,
+                    'message' => 'Could not send email. Please check SMTP configuration (MAIL_EMAIL / 16-char Google App Password).'
+                ];
+            }
+
+            $_SESSION['dev_otp_token'] = $plain_token;
+            $_SESSION['dev_otp_notice'] = 'Local Sandbox Mode (APP_ENV=local): SMTP is not configured, so the security token is shown here instead of being emailed:';
+            return [
+                'success' => true,
+                'dev_fallback' => true,
+                'token' => $plain_token,
+                'message' => 'Security token generated (Local Sandbox Mode).'
+            ];
+        }
+
+        unset($_SESSION['dev_otp_token'], $_SESSION['dev_otp_notice']);
+        return [
+            'success' => true,
+            'message' => 'A security token has been sent to your email.'
+        ];
     }
 
     public function validateToken($email, $plain_token, $type)
@@ -295,13 +344,14 @@ class AuthService
         if (!$user) {
             return [
                 'success' => false,
-                'message' => 'User does not found.'
+                'message' => 'User not found.'
             ];
         }
 
         $attempts_data = $this->authModel->getAttempts($user['id'], $type);
+        $attempts = $attempts_data ? (int)$attempts_data['attempts'] : 0;
 
-        if ($attempts_data['attempts'] >= self::MAX_ATTEMPTS) {
+        if ($attempts >= self::MAX_ATTEMPTS) {
             return [
                 'success' => false,
                 'message' => 'Too many attempts.'
@@ -310,7 +360,7 @@ class AuthService
 
         $result = $this->authModel->getValidToken($user['id'], $type);
 
-        if (!$result || hash('sha256', $plain_token) !== $result['token']) {
+        if (!$result || !hash_equals($result['token'], hash('sha256', trim($plain_token)))) {
             $this->authModel->incrementAttempts($user['id'], $type);
 
             return [
@@ -318,6 +368,8 @@ class AuthService
                 'message' => 'Invalid or expired token.'
             ];
         }
+
+        unset($_SESSION['dev_otp_token'], $_SESSION['dev_otp_notice']);
 
         return [
             'success' => true,
@@ -332,17 +384,18 @@ class AuthService
         if (!$result) {
             return [
                 'success' => false,
-                "message" => "Internal server error."
+                'message' => 'Internal server error.'
             ];
         }
 
         $user_data = $this->authModel->getUserRecord($email);
-
-        $this->authModel->deleteToken($user_data['user_record']['id'], 'EMAIL_VERIFICATION');
+        if ($user_data['user_record']) {
+            $this->authModel->deleteToken($user_data['user_record']['id'], 'EMAIL_VERIFICATION');
+        }
 
         return [
             'success' => true,
-            "message" => "Verify email successfully."
+            'message' => 'Email verified successfully.'
         ];
     }
 
@@ -356,7 +409,6 @@ class AuthService
         }
 
         $hash_password = password_hash($new_password, PASSWORD_DEFAULT);
-
         $result = $this->authModel->updatePassword($email, $hash_password);
 
         if (!$result) {
@@ -367,9 +419,10 @@ class AuthService
         }
 
         $user_record = $this->authModel->getUserRecord($email);
-
-        $this->authModel->deleteToken($user_record['user_record']['id'], $type);
-        $this->authModel->deleteToken($user_record['user_record']['id'], 'REMEMBER_ME');
+        if ($user_record['user_record']) {
+            $this->authModel->deleteToken($user_record['user_record']['id'], $type);
+            $this->authModel->deleteToken($user_record['user_record']['id'], 'REMEMBER_ME');
+        }
 
         return [
             'success' => true,

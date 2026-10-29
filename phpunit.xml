@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache"
+         executionOrder="depends,defects"
+         beStrictAboutOutputDuringTests="false"
+         failOnRisky="false"
+         failOnWarning="false">
+    <testsuites>
+        <testsuite name="DaTeNO Test Suite">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <file>app/core/Database.php</file>
+            <file>app/core/Helpers.php</file>
+            <directory suffix="_model.php">app/modules</directory>
+            <directory suffix="_service.php">app/modules</directory>
+        </include>
+    </source>
+
+    <php>
+        <env name="DB_CONNECTION" value="sqlite" force="false"/>
+        <env name="DB_NAME" value=":memory:" force="false"/>
+        <env name="MAIL_EMAIL" value="test@dateno.com"/>
+        <env name="MAIL_PASSWORD" value="test_password"/>
+    </php>
+</phpunit>

@@ -1,73 +1,90 @@
 <!-- Menu list body -->
-<?php foreach ($products as $product): ?>
-    <div class="col-sm-6 col-md-4 col-lg-3">
-        <div class="card hover-card h-100 shadow-sm">
-            <a
-                href="/restaurant_project/public/index.php?page=detail&slug=<?= htmlspecialchars($product['slug']) ?>"
-                class="text-decoration-none text-dark d-block">
-
-                <img
-                    src="<?= htmlspecialchars($product['image_path']) ?>"
-                    alt="<?= htmlspecialchars($product['name']) ?>"
-                    class="card-img-top d-block mx-auto"
-                    style="width: 300px; height: 200px; object-fit: cover;" />
-                <div
-                    class="card-body text-center d-flex flex-column">
-                    <h3 class="card-title fw-bold text-truncate fs-5">
-                        <?= htmlspecialchars($product['name']) ?>
-                    </h3>
-                    <div class="mb-0">
-                        <a
-                            href="<?= htmlspecialchars($product['location_link']) ?>"
-                            target="_blank"
-                            title="<?= htmlspecialchars($product['location_address']) ?>"
-                            class="text-muted fs-6 mb-0 text-truncate text-decoration-none d-block">
-                            <?= $product['location_address'] ? htmlspecialchars($product['location_address']) : 'Location not specified' ?>
-                        </a>
-                        <p class="text-primary-orange fs-6 mt-1 mb-0">
-                            $<?= $product['price'] ?>
-                        </p>
-                    </div>
-                </div>
-            </a>
-
-            <div class="card-footer bg-transparent border-0 px-3 py-0">
-                <button class="btn w-100 btn-custom-primary">Add to cart</button>
-            </div>
+<?php if (empty($products)): ?>
+    <div class="col-12">
+        <div class="empty-state">
+            <i class="bi bi-basket"></i>
+            <h3>No dishes found</h3>
+            <p>Try another category or check back later – our chefs are always cooking something new.</p>
         </div>
     </div>
-<?php endforeach; ?>
+<?php else: ?>
+    <?php foreach ($products as $product): ?>
+        <div class="col-6 col-md-4 col-lg-3">
+            <article class="dish-card h-100">
+                <a href="index.php?page=detail&slug=<?= e($product['slug']) ?>" class="dish-media">
+                    <img src="<?= e($product['image_path']) ?>" alt="<?= e($product['name']) ?>" loading="lazy" decoding="async">
+
+                    <?php if (!empty($product['category_name'])): ?>
+                        <span class="dish-chip"><?= e($product['category_name']) ?></span>
+                    <?php endif; ?>
+                </a>
+
+                <div class="dish-body">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <a href="index.php?page=detail&slug=<?= e($product['slug']) ?>" class="text-decoration-none">
+                            <h3 class="dish-title" title="<?= e($product['name']) ?>"><?= e($product['name']) ?></h3>
+                        </a>
+                        <?php if (!empty($product['average_rating'])): ?>
+                            <span class="dish-rating"><i class="bi bi-star-fill"></i><?= number_format((float)$product['average_rating'], 1) ?></span>
+                        <?php endif; ?>
+                    </div>
+
+                    <?php if (!empty($product['description'])): ?>
+                        <p class="dish-desc"><?= e($product['description']) ?></p>
+                    <?php endif; ?>
+
+                    <div class="dish-meta">
+                        <?php if (!empty($product['location_address'])): ?>
+                            <a href="<?= e($product['location_link'] ?? '#') ?>" target="_blank" rel="noopener"
+                                title="<?= e($product['location_address']) ?>" class="text-truncate">
+                                <i class="bi bi-geo-alt"></i><?= e($product['location_address']) ?>
+                            </a>
+                        <?php else: ?>
+                            <span><i class="bi bi-shop"></i>All branches</span>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="dish-footer">
+                        <span class="dish-price"><?= format_price($product['price']) ?></span>
+                        <button type="button" class="btn-add-round js-add-to-cart"
+                            data-product-id="<?= (int)$product['id'] ?>" data-quantity="1"
+                            aria-label="Add <?= e($product['name']) ?> to cart" title="Add to cart">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </article>
+        </div>
+    <?php endforeach; ?>
+<?php endif; ?>
 
 <!-- Displaying pagination -->
-<div class="col-12 mt-5">
-    <nav aria-label="Menu pagination">
-        <ul class="pagination justify-content-center custom-pagination">
-            <?php
-            $sort_param = isset($_GET['sort']) ? '&sort=' . htmlspecialchars($_GET['sort']) : '';
-            ?>
+<?php if (($total_pages ?? 1) > 1): ?>
+    <div class="col-12 mt-4">
+        <nav aria-label="Menu pagination">
+            <ul class="pagination justify-content-center custom-pagination">
+                <?php
+                $sort_param = isset($_GET['sort']) ? '&sort=' . e($_GET['sort']) : '';
+                ?>
 
-            <li class="page-product <?= ($current_page <= 1) ? 'disabled' : '' ?>">
-                <a
-                    class="page-link"
-                    href="?page=home&p=<?= $current_page - 1 ?><?= $sort_param ?>">Previous
-                </a>
-            </li>
-
-            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                <li class="page-product <?= ($i === $current_page) ? 'active' : '' ?>">
-                    <a class="page-link" href="?page=home&p=<?= $i ?><?= $sort_param ?>">
-                        <?= $i ?>
+                <li class="page-product <?= ($current_page <= 1) ? 'disabled' : '' ?>">
+                    <a class="page-link" href="?page=home&p=<?= $current_page - 1 ?><?= $sort_param ?>" aria-label="Previous page">
+                        <i class="bi bi-chevron-left"></i>
                     </a>
                 </li>
-            <?php endfor; ?>
 
-            <!-- Nút Trang sau -->
-            <li class="page-product <?= ($current_page >= $total_pages) ? 'disabled' : '' ?>">
-                <a
-                    class="page-link"
-                    href="?page=home&p=<?= $current_page + 1 ?><?= $sort_param ?>">Next
-                </a>
-            </li>
-        </ul>
-    </nav>
-</div>
+                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                    <li class="page-product <?= ($i === (int)$current_page) ? 'active' : '' ?>">
+                        <a class="page-link" href="?page=home&p=<?= $i ?><?= $sort_param ?>"><?= $i ?></a>
+                    </li>
+                <?php endfor; ?>
+
+                <li class="page-product <?= ($current_page >= $total_pages) ? 'disabled' : '' ?>">
+                    <a class="page-link" href="?page=home&p=<?= $current_page + 1 ?><?= $sort_param ?>" aria-label="Next page">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+<?php endif; ?>

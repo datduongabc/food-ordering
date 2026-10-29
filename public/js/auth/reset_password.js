@@ -1,26 +1,21 @@
-$(function () {
-  const $form = $("#resetPasswordForm");
-  if ($form.length) {
-    $form.on("submit", handleResetPasswordSubmit);
-  }
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("resetPasswordForm");
+  if (!form) return;
+
+  form.addEventListener("submit", (event) => {
+    const newPass = document.getElementById("newPassword");
+    const btn = form.querySelector('button[type="submit"]');
+
+    if (newPass && newPass.value.length < 8) {
+      event.preventDefault();
+      alert("Password must be at least 8 characters long.");
+      newPass.focus();
+      return;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
+    }
+  });
 });
-
-function handleResetPasswordSubmit(event) {
-  const $newPass = $("#newPassword");
-  const $btn = $(this).find('button[type="submit"]');
-
-  if ($newPass.val().length < 8) {
-    event.preventDefault();
-    alert("Password must be at least 8 characters long.");
-    $newPass.focus();
-    return false;
-  }
-
-  showLoading($btn, "Updating...");
-}
-
-function showLoading($btn, text) {
-  $btn
-    .prop("disabled", true)
-    .html(`<span class="spinner-border spinner-border-sm me-2"></span>${text}`);
-}

@@ -1,7 +1,23 @@
 RewriteEngine On
 
+# Browser caching for static assets (images, CSS, JS)
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/webp "access plus 7 days"
+    ExpiresByType image/jpeg "access plus 7 days"
+    ExpiresByType image/png "access plus 7 days"
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(webp|png|jpg|jpeg|gif|ico|css|js)$">
+        Header set Cache-Control "public, max-age=604800, immutable"
+    </FilesMatch>
+</IfModule>
+
+# Do not rewrite missing static assets (e.g., favicon.ico, source maps, images) to index.php
+RewriteCond %{REQUEST_URI} !\.(ico|css|js|gif|jpe?g|png|webp|svg|woff2?|ttf|eot|map)$ [NC]
 RewriteCond %{REQUEST_FILENAME} !-f
-
 RewriteCond %{REQUEST_FILENAME} !-d
-
 RewriteRule ^(.*)$ index.php [L,QSA]

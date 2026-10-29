@@ -1,18 +1,31 @@
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap");
 
 :root {
-  --primary-orange: #ff7a00;
-  --light-orange: #fff1e6;
-  --teal-dark: #004d4d;
-  --teal-light: #006666;
-  --soft-cyan: #e6f2f2;
+  /* Palette 1: Warm Bistro & Appetite Red */
+  --primary-orange: #d9381e;       /* Crimson Tomato - Appetite CTA */
+  --primary-orange-hover: #b82810; /* Deep Chili Red */
+  --amber-gold: #f59e0b;           /* Golden Saffron */
+  --light-orange: #fff0eb;         /* Soft Blush Badge Tint */
+  --teal-dark: #1f1712;            /* Warm Espresso / Roast Coffee */
+  --teal-light: #3a2a22;           /* Rich Mocha */
+  --soft-cyan: #fff4ed;            /* Soft Peach / Warm Bisque Surface */
+  --warm-cream: #fffdf9;           /* Creamy Alabaster Page Background */
+  --warm-border: #f2e4dc;          /* Warm Card Border */
   --pure-white: #ffffff;
-  --transition: all 0.3s ease;
+  --text-body: #3d312a;
+  --text-muted-warm: #7c6a60;
+  --transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 body {
-  font-family: "Montserrat", sans-serif;
-  color: #333;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  background-color: var(--warm-cream);
+  color: var(--text-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-serif-bistro {
+  font-family: "Playfair Display", Georgia, serif;
 }
 
 /* Shared utility classes */
@@ -24,21 +37,34 @@ body {
   color: var(--primary-orange) !important;
 }
 
-/* Global button */
+.bg-teal-dark {
+  background-color: var(--teal-dark) !important;
+}
+
+.bg-soft-cyan {
+  background-color: var(--soft-cyan) !important;
+}
+
+.bg-pure-white {
+  background-color: var(--pure-white) !important;
+}
+
+/* Global Buttons */
 .btn-custom-primary {
-  background-color: var(--primary-orange);
+  background: linear-gradient(135deg, var(--primary-orange) 0%, #e84a27 100%);
   color: var(--pure-white);
   font-weight: 700;
   border: none;
   transition: var(--transition);
-  box-shadow: 0 8px 20px rgba(255, 122, 0, 0.2);
+  box-shadow: 0 8px 20px rgba(217, 56, 30, 0.24);
 }
 
-.btn-custom-primary:hover {
-  background-color: var(--teal-dark);
+.btn-custom-primary:hover,
+.btn-custom-primary:focus {
+  background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal-light) 100%);
   color: var(--pure-white);
-  transform: translateY(-3px);
-  box-shadow: 0 12px 25px rgba(0, 77, 77, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(31, 23, 18, 0.22);
 }
 
 .btn-custom-teal {
@@ -49,9 +75,139 @@ body {
   transition: var(--transition);
 }
 
-.btn-custom-teal:hover {
+.btn-custom-teal:hover,
+.btn-custom-teal:focus {
   background-color: var(--teal-dark);
   color: var(--pure-white);
-  transform: translateY(-3px);
-  box-shadow: 0 12px 25px rgba(0, 77, 77, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(31, 23, 18, 0.16);
+}
+
+/* ===== Design tokens: elevation, radius ===== */
+:root {
+  --shadow-sm: 0 1px 2px rgba(31, 23, 18, 0.06), 0 1px 3px rgba(31, 23, 18, 0.04);
+  --shadow-md: 0 8px 24px rgba(31, 23, 18, 0.08);
+  --shadow-lg: 0 24px 48px rgba(31, 23, 18, 0.12);
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--teal-dark);
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: rgba(217, 56, 30, 0.18);
+}
+
+a:focus-visible,
+button:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible {
+  outline: 3px solid rgba(217, 56, 30, 0.35);
+  outline-offset: 2px;
+}
+
+/* ===== Section headings (shared) ===== */
+.section-eyebrow {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary-orange);
+  margin-bottom: 0.5rem;
+}
+
+.section-title {
+  font-size: clamp(1.75rem, 3vw, 2.4rem);
+  font-weight: 800;
+  color: var(--teal-dark);
+  margin-bottom: 0.4rem;
+}
+
+.section-subtitle {
+  color: var(--text-muted-warm);
+}
+
+/* ===== Empty state ===== */
+.empty-state {
+  text-align: center;
+  padding: 4rem 1.5rem;
+  background: var(--pure-white);
+  border: 1px dashed var(--warm-border);
+  border-radius: var(--radius-lg);
+}
+
+.empty-state i {
+  font-size: 2.6rem;
+  color: var(--primary-orange);
+}
+
+.empty-state h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 0.75rem 0 0.35rem;
+}
+
+.empty-state p {
+  color: var(--text-muted-warm);
+  margin: 0;
+}
+
+/* ===== Round "+" add button (Uber Eats style) ===== */
+.btn-add-round {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-orange);
+  color: var(--pure-white);
+  font-size: 1.15rem;
+  box-shadow: 0 6px 14px rgba(217, 56, 30, 0.3);
+  transition: var(--transition);
+}
+
+.btn-add-round:hover {
+  background: var(--primary-orange-hover);
+  transform: scale(1.08) rotate(90deg);
+}
+
+.btn-add-round:disabled {
+  opacity: 1;
+}
+
+.btn-add-round.is-added {
+  background: #16a34a;
+  box-shadow: 0 6px 14px rgba(22, 163, 74, 0.3);
+  transform: none;
+}
+
+.cart-bump {
+  animation: cartBump 0.45s ease;
+}
+
+@keyframes cartBump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

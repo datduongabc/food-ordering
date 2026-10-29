@@ -1,32 +1,24 @@
-$(function () {
-  const $signinForm = $("#signinForm");
-  const $toggleIcon = $("#togglePasswordIcon");
+document.addEventListener("DOMContentLoaded", () => {
+  const signinForm = document.getElementById("signinForm");
+  const toggleIcon = document.getElementById("togglePasswordIcon");
+  const passwordInput = document.getElementById("password");
 
-  // Event Bindings
-  if ($signinForm.length) {
-    $signinForm.on("submit", handleSigninSubmit);
+  if (signinForm && passwordInput) {
+    signinForm.addEventListener("submit", (event) => {
+      if (passwordInput.value.length < 8) {
+        event.preventDefault();
+        alert("Password must be at least 8 characters long.");
+        passwordInput.focus();
+      }
+    });
   }
 
-  if ($toggleIcon.length) {
-    $toggleIcon.on("click", togglePasswordVisibility);
+  if (toggleIcon && passwordInput) {
+    toggleIcon.addEventListener("click", () => {
+      const isPassword = passwordInput.getAttribute("type") === "password";
+      passwordInput.setAttribute("type", isPassword ? "text" : "password");
+      toggleIcon.classList.toggle("fa-eye");
+      toggleIcon.classList.toggle("fa-eye-slash");
+    });
   }
 });
-
-function handleSigninSubmit(event) {
-  const $password = $("#password");
-  const passwordInput = $password.val();
-
-  if (passwordInput.length < 8) {
-    event.preventDefault();
-    alert("Password must be at least 8 characters long.");
-    $password.focus();
-    return false;
-  }
-}
-
-function togglePasswordVisibility() {
-  const $passwordInput = $("#password");
-  const isPassword = $passwordInput.attr("type") === "password";
-  $passwordInput.attr("type", isPassword ? "text" : "password");
-  $(this).toggleClass("fa-eye fa-eye-slash");
-}

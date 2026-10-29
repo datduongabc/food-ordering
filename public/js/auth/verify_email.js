@@ -1,22 +1,14 @@
-$(function () {
-  const $verifyForm = $("#verifyEmailForm");
+document.addEventListener("DOMContentLoaded", () => {
+  const verifyForm = document.getElementById("verifyEmailForm");
+  if (!verifyForm) return;
 
-  if ($verifyForm.length) {
-    $verifyForm.on("submit", handleVerifySubmit);
-  }
+  verifyForm.addEventListener("submit", () => {
+    const submitBtn = verifyForm.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.style.width = `${submitBtn.offsetWidth}px`;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML =
+        '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Sending Email...';
+    }
+  });
 });
-
-function handleVerifySubmit(event) {
-  const $submitBtn = $(this).find('button[type="submit"]');
-  showLoading($submitBtn, "Sending Email...");
-}
-
-function showLoading($btn, text) {
-  if ($btn.length) {
-    $btn.css("width", $btn.outerWidth() + "px");
-    $btn.prop("disabled", true);
-    $btn.html(
-      `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>${text}`,
-    );
-  }
-}

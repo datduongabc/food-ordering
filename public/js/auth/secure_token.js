@@ -1,27 +1,22 @@
-$(function () {
-  const $form = $("#secureTokenForm");
-  if ($form.length) {
-    $form.on("submit", handleSecureTokenSubmit);
-  }
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("secureTokenForm");
+  if (!form) return;
+
+  form.addEventListener("submit", (event) => {
+    const tokenInput = document.getElementById("secureToken");
+    const tokenVal = tokenInput ? tokenInput.value.trim() : "";
+    const btn = form.querySelector('button[type="submit"]');
+
+    if (tokenVal.length !== 64) {
+      event.preventDefault();
+      alert("Invalid token length. Please check your email again.");
+      if (tokenInput) tokenInput.focus();
+      return;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Verifying...';
+    }
+  });
 });
-
-function handleSecureTokenSubmit(event) {
-  const $token = $("#secureToken");
-  const tokenVal = $token.val().trim();
-  const $btn = $(this).find('button[type="submit"]');
-
-  if (tokenVal.length !== 64) {
-    event.preventDefault();
-    alert("Invalid token length. Please check your email again.");
-    $token.focus();
-    return false;
-  }
-
-  showLoading($btn, "Verifying...");
-}
-
-function showLoading($btn, text) {
-  $btn
-    .prop("disabled", true)
-    .html(`<span class="spinner-border spinner-border-sm me-2"></span>${text}`);
-}

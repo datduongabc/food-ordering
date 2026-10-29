@@ -1,10 +1,12 @@
 #feedback {
   background-color: var(--soft-cyan);
+  border-top: 1px solid var(--warm-border);
+  border-bottom: 1px solid var(--warm-border);
 }
 
 #feedback .hover-card {
   border-radius: 24px;
-  border: none;
+  border: 1px solid var(--warm-border);
   position: relative;
   background-color: var(--pure-white);
   transition: var(--transition);
@@ -15,19 +17,16 @@
   content: "\201C";
   position: absolute;
   top: 10px;
-  left: 20px;
+  left: 22px;
   font-size: 5rem;
-  color: var(--light-orange);
+  color: var(--primary-orange);
   font-family: Georgia, serif;
   line-height: 1;
-  opacity: 0.6;
+  opacity: 0.14;
 }
 
-#feedback .hover-card i.bi-person {
+#feedback .hover-card i.bi-person-circle {
   color: var(--primary-orange);
-  font-size: 2.5rem;
-  display: block;
-  margin-bottom: 5px;
 }
 
 /* Custom Next/Previous Buttons for Carousel */
@@ -43,14 +42,14 @@
   width: 3rem;
   height: 3rem;
   border-radius: 50%;
-  box-shadow: 0 4px 10px rgba(0, 77, 77, 0.2);
+  box-shadow: 0 6px 14px rgba(31, 23, 18, 0.2);
   transition: var(--transition);
 }
 
 #feedback .carousel-control-prev-icon:hover,
 #feedback .carousel-control-next-icon:hover {
   background-color: var(--primary-orange);
-  transform: scale(1.1);
+  transform: scale(1.08);
 }
 
 /* Custom Dot Indicators */
@@ -60,11 +59,11 @@
 
 #feedback .carousel-indicators [data-bs-target] {
   background-color: var(--teal-dark);
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   margin: 0 6px;
-  opacity: 0.5;
+  opacity: 0.35;
   border: none;
   transition: var(--transition);
 }
