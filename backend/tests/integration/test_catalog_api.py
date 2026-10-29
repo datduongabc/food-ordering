@@ -18,7 +18,7 @@ class TestCategoriesAndLocations:
             "id": catalog.district1.id,
             "name": "District 1",
             "address": "1 Le Loi",
-            "map_url": "https://maps/d1",
+            "map_url": "https://www.google.com/maps/search/?api=1&query=1+Le+Loi",
         }
 
 

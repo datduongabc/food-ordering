@@ -6,6 +6,7 @@ checks look for the seeded dishes rather than assuming the menu holds nothing el
 
 import math
 import uuid
+from urllib.parse import parse_qs, urlsplit
 
 
 def all_slugs(browser, **params) -> list[str]:
@@ -40,6 +41,14 @@ def test_browse_menu_seeded_by_migrations(new_browser):
     ]
 
     assert [loc["name"] for loc in browser.get("/api/locations").json()][0] == "DaTeNO - District 1"
+
+
+def test_branch_map_links_search_for_the_branch_address(new_browser):
+    # The PHP seed shipped short links that 404'd; every branch must point at its own address.
+    for location in new_browser().get("/api/locations").json():
+        url = urlsplit(location["map_url"])
+        assert (url.scheme, url.netloc, url.path) == ("https", "www.google.com", "/maps/search/")
+        assert parse_qs(url.query) == {"api": ["1"], "query": [location["address"]]}
 
 
 def test_dish_images_are_served(new_browser):

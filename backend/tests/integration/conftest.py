@@ -122,8 +122,8 @@ def catalog(db) -> Catalog:
     """Five dishes chosen to make ordering observable; ids follow insertion order."""
     starters = Category(name="Starters", slug="starters")
     mains = Category(name="Main Dishes", slug="main_dishes")
-    district1 = Location(name="District 1", address="1 Le Loi", map_url="https://maps/d1")
-    district7 = Location(name="District 7", address="7 Nguyen Van Linh", map_url="https://maps/d7")
+    district1 = Location(name="District 1", address="1 Le Loi")
+    district7 = Location(name="District 7", address="7 Nguyen Van Linh")
     db.add_all([starters, mains, district1, district7])
     db.flush()
 

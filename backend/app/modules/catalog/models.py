@@ -30,7 +30,6 @@ class Location(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(255))
     address: Mapped[str] = mapped_column(Text)
-    map_url: Mapped[str] = mapped_column(Text)
 
 
 class Product(Base):

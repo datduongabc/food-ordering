@@ -1,5 +1,6 @@
 from decimal import Decimal
 from enum import StrEnum
+from urllib.parse import urlencode
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
@@ -28,7 +29,15 @@ class LocationOut(BaseModel):
     id: int
     name: str
     address: str
-    map_url: str
+
+    # Derived from the address rather than stored: the hand-entered short links the PHP site
+    # seeded never existed and 404'd, and a stored link can silently drift from the address.
+    @computed_field
+    @property
+    def map_url(self) -> str:
+        return "https://www.google.com/maps/search/?" + urlencode(
+            {"api": "1", "query": self.address}
+        )
 
 
 class ProductOut(BaseModel):
