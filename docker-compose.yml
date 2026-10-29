@@ -1,49 +1,63 @@
+# DaTeNO: Postgres, the FastAPI backend and the React app behind nginx.
+# Settings come from .env next to this file (see .env.example).
 services:
   db:
     image: postgres:16-alpine
     container_name: dateno_postgres_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-food_ordering_db}
+      POSTGRES_DB: ${DB_NAME:-dateno}
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./config/init_postgres.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: dateno_web_app
+  backend:
+    build: ./backend
+    container_name: dateno_backend
     restart: unless-stopped
-    ports:
-      - "8000:80"
     environment:
-      APP_ENV: ${APP_ENV:-production}
-      DB_CONNECTION: pgsql
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-food_ordering_db}
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      MAIL_EMAIL: ${MAIL_EMAIL:-no-reply@dateno.com}
-      MAIL_PASSWORD: ${MAIL_PASSWORD:-app_password}
-      MOMO_PARTNER_CODE: ${MOMO_PARTNER_CODE:-MOMOBKUN20180529}
-      MOMO_ACCESS_KEY: ${MOMO_ACCESS_KEY:-klm05TvNBzhg7h7j}
-      MOMO_SECRET_KEY: ${MOMO_SECRET_KEY:-at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa}
-      MOMO_ENDPOINT: ${MOMO_ENDPOINT:-https://test-payment.momo.vn/v2/gateway/api/create}
-      MOMO_EXCHANGE_RATE: ${MOMO_EXCHANGE_RATE:-25000}
+      # local: OTP emails print to this container's log, MoMo runs in sandbox mode and the
+      # local admin is seeded. Use production only behind HTTPS.
+      APP_ENV: ${APP_ENV:-local}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      # Set DATABASE_URL yourself when the password needs URL-encoding.
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-dateno}}
+      MEDIA_DIR: /app/media
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+    volumes:
+      - media:/app/media
     depends_on:
       db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  web:
+    build: ./frontend
+    container_name: dateno_web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8000}:80"
+    depends_on:
+      backend:
         condition: service_healthy
 
 volumes:
   postgres_data:
+  # Seeded and uploaded dish photos.
+  media:

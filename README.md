@@ -81,13 +81,14 @@ HTTP Request --> Front Controller (public/index.php)
 
 ## Quick Start with Docker & PostgreSQL
 
-The project ships with a ready-to-run **Docker Compose** configuration that pulls the official `postgres:16-alpine` image from Docker Hub and automatically imports the schema, triggers, and seed data from [`config/init_postgres.sql`](config/init_postgres.sql).
+Docker Compose runs three containers: PostgreSQL (`postgres:16-alpine`), the FastAPI backend (which applies the Alembic migrations, including the menu seed, on every start) and the React app served by nginx, which also proxies `/api` and `/media` to the backend.
 
 ### 1. Clone the repository & configure environment
 ```bash
 git clone <repository-url>
 cd restaurant_project
 cp .env.example .env
+# Set SECRET_KEY in .env, e.g. python3 -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
 ### 2. Build and start the containers
@@ -96,13 +97,15 @@ docker compose up -d --build
 ```
 
 - **Web Application:** [http://localhost:8000](http://localhost:8000)
-- **PostgreSQL Database:** `localhost:5432` (Database: `food_ordering_db`, User: `postgres`, Password: `postgres`)
+- **Admin (local mode only):** `datduongtandat385@gmail.com` / `12345678`
+- **Sign-up codes (local mode):** printed by `docker compose logs -f backend`
+- **PostgreSQL Database:** `localhost:5432` (Database: `dateno`, User and Password from `.env`)
 
 ### 3. Stop the containers
 ```bash
 docker compose down
 ```
-*(To reset the database volume and re-import `config/init_postgres.sql` from scratch, run `docker compose down -v`.)*
+*(To wipe the database and uploaded photos and start from the seed again, run `docker compose down -v`.)*
 
 ---
 

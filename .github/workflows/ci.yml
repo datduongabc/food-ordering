@@ -81,7 +81,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate Docker Compose Configuration
+        env:
+          SECRET_KEY: ci-placeholder-secret-key
         run: docker compose config -q
+
+      - name: Build Docker Compose Images
+        env:
+          SECRET_KEY: ci-placeholder-secret-key
+        run: docker compose build
 
       - name: Build Application Docker Image
         run: docker build -t dateno-restaurant:ci .
