@@ -5,7 +5,7 @@ import subprocess
 import sys
 import time
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -51,6 +51,20 @@ class Server:
         client.get("/api/health").raise_for_status()
         client.headers["X-CSRF-Token"] = client.cookies[CSRF_COOKIE]
         return client
+
+
+@pytest.fixture
+def new_browser(server) -> Iterator[Callable[[], httpx2.Client]]:
+    """Factory for browser-like clients that are all closed when the test ends."""
+    clients: list[httpx2.Client] = []
+
+    def make() -> httpx2.Client:
+        clients.append(server.client())
+        return clients[-1]
+
+    yield make
+    for client in clients:
+        client.close()
 
 
 @contextmanager

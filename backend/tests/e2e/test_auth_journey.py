@@ -17,8 +17,8 @@ def customer() -> dict:
     }
 
 
-def test_register_verify_email_and_sign_out(server, customer):
-    browser = server.client()
+def test_register_verify_email_and_sign_out(server, new_browser, customer):
+    browser = new_browser()
 
     assert browser.post("/api/auth/register", json=customer).status_code == 201
     login = browser.post(
@@ -40,8 +40,8 @@ def test_register_verify_email_and_sign_out(server, customer):
     assert browser.get("/api/auth/me").status_code == 401
 
 
-def test_forgot_password_signs_out_other_devices(server, customer):
-    laptop, phone = server.client(), server.client()
+def test_forgot_password_signs_out_other_devices(server, new_browser, customer):
+    laptop, phone = new_browser(), new_browser()
     assert laptop.post("/api/auth/register", json=customer).status_code == 201
     credentials = {"email": customer["email"], "password": customer["password"]}
     assert laptop.post("/api/auth/login", json=credentials).status_code == 200
@@ -67,8 +67,8 @@ def test_forgot_password_signs_out_other_devices(server, customer):
     assert new_login.status_code == 200
 
 
-def test_cross_site_post_without_csrf_header_is_blocked(server, customer):
-    browser = server.client()
+def test_cross_site_post_without_csrf_header_is_blocked(server, new_browser, customer):
+    browser = new_browser()
     del browser.headers["X-CSRF-Token"]
 
     response = browser.post("/api/auth/register", json=customer)

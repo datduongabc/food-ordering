@@ -51,6 +51,7 @@ class Product(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
 
     category: Mapped[Category | None] = relationship(lazy="joined")
+    # selectin loads every listed product's branches in one extra query instead of one per product.
     locations: Mapped[list[Location]] = relationship(
-        secondary=product_availabilities, order_by=Location.id
+        secondary=product_availabilities, order_by=Location.id, lazy="selectin"
     )

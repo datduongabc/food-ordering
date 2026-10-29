@@ -1,5 +1,7 @@
 import re
 from collections.abc import Iterator
+from dataclasses import dataclass
+from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,9 +11,10 @@ from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401  (registers every table on Base.metadata)
 from app.core.config import get_settings
-from app.core.db import Base, get_db
+from app.core.db import Base, get_db, utcnow
 from app.core.email import Email, get_email_sender
 from app.main import create_app
+from app.modules.catalog.models import Category, Location, Product
 from tests.conftest import TEST_DATABASE_URL
 from tests.data import USER
 
@@ -91,6 +94,61 @@ def client(db_session_factory, outbox) -> Iterator[TestClient]:
         test_client.get("/api/health")
         test_client.headers["X-CSRF-Token"] = test_client.cookies[get_settings().csrf_cookie_name]
         yield test_client
+
+
+@dataclass
+class Catalog:
+    starters: Category
+    mains: Category
+    district1: Location
+    district7: Location
+    products: dict[str, Product]
+
+
+@pytest.fixture
+def catalog(db) -> Catalog:
+    """Five dishes chosen to make ordering observable; ids follow insertion order."""
+    starters = Category(name="Starters", slug="starters")
+    mains = Category(name="Main Dishes", slug="main_dishes")
+    district1 = Location(name="District 1", address="1 Le Loi", map_url="https://maps/d1")
+    district7 = Location(name="District 7", address="7 Nguyen Van Linh", map_url="https://maps/d7")
+    db.add_all([starters, mains, district1, district7])
+    db.flush()
+
+    def dish(slug, name, category, price, rating=None, locations=(), deleted=False):
+        return Product(
+            slug=slug,
+            name=name,
+            description=f"{name} description",
+            category=category,
+            image_url=f"{category.slug}/{slug}.webp",
+            price=Decimal(price),
+            average_rating=Decimal(rating) if rating else None,
+            locations=list(locations),
+            deleted_at=utcnow() if deleted else None,
+        )
+
+    products = {
+        p.slug: p
+        for p in [
+            dish("spring-rolls", "Shrimp Spring Rolls", starters, "9.50", "4.00", [district1]),
+            dish("garlic-bread", "Garlic Butter Bread", starters, "6.00"),
+            dish("beef-steak", "Beef Steak", mains, "35.00", "5.00", [district1, district7]),
+            dish("pho-bo", "Pho Bo", mains, "12.00", "3.50", [district7]),
+            dish("old-dish", "Retired Spring Special", starters, "1.00", "5.00", deleted=True),
+        ]
+    }
+    db.add_all(products.values())
+    db.commit()
+    return Catalog(starters, mains, district1, district7, products)
+
+
+def register_and_login(client: TestClient, user: dict) -> None:
+    assert client.post("/api/auth/register", json=user).status_code == 201
+    login = client.post(
+        "/api/auth/login", json={"email": user["email"], "password": user["password"]}
+    )
+    assert login.status_code == 200, login.text
 
 
 @pytest.fixture

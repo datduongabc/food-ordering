@@ -30,6 +30,8 @@ package = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# Warnings (leaked sockets, deprecations, lossy Decimal casts) fail the run instead of scrolling by.
+filterwarnings = ["error"]
 
 [tool.ruff]
 line-length = 100

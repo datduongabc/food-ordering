@@ -1,7 +1,10 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
@@ -11,6 +14,10 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/food_ordering_db"
+
+    # Uploaded and seeded images; served at /media. Mount a volume here in production.
+    media_dir: Path = BACKEND_DIR / "media"
+    media_url: str = "/media"
 
     # Cookies are only marked Secure outside local development, where the dev server is plain HTTP.
     session_cookie_name: str = "dateno_session"
