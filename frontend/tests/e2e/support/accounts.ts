@@ -1,6 +1,6 @@
+/** The admin the local-only seed migration creates (backend/alembic, "seed local admin"). */
 export const ADMIN = {
-  email: 'admin@example.com',
+  email: 'datduongtandat385@gmail.com',
   name: 'Quản trị viên',
-  phone: '0900000001',
-  password: 'admin-password-123',
+  password: '12345678',
 }

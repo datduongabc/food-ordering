@@ -4,16 +4,14 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { API_PORT, WEB_PORT } from './ports.ts'
 import { startWebServer } from './support/webServer.ts'
-import { ADMIN } from './support/accounts.ts'
 
 const FRONTEND_DIR = resolve(import.meta.dirname, '../..')
 const BACKEND_DIR = resolve(FRONTEND_DIR, '../backend')
 
-function run(args: string[], env: NodeJS.ProcessEnv, input?: string) {
+function run(args: string[], env: NodeJS.ProcessEnv) {
   const result = spawnSync('uv', ['run', ...args], {
     cwd: BACKEND_DIR,
     env,
-    input,
     encoding: 'utf8',
   })
   if (result.status !== 0) {
@@ -35,9 +33,9 @@ async function waitForHealth(url: string, timeoutMs = 30_000) {
 }
 
 /**
- * Builds a throwaway database with the real migrations (including the menu seed), creates
- * the admin through the real CLI, starts uvicorn and serves a production build in front of it. Its log is kept because the console
- * email sender writes one-time codes there, which the auth journeys read.
+ * Builds a throwaway database with the real migrations (including the menu and local admin
+ * seeds), starts uvicorn and serves a production build in front of it. Its log is kept
+ * because the console email sender writes one-time codes there, which the auth journeys read.
  */
 export default async function globalSetup() {
   const workDir = mkdtempSync(join(tmpdir(), 'dateno-e2e-'))
@@ -53,23 +51,6 @@ export default async function globalSetup() {
   }
   if (process.env.E2E_DATABASE_URL) run(['alembic', 'downgrade', 'base'], env)
   run(['alembic', 'upgrade', 'head'], env)
-  run(
-    [
-      'python',
-      '-m',
-      'app.cli',
-      'create-admin',
-      '--email',
-      ADMIN.email,
-      '--name',
-      ADMIN.name,
-      '--phone',
-      ADMIN.phone,
-    ],
-    env,
-    `${ADMIN.password}\n`,
-  )
-
   const logPath = join(workDir, 'backend.log')
   const log = openSync(logPath, 'a')
   const server = spawn('uv', ['run', 'uvicorn', 'app.main:app', '--port', String(API_PORT)], {
