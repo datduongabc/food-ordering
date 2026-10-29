@@ -50,7 +50,7 @@ class TestCreate:
         assert response.status_code == 201
         body = response.json()
         assert body["status"] == "PENDING"
-        assert body["location"]["name"] == "District 1"
+        assert body["location"]["name"]["en"] == "District 1"
         assert body["reservation_time"] == "19:30:00"
         assert body["special_requests"] == "Window seat, please"
         assert body["can_cancel"] is True

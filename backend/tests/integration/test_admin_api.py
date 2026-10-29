@@ -239,8 +239,8 @@ class TestProducts:
         return client.post(
             "/api/admin/products",
             json={
-                "name": "Phở Bò Đặc Biệt",
-                "description": "Special beef noodle soup",
+                "name": {"vi": "Phở Bò Đặc Biệt", "en": "Special Beef Pho"},
+                "description": {"vi": "Phở bò đặc biệt", "en": "Special beef noodle soup"},
                 "price": "14.50",
                 "category_id": catalog.mains.id,
                 "location_ids": [catalog.district1.id, catalog.district7.id],
@@ -253,19 +253,21 @@ class TestProducts:
         assert len(slugs) == 5
         assert slugs["old-dish"] is not None
 
-    def test_create_derives_ascii_slug_from_vietnamese_name(self, admin_client, catalog):
+    def test_create_stores_both_languages_and_slugs_the_english_name(self, admin_client, catalog):
         response = self.create(admin_client, catalog)
 
         assert response.status_code == 201
         dish = response.json()
-        assert dish["slug"] == "pho-bo-dac-biet"
+        assert dish["name"] == {"vi": "Phở Bò Đặc Biệt", "en": "Special Beef Pho"}
+        assert dish["description"]["vi"] == "Phở bò đặc biệt"
+        assert dish["slug"] == "special-beef-pho"
         assert dish["price"] == "14.50"
         assert dish["image_url"] == "/media/products/placeholder.webp"
         assert [loc["id"] for loc in dish["locations"]] == [
             catalog.district1.id,
             catalog.district7.id,
         ]
-        assert admin_client.get("/api/products/pho-bo-dac-biet").status_code == 200
+        assert admin_client.get("/api/products/special-beef-pho").status_code == 200
 
     def test_duplicate_slug_conflicts(self, admin_client, catalog):
         response = self.create(admin_client, catalog, slug="pho-bo")
@@ -280,6 +282,8 @@ class TestProducts:
             ({"price": "0"}, 422),
             ({"price": "1.234"}, 422),
             ({"slug": "Bad Slug"}, 422),
+            ({"name": {"vi": "Phở", "en": "  "}}, 422),
+            ({"name": "Phở"}, 422),
         ],
     )
     def test_validates(self, admin_client, catalog, overrides, code):
@@ -293,8 +297,18 @@ class TestProducts:
         )
 
         dish = response.json()
-        assert (dish["name"], dish["price"]) == ("Pho Bo", "13.00")
-        assert [loc["name"] for loc in dish["locations"]] == ["District 1"]
+        assert (dish["name"]["en"], dish["price"]) == ("Pho Bo", "13.00")
+        assert [loc["name"]["en"] for loc in dish["locations"]] == ["District 1"]
+
+    def test_update_replaces_both_translations(self, admin_client, catalog):
+        pho = catalog.products["pho-bo"]
+        response = admin_client.patch(
+            f"/api/admin/products/{pho.id}",
+            json={"name": {"vi": "Phở bò tái", "en": "Rare Beef Pho"}},
+        )
+
+        assert response.json()["name"] == {"vi": "Phở bò tái", "en": "Rare Beef Pho"}
+        assert response.json()["slug"] == "pho-bo"
 
     def test_hide_and_restore(self, admin_client, catalog):
         pho = catalog.products["pho-bo"]

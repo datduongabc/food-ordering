@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from app.core.config import get_settings
+from app.core.localized import LocalizedText
 
 
 class ProductSort(StrEnum):
@@ -19,7 +20,7 @@ class CategoryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    name: str
+    name: LocalizedText
     slug: str
 
 
@@ -27,8 +28,8 @@ class LocationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    name: str
-    address: str
+    name: LocalizedText
+    address: LocalizedText
 
     # Derived from the address rather than stored: the hand-entered short links the PHP site
     # seeded never existed and 404'd, and a stored link can silently drift from the address.
@@ -36,7 +37,7 @@ class LocationOut(BaseModel):
     @property
     def map_url(self) -> str:
         return "https://www.google.com/maps/search/?" + urlencode(
-            {"api": "1", "query": self.address}
+            {"api": "1", "query": self.address.vi}
         )
 
 
@@ -44,9 +45,9 @@ class ProductOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    name: str
+    name: LocalizedText
     slug: str
-    description: str
+    description: LocalizedText
     price: Decimal
     average_rating: Decimal | None
     category: CategoryOut | None

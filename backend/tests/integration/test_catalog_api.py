@@ -16,9 +16,10 @@ class TestCategoriesAndLocations:
         response = client.get("/api/locations")
         assert response.json()[0] == {
             "id": catalog.district1.id,
-            "name": "District 1",
-            "address": "1 Le Loi",
-            "map_url": "https://www.google.com/maps/search/?api=1&query=1+Le+Loi",
+            "name": {"vi": "Quận 1", "en": "District 1"},
+            "address": {"vi": "1 Lê Lợi", "en": "1 Le Loi"},
+            # The Vietnamese address is what Google Maps geocodes best in Vietnam.
+            "map_url": "https://www.google.com/maps/search/?api=1&query=1+L%C3%AA+L%E1%BB%A3i",
         }
 
 
@@ -42,10 +43,10 @@ class TestListProducts:
         assert steak["image_url"] == "/media/products/main_dishes/beef-steak.webp"
         assert steak["category"] == {
             "id": catalog.mains.id,
-            "name": "Main Dishes",
+            "name": {"vi": "Món chính", "en": "Main Dishes"},
             "slug": "main_dishes",
         }
-        assert [loc["name"] for loc in steak["locations"]] == ["District 1", "District 7"]
+        assert [loc["name"]["en"] for loc in steak["locations"]] == ["District 1", "District 7"]
 
     def test_paginates(self, client, catalog):
         response = client.get("/api/products", params={"page": 2, "page_size": 3})
@@ -110,6 +111,10 @@ class TestSearch:
     def test_is_case_insensitive_and_partial(self, client, catalog):
         assert slugs(client.get("/api/products/search", params={"q": "SPRING"})) == ["spring-rolls"]
 
+    @pytest.mark.parametrize("term", ["phở", "Pho"])
+    def test_search_matches_either_language(self, client, catalog, term):
+        assert slugs(client.get("/api/products/search", params={"q": term})) == ["pho-bo"]
+
     def test_orders_best_rated_first_with_unrated_last(self, client, catalog):
         response = client.get("/api/products/search", params={"q": "b"})
         assert slugs(response) == ["beef-steak", "pho-bo", "garlic-bread"]
@@ -130,7 +135,7 @@ class TestProductDetail:
         response = client.get("/api/products/pho-bo")
 
         assert response.status_code == 200
-        assert response.json()["name"] == "Pho Bo"
+        assert response.json()["name"] == {"vi": "Phở bò", "en": "Pho Bo"}
 
     @pytest.mark.parametrize("slug", ["no-such-dish", "old-dish"])
     def test_missing_or_deleted_dish_is_404(self, client, catalog, slug):

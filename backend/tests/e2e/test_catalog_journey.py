@@ -33,14 +33,15 @@ def test_browse_menu_seeded_by_migrations(new_browser):
     assert "caesar-salad" not in mains
 
     cheapest = browser.get("/api/products", params={"sort": "price_asc"}).json()["items"][0]
-    assert cheapest["name"] == "Garlic Butter Bread"
-    assert [loc["name"] for loc in cheapest["locations"]] == [
-        "DaTeNO - District 1",
-        "DaTeNO - District 7",
-        "DaTeNO - Thu Duc",
+    assert cheapest["name"] == {"vi": "Bánh mì bơ tỏi", "en": "Garlic Butter Bread"}
+    assert [loc["name"]["vi"] for loc in cheapest["locations"]] == [
+        "DaTeNO - Quận 1",
+        "DaTeNO - Quận 7",
+        "DaTeNO - Thủ Đức",
     ]
 
-    assert [loc["name"] for loc in browser.get("/api/locations").json()][0] == "DaTeNO - District 1"
+    first_branch = browser.get("/api/locations").json()[0]
+    assert first_branch["name"] == {"vi": "DaTeNO - Quận 1", "en": "DaTeNO - District 1"}
 
 
 def test_branch_map_links_search_for_the_branch_address(new_browser):
@@ -48,7 +49,7 @@ def test_branch_map_links_search_for_the_branch_address(new_browser):
     for location in new_browser().get("/api/locations").json():
         url = urlsplit(location["map_url"])
         assert (url.scheme, url.netloc, url.path) == ("https", "www.google.com", "/maps/search/")
-        assert parse_qs(url.query) == {"api": ["1"], "query": [location["address"]]}
+        assert parse_qs(url.query) == {"api": ["1"], "query": [location["address"]["vi"]]}
 
 
 def test_dish_images_are_served(new_browser):

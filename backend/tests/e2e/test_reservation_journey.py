@@ -39,7 +39,9 @@ def test_book_view_and_cancel_a_table(new_browser):
 
     booked = browser.post("/api/reservations", json=form).json()
     mine = browser.get("/api/reservations/mine").json()
-    assert [(r["id"], r["location"]["name"]) for r in mine] == [(booked["id"], "DaTeNO - Thu Duc")]
+    assert [(r["id"], r["location"]["name"]["en"]) for r in mine] == [
+        (booked["id"], "DaTeNO - Thu Duc")
+    ]
 
     cancelled = browser.post(f"/api/reservations/{booked['id']}/cancel").json()
     assert cancelled["status"] == "CANCELLED"

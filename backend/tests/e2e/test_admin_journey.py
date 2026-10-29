@@ -23,14 +23,17 @@ def test_admin_adds_dish_and_fulfils_an_order(server, new_browser):
     dish = admin.post(
         "/api/admin/products",
         json={
-            "name": f"Bún Chả Hà Nội {suffix}",
-            "description": "Grilled pork with rice vermicelli and herbs",
+            "name": {"vi": f"Bún chả Hà Nội {suffix}", "en": f"Hanoi Grilled Pork {suffix}"},
+            "description": {
+                "vi": "Chả nướng ăn kèm bún và rau thơm",
+                "en": "Grilled pork with rice vermicelli and herbs",
+            },
             "price": "11.50",
             "category_id": mains["id"],
             "location_ids": [branches[0]["id"]],
         },
     ).json()
-    assert dish["slug"] == f"bun-cha-ha-noi-{suffix}"
+    assert dish["slug"] == f"hanoi-grilled-pork-{suffix}"
     photo = (BACKEND_DIR / "media" / "products" / "placeholder.webp").read_bytes()
     dish = admin.put(
         f"/api/admin/products/{dish['id']}/image", files={"image": ("bun-cha.webp", photo)}

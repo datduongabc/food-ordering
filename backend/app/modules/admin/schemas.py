@@ -4,6 +4,7 @@ from typing import Annotated
 
 from pydantic import AliasPath, BaseModel, ConfigDict, Field, StringConstraints
 
+from app.core.localized import LocalizedDescription, LocalizedName, LocalizedText
 from app.modules.auth.schemas import Name, NormalizedEmail, Password, Phone
 from app.modules.catalog.schemas import ProductOut
 from app.modules.orders.models import OrderStatus
@@ -50,7 +51,7 @@ class RevenueTrend(BaseModel):
 
 class DishSales(BaseModel):
     product_id: int
-    name: str
+    name: LocalizedText
     slug: str
     quantity: int
     revenue: Decimal
@@ -76,7 +77,7 @@ class PaymentStats(BaseModel):
 
 class RatedDish(BaseModel):
     product_id: int
-    name: str
+    name: LocalizedText
     slug: str
     average_rating: Decimal
     review_count: int
@@ -90,7 +91,7 @@ class AdminReviewOut(BaseModel):
     comment: str
     created_at: datetime
     user_name: str = Field(validation_alias=AliasPath("user", "name"))
-    product_name: str = Field(validation_alias=AliasPath("product", "name"))
+    product_name: LocalizedText = Field(validation_alias=AliasPath("product", "name"))
     product_slug: str = Field(validation_alias=AliasPath("product", "slug"))
 
 
@@ -102,7 +103,6 @@ class RatingStats(BaseModel):
 # --- Products ---------------------------------------------------------------------------
 
 Price = Annotated[Decimal, Field(gt=0, max_digits=10, decimal_places=2)]
-Description = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
 Slug = Annotated[
     str,
     StringConstraints(strip_whitespace=True, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$", max_length=255),
@@ -115,18 +115,18 @@ class AdminProductOut(ProductOut):
 
 
 class ProductCreate(BaseModel):
-    name: Name
+    name: LocalizedName
     slug: Slug | None = None
-    description: Description
+    description: LocalizedDescription
     price: Price
     category_id: int
     location_ids: Annotated[list[int], Field(min_length=1)]
 
 
 class ProductUpdate(BaseModel):
-    name: Name | None = None
+    name: LocalizedName | None = None
     slug: Slug | None = None
-    description: Description | None = None
+    description: LocalizedDescription | None = None
     price: Price | None = None
     category_id: int | None = None
     location_ids: Annotated[list[int], Field(min_length=1)] | None = None

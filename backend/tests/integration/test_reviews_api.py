@@ -125,6 +125,6 @@ class TestTopReviews:
 
         body = response.json()
         assert [r["comment"] for r in body] == ["newer five", "older five", "good"]
-        assert body[0]["product_name"] == "Shrimp Spring Rolls"
+        assert body[0]["product_name"]["en"] == "Shrimp Spring Rolls"
         assert body[0]["product_slug"] == "spring-rolls"
         assert body[0]["user_name"] == USER["name"]

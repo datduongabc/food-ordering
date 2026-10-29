@@ -6,6 +6,7 @@ from typing import Annotated
 from pydantic import AliasPath, BaseModel, ConfigDict, Field, StringConstraints, computed_field
 
 from app.core.config import get_settings
+from app.core.localized import LocalizedText
 from app.modules.auth.schemas import Name, Phone
 from app.modules.catalog.schemas import LocationOut
 from app.modules.orders.models import OrderStatus, PaymentMethod, PaymentStatus
@@ -38,7 +39,7 @@ class OrderItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     product_id: int
-    product_name: str = Field(validation_alias=AliasPath("product", "name"))
+    product_name: LocalizedText = Field(validation_alias=AliasPath("product", "name"))
     product_slug: str = Field(validation_alias=AliasPath("product", "slug"))
     image_path: str = Field(validation_alias=AliasPath("product", "image_url"), exclude=True)
     price_at_purchase: Decimal

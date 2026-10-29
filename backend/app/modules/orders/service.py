@@ -60,13 +60,13 @@ def place_order(db: Session, user: User, data: CheckoutIn) -> Order:
     location = db.get(Location, data.location_id)
     if location is None:
         raise BadRequestError("Please choose one of our branches.", code="unknown_branch")
-    unavailable = [line.product.name for line in cart if location not in line.product.locations]
+    unavailable = [line.product for line in cart if location not in line.product.locations]
     if unavailable:
         raise BadRequestError(
-            f"Not available at {location.name}: {', '.join(unavailable)}. "
+            f"Not available at {location.name_en}: {', '.join(p.name_en for p in unavailable)}. "
             "Remove them or choose another branch.",
             code="dishes_unavailable_at_branch",
-            params={"branch": location.name, "dishes": unavailable},
+            params={"branch": location.name, "dishes": [p.name for p in unavailable]},
         )
 
     order = Order(

@@ -5,6 +5,7 @@ from sqlalchemy import Column, ForeignKey, Integer, Numeric, String, Table, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base, UTCDateTime
+from app.core.localized import LocalizedColumns
 
 product_availabilities = Table(
     "product_availabilities",
@@ -18,18 +19,26 @@ class Category(Base):
     __tablename__ = "categories"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String(255))
+    name_vi: Mapped[str] = mapped_column(String(255))
+    name_en: Mapped[str] = mapped_column(String(255))
     slug: Mapped[str] = mapped_column(String(255), unique=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), server_default=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+
+    name = LocalizedColumns("name")
 
 
 class Location(Base):
     __tablename__ = "locations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String(255))
-    address: Mapped[str] = mapped_column(Text)
+    name_vi: Mapped[str] = mapped_column(String(255))
+    name_en: Mapped[str] = mapped_column(String(255))
+    address_vi: Mapped[str] = mapped_column(Text)
+    address_en: Mapped[str] = mapped_column(Text)
+
+    name = LocalizedColumns("name")
+    address = LocalizedColumns("address")
 
 
 class Product(Base):
@@ -40,8 +49,10 @@ class Product(Base):
         ForeignKey("categories.id", ondelete="SET NULL"), index=True
     )
     image_url: Mapped[str] = mapped_column(String(255))
-    name: Mapped[str] = mapped_column(String(255))
-    description: Mapped[str] = mapped_column(String(500))
+    name_vi: Mapped[str] = mapped_column(String(255))
+    name_en: Mapped[str] = mapped_column(String(255))
+    description_vi: Mapped[str] = mapped_column(String(500))
+    description_en: Mapped[str] = mapped_column(String(500))
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     # Denormalised from reviews so menu sorting by rating needs no aggregate join.
     average_rating: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
@@ -54,3 +65,6 @@ class Product(Base):
     locations: Mapped[list[Location]] = relationship(
         secondary=product_availabilities, order_by=Location.id, lazy="selectin"
     )
+
+    name = LocalizedColumns("name")
+    description = LocalizedColumns("description")

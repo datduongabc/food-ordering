@@ -126,7 +126,14 @@ def _sales_query(start: datetime) -> Select:
         ZERO,
     )
     return (
-        select(Product.id, Product.name, Product.slug, quantity.label("qty"), revenue.label("rev"))
+        select(
+            Product.id,
+            Product.name_vi,
+            Product.name_en,
+            Product.slug,
+            quantity.label("qty"),
+            revenue.label("rev"),
+        )
         .outerjoin(OrderItem, OrderItem.product_id == Product.id)
         .outerjoin(
             Order,
@@ -135,7 +142,7 @@ def _sales_query(start: datetime) -> Select:
             & (Order.status != OrderStatus.CANCELLED),
         )
         .where(Product.deleted_at.is_(None))
-        .group_by(Product.id, Product.name, Product.slug)
+        .group_by(Product.id, Product.name_vi, Product.name_en, Product.slug)
     )
 
 
@@ -146,7 +153,7 @@ def top_dishes(db: Session, days: int, limit: int) -> TopDishes:
         return [
             DishSales(
                 product_id=r.id,
-                name=r.name,
+                name={"vi": r.name_vi, "en": r.name_en},
                 slug=r.slug,
                 quantity=r.qty,
                 revenue=_money(r.rev),
@@ -191,10 +198,19 @@ def payments(db: Session, days: int) -> PaymentStats:
 def ratings(db: Session, limit: int) -> RatingStats:
     review_count = func.count(Review.id)
     lowest = db.execute(
-        select(Product.id, Product.name, Product.slug, Product.average_rating, review_count)
+        select(
+            Product.id,
+            Product.name_vi,
+            Product.name_en,
+            Product.slug,
+            Product.average_rating,
+            review_count,
+        )
         .join(Review, Review.product_id == Product.id)
         .where(Product.deleted_at.is_(None))
-        .group_by(Product.id, Product.name, Product.slug, Product.average_rating)
+        .group_by(
+            Product.id, Product.name_vi, Product.name_en, Product.slug, Product.average_rating
+        )
         .order_by(Product.average_rating.asc(), review_count.desc(), Product.id)
         .limit(limit)
     ).all()
@@ -203,7 +219,13 @@ def ratings(db: Session, limit: int) -> RatingStats:
     ).all()
     return RatingStats(
         lowest_rated=[
-            RatedDish(product_id=r[0], name=r[1], slug=r[2], average_rating=r[3], review_count=r[4])
+            RatedDish(
+                product_id=r[0],
+                name={"vi": r[1], "en": r[2]},
+                slug=r[3],
+                average_rating=r[4],
+                review_count=r[5],
+            )
             for r in lowest
         ],
         latest_reviews=latest,

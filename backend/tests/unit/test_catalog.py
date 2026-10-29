@@ -24,9 +24,9 @@ def test_escape_like(term, escaped):
 def test_product_out_exposes_public_image_url_not_storage_path():
     product = SimpleNamespace(
         id=1,
-        name="Pho Bo",
+        name={"vi": "Phở bò", "en": "Pho Bo"},
         slug="pho-bo",
-        description="Beef noodle soup",
+        description={"vi": "Phở bò tái", "en": "Beef noodle soup"},
         price=Decimal("12.00"),
         average_rating=None,
         category=None,

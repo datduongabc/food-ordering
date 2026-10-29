@@ -75,7 +75,7 @@ def _commit_unique_slug(db: Session, slug: str) -> None:
 
 
 def create_product(db: Session, data: ProductCreate) -> Product:
-    slug = data.slug or slugify(data.name)
+    slug = data.slug or slugify(data.name.en)
     if not slug:
         raise BadRequestError("Please provide a URL slug for this dish name.", code="slug_required")
     category = _category(db, data.category_id)

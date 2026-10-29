@@ -1,7 +1,7 @@
 import math
 from collections.abc import Sequence
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import NotFoundError
@@ -61,7 +61,12 @@ def search_products(db: Session, term: str, limit: int) -> Sequence[Product]:
     pattern = f"%{escape_like(term.strip())}%"
     return db.scalars(
         _active_products()
-        .where(Product.name.ilike(pattern, escape="\\"))
+        .where(
+            or_(
+                Product.name_vi.ilike(pattern, escape="\\"),
+                Product.name_en.ilike(pattern, escape="\\"),
+            )
+        )
         .order_by(*_ORDERINGS[ProductSort.RATING_DESC])
         .limit(limit)
     ).all()

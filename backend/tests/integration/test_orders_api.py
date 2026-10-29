@@ -25,7 +25,7 @@ def fill_cart(client, catalog, **quantities):
 
 def delivery(client, branch="District 7", **overrides) -> dict:
     location_id = next(
-        loc["id"] for loc in client.get("/api/locations").json() if loc["name"] == branch
+        loc["id"] for loc in client.get("/api/locations").json() if loc["name"]["en"] == branch
     )
     return {
         "location_id": location_id,
@@ -227,7 +227,7 @@ class TestDeliveryDetails:
 
         order = checkout(shopper, branch="District 1", delivery_note="  Ring twice  ").json()
 
-        assert order["location"]["name"] == "District 1"
+        assert order["location"]["name"]["en"] == "District 1"
         assert order["delivery_name"] == "Nguyen Van A"
         assert order["delivery_phone"] == "0901234567"
         assert order["delivery_address"] == "12 Nguyen Hue, District 1, Ho Chi Minh City"
@@ -243,8 +243,8 @@ class TestDeliveryDetails:
         assert response.status_code == 400
         assert response.json()["code"] == "dishes_unavailable_at_branch"
         assert response.json()["params"] == {
-            "branch": "District 7",
-            "dishes": ["Shrimp Spring Rolls"],
+            "branch": {"vi": "Quận 7", "en": "District 7"},
+            "dishes": [{"vi": "Gỏi cuốn tôm", "en": "Shrimp Spring Rolls"}],
         }
         assert shopper.get("/api/cart").json()["total_count"] == 2  # cart left untouched
 

@@ -120,18 +120,25 @@ class Catalog:
 @pytest.fixture
 def catalog(db) -> Catalog:
     """Five dishes chosen to make ordering observable; ids follow insertion order."""
-    starters = Category(name="Starters", slug="starters")
-    mains = Category(name="Main Dishes", slug="main_dishes")
-    district1 = Location(name="District 1", address="1 Le Loi")
-    district7 = Location(name="District 7", address="7 Nguyen Van Linh")
+    starters = Category(name={"vi": "Khai vị", "en": "Starters"}, slug="starters")
+    mains = Category(name={"vi": "Món chính", "en": "Main Dishes"}, slug="main_dishes")
+    district1 = Location(
+        name={"vi": "Quận 1", "en": "District 1"},
+        address={"vi": "1 Lê Lợi", "en": "1 Le Loi"},
+    )
+    district7 = Location(
+        name={"vi": "Quận 7", "en": "District 7"},
+        address={"vi": "7 Nguyễn Văn Linh", "en": "7 Nguyen Van Linh"},
+    )
     db.add_all([starters, mains, district1, district7])
     db.flush()
 
-    def dish(slug, name, category, price, rating=None, locations=(), deleted=False):
+    def dish(slug, names, category, price, rating=None, locations=(), deleted=False):
+        name_vi, name_en = names
         return Product(
             slug=slug,
-            name=name,
-            description=f"{name} description",
+            name={"vi": name_vi, "en": name_en},
+            description={"vi": f"Mô tả {name_vi}", "en": f"{name_en} description"},
             category=category,
             image_url=f"{category.slug}/{slug}.webp",
             price=Decimal(price),
@@ -143,11 +150,32 @@ def catalog(db) -> Catalog:
     products = {
         p.slug: p
         for p in [
-            dish("spring-rolls", "Shrimp Spring Rolls", starters, "9.50", "4.00", [district1]),
-            dish("garlic-bread", "Garlic Butter Bread", starters, "6.00"),
-            dish("beef-steak", "Beef Steak", mains, "35.00", "5.00", [district1, district7]),
-            dish("pho-bo", "Pho Bo", mains, "12.00", "3.50", [district7]),
-            dish("old-dish", "Retired Spring Special", starters, "1.00", "5.00", deleted=True),
+            dish(
+                "spring-rolls",
+                ("Gỏi cuốn tôm", "Shrimp Spring Rolls"),
+                starters,
+                "9.50",
+                "4.00",
+                [district1],
+            ),
+            dish("garlic-bread", ("Bánh mì bơ tỏi", "Garlic Butter Bread"), starters, "6.00"),
+            dish(
+                "beef-steak",
+                ("Bò bít tết", "Beef Steak"),
+                mains,
+                "35.00",
+                "5.00",
+                [district1, district7],
+            ),
+            dish("pho-bo", ("Phở bò", "Pho Bo"), mains, "12.00", "3.50", [district7]),
+            dish(
+                "old-dish",
+                ("Món xuân cũ", "Retired Spring Special"),
+                starters,
+                "1.00",
+                "5.00",
+                deleted=True,
+            ),
         ]
     }
     db.add_all(products.values())

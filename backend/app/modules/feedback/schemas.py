@@ -3,6 +3,8 @@ from typing import Annotated
 
 from pydantic import AliasPath, BaseModel, ConfigDict, Field, StringConstraints
 
+from app.core.localized import LocalizedText
+
 
 class ReviewIn(BaseModel):
     rating: Annotated[int, Field(ge=1, le=5)]
@@ -21,5 +23,5 @@ class ReviewOut(BaseModel):
 
 
 class TopReviewOut(ReviewOut):
-    product_name: str = Field(validation_alias=AliasPath("product", "name"))
+    product_name: LocalizedText = Field(validation_alias=AliasPath("product", "name"))
     product_slug: str = Field(validation_alias=AliasPath("product", "slug"))
