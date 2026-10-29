@@ -5,8 +5,10 @@ from app.core.config import get_settings
 from app.core.csrf import CSRFMiddleware
 from app.core.errors import register_error_handlers
 from app.modules.auth.router import router as auth_router
+from app.modules.cart.router import router as cart_router
 from app.modules.catalog.router import router as catalog_router
 from app.modules.feedback.router import router as feedback_router
+from app.modules.orders.router import router as orders_router
 
 
 def create_app() -> FastAPI:
@@ -23,6 +25,8 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, prefix="/api")
     app.include_router(catalog_router, prefix="/api")
     app.include_router(feedback_router, prefix="/api")
+    app.include_router(cart_router, prefix="/api")
+    app.include_router(orders_router, prefix="/api")
     app.mount(settings.media_url, StaticFiles(directory=settings.media_dir), name="media")
 
     @app.get("/api/health", tags=["meta"])

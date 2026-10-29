@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     login_max_failures: int = 5
     login_lockout_minutes: int = 15
 
+    # Menu prices are in USD; MoMo charges in VND.
+    momo_usd_to_vnd_rate: int = 25000
+
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
     smtp_username: str = ""

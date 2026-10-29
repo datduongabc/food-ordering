@@ -36,6 +36,10 @@ class TooManyRequestsError(AppError):
     status_code = 429
 
 
+class ServiceUnavailableError(AppError):
+    status_code = 503
+
+
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def handle_app_error(_: Request, exc: AppError) -> JSONResponse:

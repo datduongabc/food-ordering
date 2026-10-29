@@ -53,7 +53,10 @@ class Order(Base):
 
     user: Mapped[User] = relationship(lazy="joined")
     items: Mapped[list["OrderItem"]] = relationship(
-        back_populates="order", cascade="all, delete-orphan", order_by="OrderItem.id"
+        back_populates="order",
+        cascade="all, delete-orphan",
+        order_by="OrderItem.id",
+        lazy="selectin",
     )
 
 
