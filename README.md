@@ -7,7 +7,7 @@
 
 **DaTeNO** is a restaurant web app for ordering food for delivery and booking tables across three branches. A **FastAPI** backend serves a JSON API to a **React + TypeScript** single-page app, with **PostgreSQL** for storage. The whole interface is available in Vietnamese (default) and English.
 
-> This branch replaces the original PHP application, which remains on `main`. The PHP sources (`app/`, `public/`, `config/`, `tests/*.php`) are still in the tree until the migration is merged.
+> This replaces the original PHP application, which is kept in the git history.
 
 ---
 
@@ -172,7 +172,7 @@ GitHub Actions runs on every push and pull request:
 
 - **[`backend.yml`](.github/workflows/backend.yml):** ruff lint and format, migrations up, `alembic check` and back down on Postgres 16, then the test suite on SQLite and on Postgres.
 - **[`frontend.yml`](.github/workflows/frontend.yml):** type check, lint, format, unit and integration tests, then the Playwright suite against the real backend.
-- **[`ci.yml`](.github/workflows/ci.yml):** the legacy PHP checks, then validates `docker-compose.yml` and builds its images.
+- **[`ci.yml`](.github/workflows/ci.yml):** validates `docker-compose.yml` and builds its images.
 
 ---
 
@@ -202,7 +202,7 @@ restaurant_project/
 │   ├── tests/                 # unit/, integration/, e2e/
 │   ├── nginx.conf             # Production server and API proxy
 │   └── Dockerfile
-├── .github/workflows/         # backend.yml, frontend.yml, ci.yml
+├── .github/workflows/         # backend.yml, frontend.yml, ci.yml (Docker)
 ├── docker-compose.yml         # PostgreSQL + backend + web
 └── .env.example
 ```

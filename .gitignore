@@ -1,10 +1,7 @@
-/vendor
-
 .env
 .env.*
 !.env.example
 *.log
-error_log
 
 .vscode/
 .idea/
