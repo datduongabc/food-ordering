@@ -1,0 +1,52 @@
+# Production on a server with a domain name pointing at it:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Caddy takes ports 80 and 443 and obtains the HTTPS certificate; nothing else is published.
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    container_name: dateno_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      edge:
+        ipv4_address: 172.30.0.10
+    depends_on:
+      - web
+
+  web:
+    ports: !reset []
+    environment:
+      # nginx takes the client address from Caddy's X-Forwarded-For, and only from Caddy.
+      TRUSTED_PROXY: 172.30.0.10
+    networks:
+      - default
+      - edge
+
+  backend:
+    environment:
+      APP_ENV: production
+      PUBLIC_URL: https://${DOMAIN}
+
+  db:
+    # Reachable by the other containers only.
+    ports: !reset []
+
+networks:
+  edge:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+volumes:
+  caddy_data:
+  caddy_config:

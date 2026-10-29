@@ -85,7 +85,7 @@ Every API error carries a stable `code` and `params`, which the frontend transla
 
 ## Quick Start with Docker & PostgreSQL
 
-Docker Compose runs three containers: PostgreSQL (`postgres:16-alpine`), the FastAPI backend (which applies the Alembic migrations, including the menu seed, on every start) and the React app served by nginx, which also proxies `/api` and `/media` to the backend.
+Docker Compose runs four containers: PostgreSQL (`postgres:16-alpine`), the FastAPI backend (which applies the Alembic migrations, including the menu seed, on every start), the React app served by nginx, which also proxies `/api` and `/media` to the backend, and a backup job.
 
 ### 1. Clone the repository & configure environment
 ```bash
@@ -111,6 +111,29 @@ docker compose down
 ```
 *(To wipe the database and uploaded photos and start from the seed again, run `docker compose down -v`.)*
 
+### Backups
+
+The `backup` container writes a database dump (`db-*.dump`) and an archive of the uploaded photos (`media-*.tar.gz`) to `./backups` when it starts and every 24 hours after, and deletes copies older than `BACKUP_KEEP_DAYS` (7). They sit on the same disk as the database, so copy the folder somewhere else as well (another machine, cloud storage). The files are written by root inside the container; use `sudo` to delete them by hand.
+
+```bash
+docker compose run --rm backup once          # take a backup now
+# Restore a dump (replaces the current data) and the matching photos:
+docker compose exec -T db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner' < backups/db-YYYYMMDD-HHMMSS.dump
+docker run --rm -v restaurant_project_media:/media -v "$PWD/backups:/restore:ro" postgres:16-alpine \
+  tar -xzf /restore/media-YYYYMMDD-HHMMSS.tar.gz -C /media
+```
+
+### Production with HTTPS
+
+On a server with a domain name pointing at it, set `DOMAIN`, `ACME_EMAIL`, a random `SECRET_KEY` and real SMTP settings in `.env`, then:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+docker compose exec backend python -m app.cli create-admin --email ... --name ... --phone ...
+```
+
+The production file adds [Caddy](https://caddyserver.com), which obtains and renews a Let's Encrypt certificate, redirects HTTP to HTTPS and sends HSTS. It switches the backend to `APP_ENV=production` with `PUBLIC_URL=https://DOMAIN`, and publishes only ports 80 and 443: the database and the nginx container are no longer reachable from outside. nginx takes the client address only from Caddy, so rate limits still see real visitors.
+
 ### Configuration
 
 All settings live in `.env`; see [`.env.example`](.env.example).
@@ -128,7 +151,7 @@ All settings live in `.env`; see [`.env.example`](.env.example).
 - **Small timing differences remain.** A reset request for a real account writes a code to the database and one for an unknown email does not; the difference is a few milliseconds, well inside normal network jitter, but it is not zero.
 - **Client addresses come from the proxy.** The bundled nginx overwrites `X-Forwarded-For`; behind another proxy or load balancer, make sure it does too, or visitors share one address (or can pick their own).
 - **Late MoMo charges need a manual refund.** If MoMo charges an attempt the customer already abandoned (a retry or a switch to cash) or an order cancelled meanwhile, the backend logs an error instead of changing the order; refund it from the MoMo portal. There is no automatic reconciliation with MoMo's query API, so a payment whose IPN and return were both lost stays unpaid until checked by hand.
-- **No HSTS yet.** Add `Strict-Transport-Security` to `frontend/security-headers.conf` once the site is served over HTTPS.
+- **HSTS and the Secure cookie flag need the production setup.** Plain `docker compose up` serves HTTP only; use `docker-compose.prod.yml` for anything public.
 
 ---
 
@@ -216,10 +239,12 @@ restaurant_project/
 │   │   ├── i18n/              # Vietnamese and English dictionaries
 │   │   └── lib/               # API client, formatting
 │   ├── tests/                 # unit/, integration/, e2e/
-│   ├── nginx.conf             # Production server and API proxy
+│   ├── default.conf.template  # nginx: production server and API proxy
 │   └── Dockerfile
 ├── .github/workflows/         # backend.yml, frontend.yml, ci.yml (Docker)
-├── docker-compose.yml         # PostgreSQL + backend + web
+├── deploy/                    # Caddyfile (HTTPS) and backup.sh
+├── docker-compose.yml         # PostgreSQL + backend + web + backups
+├── docker-compose.prod.yml    # Adds Caddy for HTTPS and closes the other ports
 └── .env.example
 ```
 

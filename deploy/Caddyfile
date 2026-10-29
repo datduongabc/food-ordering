@@ -1,0 +1,12 @@
+# Terminates HTTPS for DOMAIN with a certificate from Let's Encrypt, renewed automatically.
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+	# Only ever served over HTTPS from here on; browsers remember this for a year.
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	# Caddy discards any X-Forwarded-For the client sent and sets the real address.
+	reverse_proxy web:80
+}
