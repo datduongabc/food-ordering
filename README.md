@@ -134,6 +134,11 @@ docker compose exec backend python -m app.cli create-admin --email ... --name ..
 
 The production file adds [Caddy](https://caddyserver.com), which obtains and renews a Let's Encrypt certificate, redirects HTTP to HTTPS and sends HSTS. It switches the backend to `APP_ENV=production` with `PUBLIC_URL=https://DOMAIN`, and publishes only ports 80 and 443: the database and the nginx container are no longer reachable from outside. nginx takes the client address only from Caddy, so rate limits still see real visitors.
 
+### Monitoring
+
+- **Logs:** the backend writes one line per request with its method, path, status, duration and an id. nginx assigns the id and the browser receives it as `X-Request-ID`, so a customer's report can be matched to the log lines (`docker compose logs backend | grep <id>`). `LOG_FORMAT=json` (the production default) makes each line a JSON object for log collectors.
+- **Errors:** create two projects at [sentry.io](https://sentry.io) (Python/FastAPI and React) and set `SENTRY_DSN` and `VITE_SENTRY_DSN`; rebuild the web image after changing the latter. Reports leave out IP addresses, cookies and request bodies. In the browser the SDK loads only when a DSN is set, and a page that crashes shows a reload screen and is reported. `SENTRY_TRACES_SAMPLE_RATE` (0 to 1) also samples requests for performance tracing.
+
 ### Configuration
 
 All settings live in `.env`; see [`.env.example`](.env.example).
@@ -221,7 +226,8 @@ GitHub Actions runs on every push and pull request:
 restaurant_project/
 ├── backend/
 │   ├── app/
-│   │   ├── core/              # Settings, database, sessions & security, CSRF, rate limits, headers, email
+│   │   ├── core/              # Settings, database, sessions & security, CSRF, rate limits,
+│   │   │                      # headers, logging & Sentry, email
 │   │   ├── modules/           # auth, catalog, cart, orders (incl. MoMo and its sandbox),
 │   │   │                      # reservations, feedback, users, admin
 │   │   ├── cli.py             # create-admin command

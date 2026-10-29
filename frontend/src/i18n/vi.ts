@@ -463,6 +463,11 @@ export const vi = {
     commentRequired: 'Vui lòng nhập nhận xét.',
     tooLong: 'Tối đa {max} ký tự.',
   },
+  errorPage: {
+    title: 'Đã có lỗi xảy ra',
+    body: 'Trang này gặp sự cố khi hiển thị. Chúng tôi đã ghi nhận lỗi; quý khách vui lòng tải lại trang.',
+    reload: 'Tải lại trang',
+  },
   notFound: {
     title: 'Không tìm thấy trang',
     body: 'Trang quý khách tìm không tồn tại hoặc đã được di chuyển.',

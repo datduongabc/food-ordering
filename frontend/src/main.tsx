@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router'
 import { Providers } from '@/app/Providers'
 import { createQueryClient } from '@/app/queryClient'
 import { routes } from '@/app/routes'
+import { startMonitoring } from '@/lib/monitoring'
 import '@/styles/global.css'
 
 const router = createBrowserRouter(routes)
@@ -19,3 +20,5 @@ createRoot(root).render(
     </Providers>
   </StrictMode>,
 )
+
+void startMonitoring()

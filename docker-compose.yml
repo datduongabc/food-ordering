@@ -36,6 +36,9 @@ services:
       MOMO_ACCESS_KEY: ${MOMO_ACCESS_KEY:-}
       MOMO_SECRET_KEY: ${MOMO_SECRET_KEY:-}
       MOMO_ENDPOINT: ${MOMO_ENDPOINT:-https://test-payment.momo.vn}
+      LOG_FORMAT: ${LOG_FORMAT:-text}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0}
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USERNAME: ${SMTP_USERNAME:-}
@@ -53,7 +56,10 @@ services:
       retries: 20
 
   web:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
     container_name: dateno_web
     restart: unless-stopped
     ports:

@@ -5,6 +5,7 @@ from app.core.config import get_settings
 from app.core.csrf import CSRFMiddleware
 from app.core.errors import register_error_handlers
 from app.core.headers import SecurityHeadersMiddleware
+from app.core.observability import RequestLogMiddleware, configure_logging, init_sentry
 from app.core.rate_limit import RateLimiter, RateLimitMiddleware
 from app.modules.admin.router import router as admin_router
 from app.modules.auth.phantom import PhantomResetCodes
@@ -18,6 +19,8 @@ from app.modules.reservations.router import router as reservations_router
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    configure_logging(settings)
+    init_sentry(settings)
     app = FastAPI(
         title="DaTeNO Restaurant API",
         version="0.1.0",
@@ -28,11 +31,13 @@ def create_app() -> FastAPI:
     )
     app.state.rate_limiter = RateLimiter()
     app.state.phantom_reset_codes = PhantomResetCodes()
-    # Added last runs first: headers wrap every response, floods are refused before CSRF checks.
+    # Added last runs first: every request is logged, headers wrap every response, and floods
+    # are refused before CSRF checks.
     # MoMo posts payment results server to server; they carry a signature instead of a token.
     app.add_middleware(CSRFMiddleware, exempt_paths=frozenset({"/api/payments/momo/ipn"}))
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(RequestLogMiddleware)
     register_error_handlers(app)
 
     app.include_router(auth_router, prefix="/api")

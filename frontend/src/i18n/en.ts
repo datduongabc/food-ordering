@@ -464,6 +464,11 @@ export const en: Dictionary = {
     commentRequired: 'Please write a comment.',
     tooLong: 'At most {max} characters.',
   },
+  errorPage: {
+    title: 'Something went wrong',
+    body: 'This page ran into a problem. We have been notified; please reload the page.',
+    reload: 'Reload the page',
+  },
   notFound: {
     title: 'Page not found',
     body: 'The page you are looking for does not exist or has moved.',

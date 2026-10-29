@@ -56,6 +56,12 @@ class Settings(BaseSettings):
     # MoMo's test environment; https://payment.momo.vn takes real money.
     momo_endpoint: str = "https://test-payment.momo.vn"
 
+    # "json" writes one object per line, for log collectors; "text" is easier to read by eye.
+    log_format: Literal["text", "json"] = "text"
+    # Errors go to Sentry when set; the share of requests also traced for performance.
+    sentry_dsn: str = ""
+    sentry_traces_sample_rate: float = 0.0
+
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
     smtp_username: str = ""

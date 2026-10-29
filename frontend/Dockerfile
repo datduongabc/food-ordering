@@ -3,6 +3,9 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+# Baked into the bundle: browser error reports go to this Sentry project. Empty turns them off.
+ARG VITE_SENTRY_DSN=""
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
 # Type checking and tests run in CI; the image only needs the bundle.
 RUN npx vite build
 

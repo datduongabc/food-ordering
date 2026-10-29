@@ -22,6 +22,8 @@ server {
         # X-Forwarded-For would let anyone pick a fresh one per request.
         proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # The backend logs under this id and returns it as X-Request-ID.
+        proxy_set_header X-Request-ID $request_id;
         # The API sends its own copies of these; keep one set, not two.
         proxy_hide_header X-Content-Type-Options;
         proxy_hide_header X-Frame-Options;

@@ -36,6 +36,7 @@ services:
     environment:
       APP_ENV: production
       PUBLIC_URL: https://${DOMAIN}
+      LOG_FORMAT: json
 
   db:
     # Reachable by the other containers only.
