@@ -53,8 +53,8 @@ jobs:
 
       # Both engines: SQLite is what contributors run locally by default, and migrations or
       # SQL that only work on Postgres (e.g. a now() default) must not slip through.
-      - name: Tests on SQLite
-        run: uv run pytest
+      - name: Tests on SQLite (with coverage, at least 85%)
+        run: uv run pytest --cov
 
       - name: Tests on Postgres
         env:
