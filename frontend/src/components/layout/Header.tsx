@@ -1,6 +1,8 @@
 import { useId, useState } from 'react'
-import { Link, NavLink, useLocation } from 'react-router'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router'
+import { useLogout } from '@/features/auth/api'
 import { useCurrentUser } from '@/features/auth/queries'
+import { useToast } from '@/components/ui/toastContext'
 import { useCart } from '@/features/cart/useCart'
 import { useI18n } from '@/i18n/context'
 import { interpolate } from '@/lib/format'
@@ -32,6 +34,9 @@ export function Header() {
   const user = useCurrentUser()
   const { cart } = useCart()
   const location = useLocation()
+  const navigate = useNavigate()
+  const logout = useLogout()
+  const toast = useToast()
   // Remembering where the mobile menu was opened closes it once the customer navigates away.
   const [openOn, setOpenOn] = useState<string | null>(null)
   const open = openOn === location.pathname
@@ -75,9 +80,26 @@ export function Header() {
             {t.nav.branches}
           </a>
           {user ? (
-            <NavLink to="/account" className={navClass}>
-              {t.nav.account}
-            </NavLink>
+            <>
+              <NavLink to="/account" className={navClass}>
+                {t.nav.account}
+              </NavLink>
+              <button
+                type="button"
+                className={styles.navLink}
+                disabled={logout.isPending}
+                onClick={() =>
+                  logout.mutate(undefined, {
+                    onSettled: () => {
+                      toast(t.auth.loggedOut)
+                      navigate('/')
+                    },
+                  })
+                }
+              >
+                {t.auth.logout}
+              </button>
+            </>
           ) : (
             <NavLink to="/login" className={`${styles.navLink} ${styles.signIn}`}>
               {t.nav.signIn}

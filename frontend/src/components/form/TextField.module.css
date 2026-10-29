@@ -1,0 +1,49 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.label {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.input {
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1.5px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-ground);
+  font-size: 16px;
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-red);
+}
+
+.code {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 12px;
+  text-align: center;
+}
+
+/* A bold placeholder reads as a code already filled in. */
+.code::placeholder {
+  color: var(--color-disabled);
+  font-weight: 600;
+}
+
+.error {
+  color: var(--color-red);
+  font-size: 14px;
+  font-weight: 600;
+}

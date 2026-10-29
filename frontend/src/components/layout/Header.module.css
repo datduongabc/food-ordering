@@ -51,6 +51,10 @@
 
 .navLink {
   padding: 12px 14px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
   color: var(--color-ground);
   font-weight: 600;
   font-size: 15px;
