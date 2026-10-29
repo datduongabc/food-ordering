@@ -9,6 +9,7 @@ from app.modules.cart.router import router as cart_router
 from app.modules.catalog.router import router as catalog_router
 from app.modules.feedback.router import router as feedback_router
 from app.modules.orders.router import router as orders_router
+from app.modules.reservations.router import router as reservations_router
 
 
 def create_app() -> FastAPI:
@@ -27,6 +28,7 @@ def create_app() -> FastAPI:
     app.include_router(feedback_router, prefix="/api")
     app.include_router(cart_router, prefix="/api")
     app.include_router(orders_router, prefix="/api")
+    app.include_router(reservations_router, prefix="/api")
     app.mount(settings.media_url, StaticFiles(directory=settings.media_dir), name="media")
 
     @app.get("/api/health", tags=["meta"])
