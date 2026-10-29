@@ -1,6 +1,7 @@
 from fastapi import APIRouter, status
 
 from app.core.deps import CurrentUser, DbSession, OptionalUser
+from app.core.rate_limit import BOOKINGS, rate_limit
 from app.modules.reservations import service
 from app.modules.reservations.schemas import (
     ReservationIn,
@@ -16,7 +17,12 @@ def get_policy():
     return service.get_policy()
 
 
-@router.post("", response_model=ReservationOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ReservationOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[rate_limit(BOOKINGS, per="user")],
+)
 def create_reservation(data: ReservationIn, db: DbSession, user: OptionalUser):
     return service.create_reservation(db, user, data)
 

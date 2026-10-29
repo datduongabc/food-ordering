@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import CheckConstraint, Enum, Integer, SmallInteger, String, func
+from sqlalchemy import Enum, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base, UTCDateTime
@@ -14,8 +14,6 @@ class Role(StrEnum):
 
 class User(Base):
     __tablename__ = "users"
-    __table_args__ = (CheckConstraint("failed_login_attempts >= 0", name="failed_login_attempts"),)
-
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(255))
     email: Mapped[str] = mapped_column(String(255), unique=True)
@@ -25,8 +23,6 @@ class User(Base):
     )
     phone: Mapped[str] = mapped_column(String(10), unique=True)
     email_verified_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
-    failed_login_attempts: Mapped[int] = mapped_column(SmallInteger, default=0)
-    locked_until: Mapped[datetime | None] = mapped_column(UTCDateTime())
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), server_default=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
 

@@ -4,7 +4,10 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import get_settings
 from app.core.csrf import CSRFMiddleware
 from app.core.errors import register_error_handlers
+from app.core.headers import SecurityHeadersMiddleware
+from app.core.rate_limit import RateLimiter, RateLimitMiddleware
 from app.modules.admin.router import router as admin_router
+from app.modules.auth.phantom import PhantomResetCodes
 from app.modules.auth.router import router as auth_router
 from app.modules.cart.router import router as cart_router
 from app.modules.catalog.router import router as catalog_router
@@ -18,10 +21,17 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="DaTeNO Restaurant API",
         version="0.1.0",
-        docs_url="/api/docs",
-        openapi_url="/api/openapi.json",
+        # The schema maps every endpoint; publish it only where developers need it.
+        docs_url="/api/docs" if settings.is_local else None,
+        redoc_url=None,
+        openapi_url="/api/openapi.json" if settings.is_local else None,
     )
+    app.state.rate_limiter = RateLimiter()
+    app.state.phantom_reset_codes = PhantomResetCodes()
+    # Added last runs first: headers wrap every response, floods are refused before CSRF checks.
     app.add_middleware(CSRFMiddleware)
+    app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
     register_error_handlers(app)
 
     app.include_router(auth_router, prefix="/api")

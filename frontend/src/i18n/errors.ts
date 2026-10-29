@@ -5,7 +5,7 @@ import { isLocalizedText } from '@/lib/localized'
 import { useI18n } from './context'
 import type { Dictionary, Lang } from './dictionary'
 
-// Params can hold catalog text ({vi, en}), enum values or money, which need the current
+// Params can hold catalog text ({vi, en}), enum values, money or waits, which need the current
 // language or formatting before they are shown.
 function displayParam(key: string, value: unknown, t: Dictionary, lang: Lang): string {
   if (Array.isArray(value)) return value.map((item) => displayParam(key, item, t, lang)).join(', ')
@@ -14,6 +14,12 @@ function displayParam(key: string, value: unknown, t: Dictionary, lang: Lang): s
     return t.orderStatus[value] ?? value
   }
   if (key.endsWith('_vnd') && typeof value === 'number') return formatVnd(value)
+  // Waits run up to an hour; past a minute, rounding up to whole minutes reads better.
+  if (key === 'seconds' && typeof value === 'number') {
+    return value < 60
+      ? interpolate(t.common.seconds, { count: value })
+      : interpolate(t.common.minutes, { count: Math.ceil(value / 60) })
+  }
   return String(value)
 }
 

@@ -43,7 +43,7 @@ def smtp(monkeypatch) -> type[FakeSmtp]:
 
 
 def settings(**overrides) -> Settings:
-    return Settings(_env_file=None, **overrides)
+    return Settings(_env_file=None, secret_key="s" * 32, **overrides)
 
 
 def test_smtp_sender_logs_in_over_tls_and_sends_from_mail_from(smtp):

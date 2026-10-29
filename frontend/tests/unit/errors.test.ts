@@ -16,6 +16,15 @@ describe('errorMessage', () => {
     )
   })
 
+  it('shows rate-limit waits in seconds, or whole minutes past one', () => {
+    expect(errorMessage(apiError('rate_limited', { seconds: 42 }), vi, 'vi')).toBe(
+      'Quý khách thao tác quá nhanh. Vui lòng thử lại sau 42 giây.',
+    )
+    expect(errorMessage(apiError('rate_limited', { seconds: 61 }), en, 'en')).toBe(
+      "You're going a little fast. Please try again in 2 minutes.",
+    )
+  })
+
   it('fills params, joining lists', () => {
     const error = apiError('dishes_unavailable_at_branch', {
       branch: { vi: 'DaTeNO - Quận 7', en: 'DaTeNO - District 7' },

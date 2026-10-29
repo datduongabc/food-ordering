@@ -45,7 +45,7 @@ describe('api client', () => {
     server.use(
       http.get('*/api/thing', () =>
         HttpResponse.json(
-          { detail: 'Try again in 3 minute(s).', code: 'login_locked', params: { minutes: 3 } },
+          { detail: 'Try again in 3 second(s).', code: 'rate_limited', params: { seconds: 3 } },
           { status: 429 },
         ),
       ),
@@ -54,7 +54,7 @@ describe('api client', () => {
     const error = await api.get('/thing', ok).catch((caught: unknown) => caught)
 
     expect(error).toBeInstanceOf(ApiError)
-    expect(error).toMatchObject({ status: 429, code: 'login_locked', params: { minutes: 3 } })
+    expect(error).toMatchObject({ status: 429, code: 'rate_limited', params: { seconds: 3 } })
   })
 
   it('rejects responses that do not match the expected shape', async () => {
