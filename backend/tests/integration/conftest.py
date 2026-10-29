@@ -2,6 +2,7 @@ import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,8 +14,10 @@ import app.models  # noqa: F401  (registers every table on Base.metadata)
 from app.core.config import get_settings
 from app.core.db import Base, get_db, utcnow
 from app.core.email import Email, get_email_sender
+from app.core.security import hash_password
 from app.main import create_app
 from app.modules.catalog.models import Category, Location, Product
+from app.modules.users.models import Role, User
 from tests.conftest import TEST_DATABASE_URL
 from tests.data import USER
 
@@ -76,6 +79,15 @@ def db(db_session_factory) -> Iterator[Session]:
 @pytest.fixture
 def outbox() -> Outbox:
     return Outbox()
+
+
+@pytest.fixture(autouse=True)
+def media_dir(tmp_path, monkeypatch) -> Path:
+    """Uploads go to a per-test folder, never into the repository's media directory."""
+    path = tmp_path / "media"
+    (path / "products").mkdir(parents=True)
+    monkeypatch.setattr(get_settings(), "media_dir", path)
+    return path
 
 
 @pytest.fixture
@@ -149,6 +161,42 @@ def register_and_login(client: TestClient, user: dict) -> None:
         "/api/auth/login", json={"email": user["email"], "password": user["password"]}
     )
     assert login.status_code == 200, login.text
+
+
+ADMIN = {
+    "name": "Quan Ly",
+    "email": "admin@dateno.vn",
+    "password": "admin-password",
+    "phone": "0819152362",
+}
+
+
+@pytest.fixture
+def admin_client(client, db) -> TestClient:
+    db.add(
+        User(
+            name=ADMIN["name"],
+            email=ADMIN["email"],
+            phone=ADMIN["phone"],
+            password_hash=hash_password(ADMIN["password"]),
+            role=Role.ADMIN,
+        )
+    )
+    db.commit()
+    response = client.post(
+        "/api/auth/login", json={"email": ADMIN["email"], "password": ADMIN["password"]}
+    )
+    assert response.status_code == 200, response.text
+    return client
+
+
+@pytest.fixture
+def second_client(client) -> Iterator[TestClient]:
+    """Another browser on the same app and database, e.g. a customer while an admin acts."""
+    with TestClient(client.app) as other:
+        other.get("/api/health")
+        other.headers["X-CSRF-Token"] = other.cookies[get_settings().csrf_cookie_name]
+        yield other
 
 
 @pytest.fixture

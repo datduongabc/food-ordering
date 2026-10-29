@@ -1,15 +1,37 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
+from typing import Annotated
 
-from pydantic import AliasPath, BaseModel, ConfigDict, Field, computed_field
+from pydantic import AliasPath, BaseModel, ConfigDict, Field, StringConstraints, computed_field
 
 from app.core.config import get_settings
+from app.modules.auth.schemas import Name, Phone
+from app.modules.catalog.schemas import LocationOut
 from app.modules.orders.models import OrderStatus, PaymentMethod, PaymentStatus
+
+Note = Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)]
 
 
 class CheckoutIn(BaseModel):
     payment_method: PaymentMethod = PaymentMethod.COD
+    # Branch that cooks and dispatches the order; every dish must be available there.
+    location_id: int
+    delivery_name: Name
+    delivery_phone: Phone
+    delivery_address: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=5, max_length=500)
+    ]
+    delivery_note: Note = ""
+
+
+class OrderEventOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    from_status: OrderStatus | None
+    to_status: OrderStatus
+    note: str
+    created_at: datetime
 
 
 class OrderItemOut(BaseModel):
@@ -42,7 +64,13 @@ class OrderOut(BaseModel):
     payment_status: PaymentStatus
     total_price: Decimal
     created_at: datetime
+    location: LocationOut | None
+    delivery_name: str | None
+    delivery_phone: str | None
+    delivery_address: str | None
+    delivery_note: str | None
     items: list[OrderItemOut]
+    events: list[OrderEventOut]
 
     @computed_field
     @property

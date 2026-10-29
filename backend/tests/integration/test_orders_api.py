@@ -23,8 +23,23 @@ def fill_cart(client, catalog, **quantities):
         client.post("/api/cart/items", json={"product_id": product_id, "quantity": quantity})
 
 
-def checkout(client, payment_method="COD"):
-    return client.post("/api/orders", json={"payment_method": payment_method})
+def delivery(client, branch="District 7", **overrides) -> dict:
+    location_id = next(
+        loc["id"] for loc in client.get("/api/locations").json() if loc["name"] == branch
+    )
+    return {
+        "location_id": location_id,
+        "delivery_name": "Nguyen Van A",
+        "delivery_phone": "0901234567",
+        "delivery_address": "12 Nguyen Hue, District 1, Ho Chi Minh City",
+        **overrides,
+    }
+
+
+def checkout(client, payment_method="COD", **overrides):
+    return client.post(
+        "/api/orders", json={"payment_method": payment_method, **delivery(client, **overrides)}
+    )
 
 
 class TestCheckout:
@@ -81,7 +96,7 @@ class TestCheckout:
         fill_cart(shopper, catalog, pho_bo=1)
         assert checkout(shopper, "BITCOIN").status_code == 422
 
-    def test_requires_sign_in(self, client):
+    def test_requires_sign_in(self, client, catalog):
         assert checkout(client).status_code == 401
 
 
@@ -203,3 +218,70 @@ class TestMomoSandbox:
 
         assert self.start(shopper, order_id).status_code == 503
         assert self.complete(shopper, momo_order_id, "approved").status_code == 503
+
+
+class TestDeliveryDetails:
+    def test_checkout_stores_delivery_details_and_history(self, shopper, catalog):
+        fill_cart(shopper, catalog, beef_steak=1)
+
+        order = checkout(shopper, branch="District 1", delivery_note="  Ring twice  ").json()
+
+        assert order["location"]["name"] == "District 1"
+        assert order["delivery_name"] == "Nguyen Van A"
+        assert order["delivery_phone"] == "0901234567"
+        assert order["delivery_address"] == "12 Nguyen Hue, District 1, Ho Chi Minh City"
+        assert order["delivery_note"] == "Ring twice"
+        assert [(e["from_status"], e["to_status"]) for e in order["events"]] == [(None, "PENDING")]
+
+    def test_rejects_dishes_not_served_by_the_branch(self, shopper, catalog):
+        # Spring rolls are only made in District 1; pho only in District 7.
+        fill_cart(shopper, catalog, spring_rolls=1, pho_bo=1)
+
+        response = checkout(shopper, branch="District 7")
+
+        assert response.status_code == 400
+        assert response.json()["detail"].startswith(
+            "Not available at District 7: Shrimp Spring Rolls."
+        )
+        assert shopper.get("/api/cart").json()["total_count"] == 2  # cart left untouched
+
+    def test_unknown_branch(self, shopper, catalog):
+        fill_cart(shopper, catalog, pho_bo=1)
+        response = shopper.post(
+            "/api/orders", json={**delivery(shopper), "location_id": 999, "payment_method": "COD"}
+        )
+        assert response.status_code == 400
+
+    @pytest.mark.parametrize(
+        "overrides",
+        [
+            {"delivery_address": "  "},
+            {"delivery_address": "abc"},
+            {"delivery_phone": "123"},
+            {"delivery_name": ""},
+            {"delivery_note": "x" * 501},
+        ],
+    )
+    def test_validates_delivery_fields(self, shopper, catalog, overrides):
+        fill_cart(shopper, catalog, pho_bo=1)
+        assert checkout(shopper, **overrides).status_code == 422
+
+    def test_history_records_customer_cancel_and_momo_confirmation(self, shopper, catalog):
+        fill_cart(shopper, catalog, pho_bo=1)
+        cancelled = shopper.post(f"/api/orders/{checkout(shopper).json()['id']}/cancel").json()
+        assert [(e["to_status"], e["note"]) for e in cancelled["events"]] == [
+            ("PENDING", ""),
+            ("CANCELLED", "Cancelled by customer."),
+        ]
+
+        fill_cart(shopper, catalog, pho_bo=1)
+        order_id = checkout(shopper, "MOMO").json()["id"]
+        momo_id = shopper.post(f"/api/orders/{order_id}/payments/momo").json()["momo_order_id"]
+        paid = shopper.post(
+            "/api/payments/momo/sandbox/complete",
+            json={"momo_order_id": momo_id, "result": "approved"},
+        ).json()
+        assert paid["events"][-1]["from_status"] == "PENDING"
+        assert paid["events"][-1]["to_status"] == "CONFIRMED"
+        assert paid["events"][-1]["note"] == "MoMo payment received."
+        assert "actor_name" not in paid["events"][-1]  # staff identities stay internal

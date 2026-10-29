@@ -1,4 +1,7 @@
-"""Admin tasks: `uv run python -m app.cli create-admin --email ... --name ... --phone ...`"""
+"""Admin tasks: `uv run python -m app.cli create-admin --email ... --name ... --phone ...`
+
+The password is prompted for, or read from stdin when piped (e.g. in deploy scripts).
+"""
 
 import argparse
 import getpass
@@ -38,8 +41,12 @@ def main(argv: list[str] | None = None) -> None:
     admin.add_argument("--phone", required=True)
     args = parser.parse_args(argv)
 
-    # Prompted rather than passed as a flag so the password never lands in shell history.
-    password = getpass.getpass("Password (min 8 chars): ")
+    # Prompted (or piped in by scripts) rather than passed as a flag, so the password never
+    # lands in shell history or the process list.
+    if sys.stdin.isatty():
+        password = getpass.getpass("Password (min 8 chars): ")
+    else:
+        password = sys.stdin.readline().rstrip("\n")
     if len(password) < 8:
         sys.exit("Password must be at least 8 characters.")
     user = create_admin(args.email, args.name, args.phone, password)

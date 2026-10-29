@@ -4,7 +4,7 @@ from app.modules.auth.models import OtpCode, UserSession
 from app.modules.cart.models import CartItem
 from app.modules.catalog.models import Category, Location, Product, product_availabilities
 from app.modules.feedback.models import Review
-from app.modules.orders.models import Order, OrderItem
+from app.modules.orders.models import Order, OrderEvent, OrderItem
 from app.modules.reservations.models import Reservation
 from app.modules.users.models import User
 
@@ -14,6 +14,7 @@ __all__ = [
     "Location",
     "OtpCode",
     "Order",
+    "OrderEvent",
     "OrderItem",
     "Product",
     "Reservation",

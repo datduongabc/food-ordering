@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -26,9 +27,34 @@ def _free_port() -> int:
 
 
 class Server:
-    def __init__(self, base_url: str, log_path: Path):
+    def __init__(self, base_url: str, log_path: Path, env: dict[str, str], media_dir: Path):
         self.base_url = base_url
         self.log_path = log_path
+        self.env = env
+        self.media_dir = media_dir
+
+    def create_admin(self, email: str, name: str, phone: str, password: str) -> None:
+        """Runs the real `create-admin` CLI against the server's database."""
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "app.cli",
+                "create-admin",
+                "--email",
+                email,
+                "--name",
+                name,
+                "--phone",
+                phone,
+            ],
+            cwd=BACKEND_DIR,
+            env=self.env,
+            input=f"{password}\n",
+            text=True,
+            check=True,
+            capture_output=True,
+        )
 
     def last_emailed_code(self, email: str, after: int = 0) -> str:
         """Waits for the `after + 1`-th email to `email` and returns its code.
@@ -96,10 +122,14 @@ def server(tmp_path_factory) -> Iterator[Server]:
 
 def _run_server(workdir: Path, database_url: str) -> Iterator[Server]:
     port = _free_port()
+    # A private copy of the media folder, so uploads during tests never touch the repository.
+    media_dir = workdir / "media"
+    shutil.copytree(BACKEND_DIR / "media", media_dir)
     env = {
         **os.environ,
         "APP_ENV": "local",
         "DATABASE_URL": database_url,
+        "MEDIA_DIR": str(media_dir),
         "SECRET_KEY": "e2e-secret",
         "SMTP_USERNAME": "",
         "SMTP_PASSWORD": "",
@@ -126,7 +156,7 @@ def _run_server(workdir: Path, database_url: str) -> Iterator[Server]:
         base_url = f"http://127.0.0.1:{port}"
         try:
             _wait_until_healthy(base_url, process, log_path)
-            yield Server(base_url, log_path)
+            yield Server(base_url, log_path, env, media_dir)
         finally:
             process.terminate()
             process.wait(timeout=10)

@@ -30,7 +30,13 @@ def order(status: OrderStatus, payment_status: PaymentStatus) -> OrderOut:
         payment_status=payment_status,
         total_price=Decimal("10.00"),
         created_at=datetime(2026, 10, 29, tzinfo=UTC),
+        location=None,
+        delivery_name="Nguyen Van A",
+        delivery_phone="0901234567",
+        delivery_address="12 Nguyen Hue",
+        delivery_note="",
         items=[],
+        events=[],
     )
 
 

@@ -1,21 +1,35 @@
-"""Browsing the real seeded menu (from the Alembic seed migration) over HTTP."""
+"""Browsing the real seeded menu (from the Alembic seed migration) over HTTP.
 
+The server is shared by the whole e2e session and other journeys add dishes, so these
+checks look for the seeded dishes rather than assuming the menu holds nothing else.
+"""
+
+import math
 import uuid
+
+
+def all_slugs(browser, **params) -> list[str]:
+    body = browser.get("/api/products", params={"page_size": 48, **params}).json()
+    return [item["slug"] for item in body["items"]]
 
 
 def test_browse_menu_seeded_by_migrations(new_browser):
     browser = new_browser()
 
     first_page = browser.get("/api/products").json()
-    assert first_page["total"] == 30
-    assert first_page["total_pages"] == 3
+    total = first_page["total"]
+    assert total >= 30
+    assert first_page["total_pages"] == math.ceil(total / 12)
     assert len(first_page["items"]) == 12
+    # Default order is by id, so the seeded dishes come first, starters before mains.
+    assert first_page["items"][0]["slug"] == "caesar-salad"
 
-    last_page = browser.get("/api/products", params={"page": 3}).json()
-    assert len(last_page["items"]) == 6
+    last_page = browser.get("/api/products", params={"page": first_page["total_pages"]}).json()
+    assert len(last_page["items"]) == total - 12 * (first_page["total_pages"] - 1)
 
-    mains = browser.get("/api/products", params={"category": "main_dishes", "page_size": 48})
-    assert mains.json()["total"] == 18
+    mains = all_slugs(browser, category="main_dishes")
+    assert {"peking-roast-duck", "beef-steak-red-wine", "thai-seafood-hotpot"} <= set(mains)
+    assert "caesar-salad" not in mains
 
     cheapest = browser.get("/api/products", params={"sort": "price_asc"}).json()["items"][0]
     assert cheapest["name"] == "Garlic Butter Bread"

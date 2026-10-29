@@ -5,6 +5,7 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import NotFoundError
+from app.core.sql import escape_like
 from app.modules.catalog.models import Category, Location, Product
 from app.modules.catalog.schemas import ProductOut, ProductPage, ProductSort
 
@@ -56,12 +57,8 @@ def get_featured_product(db: Session) -> Product | None:
     return db.scalar(_active_products().order_by(*_ORDERINGS[ProductSort.RATING_DESC]).limit(1))
 
 
-def _escape_like(term: str) -> str:
-    return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-
-
 def search_products(db: Session, term: str, limit: int) -> Sequence[Product]:
-    pattern = f"%{_escape_like(term.strip())}%"
+    pattern = f"%{escape_like(term.strip())}%"
     return db.scalars(
         _active_products()
         .where(Product.name.ilike(pattern, escape="\\"))

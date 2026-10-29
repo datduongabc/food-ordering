@@ -25,6 +25,16 @@ def sign_up_and_in(browser, customer: dict) -> None:
     ).raise_for_status()
 
 
+def checkout_form(browser, payment_method: str) -> dict:
+    return {
+        "payment_method": payment_method,
+        "location_id": browser.get("/api/locations").json()[0]["id"],
+        "delivery_name": "Hoang Thi E",
+        "delivery_phone": "0912345678",
+        "delivery_address": "45 Le Thanh Ton, Ben Nghe, District 1",
+    }
+
+
 def product_id(browser, slug: str) -> int:
     return browser.get(f"/api/products/{slug}").json()["id"]
 
@@ -47,7 +57,7 @@ def test_guest_cart_merges_then_pays_with_momo_after_a_decline(new_browser):
     merged = browser.post("/api/cart/merge", json=guest_cart).json()
     assert merged["total_price"] == "58.00"
 
-    order = browser.post("/api/orders", json={"payment_method": "MOMO"}).json()
+    order = browser.post("/api/orders", json=checkout_form(browser, "MOMO")).json()
     assert order["status"] == "PENDING"
     assert browser.get("/api/cart").json()["total_count"] == 0
 
@@ -77,7 +87,7 @@ def test_cash_on_delivery_order_can_be_cancelled(new_browser):
         "/api/cart/items", json={"product_id": product_id(browser, "caesar-salad"), "quantity": 1}
     ).raise_for_status()
 
-    order = browser.post("/api/orders", json={"payment_method": "COD"}).json()
+    order = browser.post("/api/orders", json=checkout_form(browser, "COD")).json()
     cancelled = browser.post(f"/api/orders/{order['id']}/cancel").json()
 
     assert cancelled["status"] == "CANCELLED"
@@ -102,10 +112,11 @@ def test_simultaneous_checkouts_create_exactly_one_order(new_browser):
         tab.cookies.update(browser.cookies)
         tab.headers["X-CSRF-Token"] = browser.headers["X-CSRF-Token"]
 
+    form = checkout_form(browser, "COD")
     with ThreadPoolExecutor(max_workers=len(tabs)) as pool:
         statuses = sorted(
             pool.map(
-                lambda tab: tab.post("/api/orders", json={"payment_method": "COD"}).status_code,
+                lambda tab: tab.post("/api/orders", json=form).status_code,
                 tabs,
             )
         )

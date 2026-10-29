@@ -9,7 +9,7 @@ router = APIRouter(tags=["orders"])
 
 @router.post("/orders", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
 def place_order(data: CheckoutIn, db: DbSession, user: CurrentUser):
-    return service.place_order(db, user, data.payment_method)
+    return service.place_order(db, user, data)
 
 
 @router.get("/orders", response_model=list[OrderOut])

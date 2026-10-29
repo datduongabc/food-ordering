@@ -3,8 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.core.sql import escape_like
 from app.modules.catalog.schemas import ProductOut
-from app.modules.catalog.service import _escape_like
 
 
 @pytest.mark.parametrize(
@@ -18,7 +18,7 @@ from app.modules.catalog.service import _escape_like
     ],
 )
 def test_escape_like(term, escaped):
-    assert _escape_like(term) == escaped
+    assert escape_like(term) == escaped
 
 
 def test_product_out_exposes_public_image_url_not_storage_path():

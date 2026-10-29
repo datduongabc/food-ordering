@@ -15,7 +15,7 @@ from app.core.config import get_settings
 from app.core.errors import BadRequestError, ConflictError, NotFoundError, ServiceUnavailableError
 from app.modules.orders.models import Order, OrderStatus, PaymentMethod, PaymentStatus
 from app.modules.orders.schemas import MomoPaymentOut, SandboxCompleteIn, SandboxResult
-from app.modules.orders.service import get_order
+from app.modules.orders.service import get_order, transition
 from app.modules.users.models import User
 
 # Per-transaction limits of a MoMo wallet payment.
@@ -84,7 +84,7 @@ def complete_sandbox_payment(db: Session, user: User, data: SandboxCompleteIn) -
     if data.result == SandboxResult.APPROVED:
         order.payment_status = PaymentStatus.PAID
         order.momo_trans_id = f"SANDBOX-{secrets.token_hex(6).upper()}"
-        order.status = OrderStatus.CONFIRMED
+        transition(order, OrderStatus.CONFIRMED, None, "MoMo payment received.")
     else:
         order.payment_status = PaymentStatus.FAILED
     db.commit()

@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import get_settings
 from app.core.csrf import CSRFMiddleware
 from app.core.errors import register_error_handlers
+from app.modules.admin.router import router as admin_router
 from app.modules.auth.router import router as auth_router
 from app.modules.cart.router import router as cart_router
 from app.modules.catalog.router import router as catalog_router
@@ -29,6 +30,7 @@ def create_app() -> FastAPI:
     app.include_router(cart_router, prefix="/api")
     app.include_router(orders_router, prefix="/api")
     app.include_router(reservations_router, prefix="/api")
+    app.include_router(admin_router, prefix="/api")
     app.mount(settings.media_url, StaticFiles(directory=settings.media_dir), name="media")
 
     @app.get("/api/health", tags=["meta"])
