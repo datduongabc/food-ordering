@@ -32,6 +32,11 @@ def start_momo_payment(order_id: int, db: DbSession, user: CurrentUser):
     return payments.start_momo_payment(db, user, order_id)
 
 
+@router.post("/orders/{order_id}/payments/cod", response_model=OrderOut)
+def switch_to_cod(order_id: int, db: DbSession, user: CurrentUser):
+    return payments.switch_to_cod(db, user, order_id)
+
+
 @router.post("/payments/momo/sandbox/complete", response_model=OrderOut)
 def complete_sandbox_payment(data: SandboxCompleteIn, db: DbSession, user: CurrentUser):
     """Local development only: plays the part of the customer approving in the MoMo app."""

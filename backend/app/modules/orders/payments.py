@@ -71,6 +71,18 @@ def start_momo_payment(db: Session, user: User, order_id: int) -> MomoPaymentOut
     )
 
 
+def switch_to_cod(db: Session, user: User, order_id: int) -> Order:
+    """Back to cash on delivery, e.g. after a MoMo payment was declined or abandoned."""
+    order = get_order(db, user, order_id, for_update=True)
+    _ensure_payable(order)
+    order.payment_method = PaymentMethod.COD
+    order.payment_status = PaymentStatus.UNPAID
+    # Retires the open attempt, so approving it later in a stale tab cannot charge a cash order.
+    order.momo_order_id = None
+    db.commit()
+    return get_order(db, user, order.id)
+
+
 def complete_sandbox_payment(db: Session, user: User, data: SandboxCompleteIn) -> Order:
     _require_sandbox()
     order = db.scalar(

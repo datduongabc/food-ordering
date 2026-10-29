@@ -118,6 +118,7 @@ class TestViewingOrders:
         assert client.get(f"/api/orders/{order_id}").status_code == 404
         assert client.post(f"/api/orders/{order_id}/cancel").status_code == 404
         assert client.post(f"/api/orders/{order_id}/payments/momo").status_code == 404
+        assert client.post(f"/api/orders/{order_id}/payments/cod").status_code == 404
 
 
 class TestCancel:
@@ -196,6 +197,28 @@ class TestMomoSandbox:
         self.start(shopper, order_id)
 
         assert shopper.get(f"/api/orders/{order_id}").json()["payment_method"] == "MOMO"
+
+    def test_unpaid_momo_order_can_switch_back_to_cod(self, shopper, order_id):
+        momo_order_id = self.start(shopper, order_id).json()["momo_order_id"]
+        self.complete(shopper, momo_order_id, "declined")
+
+        response = shopper.post(f"/api/orders/{order_id}/payments/cod")
+
+        order = response.json()
+        assert response.status_code == 200
+        assert (order["payment_method"], order["payment_status"]) == ("COD", "UNPAID")
+        assert order["status"] == "PENDING"
+        # The abandoned attempt can no longer charge the cash order.
+        assert self.complete(shopper, momo_order_id, "approved").status_code == 404
+
+    def test_paid_order_cannot_switch_back_to_cod(self, shopper, order_id):
+        momo_order_id = self.start(shopper, order_id).json()["momo_order_id"]
+        self.complete(shopper, momo_order_id, "approved")
+
+        response = shopper.post(f"/api/orders/{order_id}/payments/cod")
+
+        assert response.status_code == 409
+        assert response.json()["code"] == "order_already_paid"
 
     def test_amount_outside_momo_limits_is_refused_not_clamped(self, shopper, catalog, db):
         db.get(Product, catalog.products["pho-bo"].id).price = 500
