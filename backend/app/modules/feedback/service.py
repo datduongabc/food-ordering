@@ -32,7 +32,7 @@ def add_review(db: Session, user: User, slug: str, data: ReviewIn) -> Review:
     if db.scalar(
         select(Review.id).where(Review.user_id == user.id, Review.product_id == product.id)
     ):
-        raise ConflictError(ALREADY_REVIEWED)
+        raise ConflictError(ALREADY_REVIEWED, code="already_reviewed")
 
     review = Review(
         user_id=user.id, product_id=product.id, rating=data.rating, comment=data.comment
@@ -42,7 +42,7 @@ def add_review(db: Session, user: User, slug: str, data: ReviewIn) -> Review:
         db.flush()
     except IntegrityError as exc:  # lost a race with a duplicate submit from the same user
         db.rollback()
-        raise ConflictError(ALREADY_REVIEWED) from exc
+        raise ConflictError(ALREADY_REVIEWED, code="already_reviewed") from exc
 
     product.average_rating = db.scalar(
         select(func.round(func.avg(Review.rating), 2)).where(Review.product_id == product.id)

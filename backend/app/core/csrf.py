@@ -7,6 +7,7 @@ from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.core.config import get_settings
+from app.core.errors import error_body
 
 CSRF_HEADER = "x-csrf-token"
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
@@ -40,7 +41,10 @@ class CSRFMiddleware:
                 or not hmac.compare_digest(cookie_token, header_token)
             ):
                 response = JSONResponse(
-                    {"detail": "CSRF token missing or invalid. Reload the page and try again."},
+                    error_body(
+                        "CSRF token missing or invalid. Reload the page and try again.",
+                        "csrf_failed",
+                    ),
                     status_code=403,
                 )
                 await response(scope, receive, send)

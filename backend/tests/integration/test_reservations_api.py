@@ -74,25 +74,26 @@ class TestCreate:
         assert response.status_code == 201
 
     @pytest.mark.parametrize(
-        ("day", "time", "message"),
+        ("day", "time", "code"),
         [
-            (TODAY + timedelta(days=4), "19:00", "at most 3 days in advance"),
-            (TODAY - timedelta(days=1), "19:00", "cannot be in the past"),
-            (TODAY, "17:59", "already passed today"),
-            (TODAY, "18:00", "already passed today"),
+            (TODAY + timedelta(days=4), "19:00", "date_too_far"),
+            (TODAY - timedelta(days=1), "19:00", "date_in_past"),
+            (TODAY, "17:59", "time_passed"),
+            (TODAY, "18:00", "time_passed"),
         ],
     )
-    def test_rejects_dates_outside_window(self, client, catalog, day, time, message):
+    def test_rejects_dates_outside_window(self, client, catalog, day, time, code):
         response = book(client, catalog, reservation_date=day.isoformat(), reservation_time=time)
 
         assert response.status_code == 400
-        assert message in response.json()["detail"]
+        assert response.json()["code"] == code
 
     def test_limits_party_size(self, client, catalog):
         assert book(client, catalog, guest_count=10).status_code == 201
         too_many = book(client, catalog, guest_count=11)
         assert too_many.status_code == 400
-        assert "call the restaurant" in too_many.json()["detail"]
+        assert too_many.json()["code"] == "too_many_guests"
+        assert too_many.json()["params"] == {"max_guests": 10}
 
     def test_unknown_branch(self, client, catalog):
         response = book(client, catalog, location_id=999)

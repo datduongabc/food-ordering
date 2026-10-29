@@ -49,8 +49,8 @@ def register(db: Session, data: RegisterIn) -> User:
     )
     if existing is not None:
         if existing.email == data.email:
-            raise ConflictError("Email already registered.")
-        raise ConflictError("Phone number already registered.")
+            raise ConflictError("Email already registered.", code="email_taken")
+        raise ConflictError("Phone number already registered.", code="phone_taken")
 
     user = User(
         name=data.name,
@@ -68,13 +68,15 @@ def authenticate(db: Session, email: str, password: str) -> User:
     user = get_active_user_by_email(db, email)
     if user is None:
         verify_password(password, _DUMMY_HASH)
-        raise UnauthorizedError(INVALID_CREDENTIALS)
+        raise UnauthorizedError(INVALID_CREDENTIALS, code="invalid_credentials")
 
     now = utcnow()
     if user.locked_until and user.locked_until > now:
         minutes = max(1, int((user.locked_until - now).total_seconds() // 60) + 1)
         raise TooManyRequestsError(
-            f"Too many failed sign-in attempts. Try again in {minutes} minute(s)."
+            f"Too many failed sign-in attempts. Try again in {minutes} minute(s).",
+            code="login_locked",
+            params={"minutes": minutes},
         )
 
     valid, upgraded_hash = verify_password(password, user.password_hash)
@@ -84,7 +86,7 @@ def authenticate(db: Session, email: str, password: str) -> User:
             user.locked_until = now + timedelta(minutes=settings.login_lockout_minutes)
             user.failed_login_attempts = 0
         db.commit()
-        raise UnauthorizedError(INVALID_CREDENTIALS)
+        raise UnauthorizedError(INVALID_CREDENTIALS, code="invalid_credentials")
 
     user.failed_login_attempts = 0
     user.locked_until = None
@@ -146,14 +148,16 @@ def consume_otp(db: Session, user: User, purpose: OtpPurpose, code: str) -> None
     settings = get_settings()
     otp = db.scalar(select(OtpCode).where(OtpCode.user_id == user.id, OtpCode.purpose == purpose))
     if otp is None or otp.expires_at <= utcnow():
-        raise BadRequestError(INVALID_CODE)
+        raise BadRequestError(INVALID_CODE, code="invalid_code")
     if otp.attempts >= settings.otp_max_attempts:
-        raise TooManyRequestsError("Too many incorrect codes. Request a new one.")
+        raise TooManyRequestsError(
+            "Too many incorrect codes. Request a new one.", code="too_many_code_attempts"
+        )
 
     if not hmac.compare_digest(otp.code_hash, hash_otp_code(code)):
         otp.attempts += 1
         db.commit()
-        raise BadRequestError(INVALID_CODE)
+        raise BadRequestError(INVALID_CODE, code="invalid_code")
 
     db.delete(otp)
 
@@ -190,7 +194,7 @@ def start_password_reset(db: Session, email: str) -> Email | None:
 def reset_password(db: Session, email: str, code: str, new_password: str) -> None:
     user = get_active_user_by_email(db, email)
     if user is None:
-        raise BadRequestError(INVALID_CODE)
+        raise BadRequestError(INVALID_CODE, code="invalid_code")
     consume_otp(db, user, OtpPurpose.PASSWORD_RESET, code)
     user.password_hash = hash_password(new_password)
     user.failed_login_attempts = 0
@@ -205,7 +209,7 @@ def change_password(
 ) -> None:
     valid, _ = verify_password(current, user.password_hash)
     if not valid:
-        raise BadRequestError("Current password is incorrect.")
+        raise BadRequestError("Current password is incorrect.", code="wrong_current_password")
     user.password_hash = hash_password(new)
     revoke_all_sessions(db, user.id, keep_session_id=current_session.id)
     db.commit()
@@ -213,7 +217,7 @@ def change_password(
 
 def start_email_verification(db: Session, user: User) -> Email:
     if user.is_email_verified:
-        raise BadRequestError("Your email is already verified.")
+        raise BadRequestError("Your email is already verified.", code="email_already_verified")
     code = issue_otp(db, user, OtpPurpose.EMAIL_VERIFICATION)
     return otp_email(user, OtpPurpose.EMAIL_VERIFICATION, code)
 

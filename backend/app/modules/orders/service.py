@@ -25,7 +25,9 @@ def transition(order: Order, to: OrderStatus, actor: User | None, note: str = ""
     """The only way an order changes status, so every change is validated and recorded."""
     if to not in ORDER_TRANSITIONS[order.status]:
         raise ConflictError(
-            f"Order #{order.id} is {order.status.lower()} and cannot become {to.lower()}."
+            f"Order #{order.id} is {order.status.lower()} and cannot become {to.lower()}.",
+            code="invalid_status_transition",
+            params={"from": order.status, "to": to},
         )
 
     if to == OrderStatus.CANCELLED and order.payment_status == PaymentStatus.PAID:
@@ -51,16 +53,20 @@ def place_order(db: Session, user: User, data: CheckoutIn) -> Order:
     # instead of creating two orders from the same cart.
     cart = user_cart_items(db, user, for_update=True)
     if not cart:
-        raise BadRequestError("Your cart is empty. Add some dishes before placing an order.")
+        raise BadRequestError(
+            "Your cart is empty. Add some dishes before placing an order.", code="cart_empty"
+        )
 
     location = db.get(Location, data.location_id)
     if location is None:
-        raise BadRequestError("Please choose one of our branches.")
+        raise BadRequestError("Please choose one of our branches.", code="unknown_branch")
     unavailable = [line.product.name for line in cart if location not in line.product.locations]
     if unavailable:
         raise BadRequestError(
             f"Not available at {location.name}: {', '.join(unavailable)}. "
-            "Remove them or choose another branch."
+            "Remove them or choose another branch.",
+            code="dishes_unavailable_at_branch",
+            params={"branch": location.name, "dishes": unavailable},
         )
 
     order = Order(
@@ -107,7 +113,7 @@ def get_order(db: Session, user: User, order_id: int, *, for_update: bool = Fals
     order = db.scalar(query)
     if order is None:
         # Same response for someone else's order, so order ids cannot be probed.
-        raise NotFoundError("Order not found.")
+        raise NotFoundError("Order not found.", code="order_not_found")
     return order
 
 
@@ -115,7 +121,10 @@ def cancel_order(db: Session, user: User, order_id: int) -> Order:
     order = get_order(db, user, order_id, for_update=True)
     # Customers may only back out before the kitchen confirms; staff can cancel later.
     if order.status != OrderStatus.PENDING:
-        raise ConflictError("Only pending orders can be cancelled. Please call the restaurant.")
+        raise ConflictError(
+            "Only pending orders can be cancelled. Please call the restaurant.",
+            code="order_not_cancellable",
+        )
     transition(order, OrderStatus.CANCELLED, user, "Cancelled by customer.")
     db.commit()
     return order

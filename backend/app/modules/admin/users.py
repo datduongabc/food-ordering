@@ -33,7 +33,7 @@ def list_users(
 def get_user(db: Session, user_id: int) -> User:
     user = db.get(User, user_id)
     if user is None:
-        raise NotFoundError("User not found.")
+        raise NotFoundError("User not found.", code="user_not_found")
     return user
 
 
@@ -43,7 +43,8 @@ def _commit_unique(db: Session) -> None:
     except IntegrityError as exc:
         db.rollback()
         raise ConflictError(
-            "That email or phone number is already used by another account."
+            "That email or phone number is already used by another account.",
+            code="email_or_phone_taken",
         ) from exc
 
 
@@ -67,7 +68,7 @@ def update_user(db: Session, admin: User, user_id: int, data: UserUpdate) -> Use
     changes = data.model_dump(exclude_unset=True)
 
     if user.id == admin.id and changes.get("role", Role.ADMIN) != Role.ADMIN:
-        raise BadRequestError("You cannot remove your own admin role.")
+        raise BadRequestError("You cannot remove your own admin role.", code="cannot_demote_self")
 
     if "email_verified" in changes:
         verified = changes.pop("email_verified")
@@ -89,7 +90,9 @@ def update_user(db: Session, admin: User, user_id: int, data: UserUpdate) -> Use
 def deactivate_user(db: Session, admin: User, user_id: int) -> User:
     user = get_user(db, user_id)
     if user.id == admin.id:
-        raise BadRequestError("You cannot deactivate your own account.")
+        raise BadRequestError(
+            "You cannot deactivate your own account.", code="cannot_deactivate_self"
+        )
     if user.deleted_at is None:
         user.deleted_at = utcnow()
         revoke_all_sessions(db, user.id)

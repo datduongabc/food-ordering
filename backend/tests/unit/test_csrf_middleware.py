@@ -51,7 +51,9 @@ def test_post_with_matching_header_passes(client):
 @pytest.mark.parametrize("headers", [{}, {"X-CSRF-Token": "forged"}])
 def test_post_without_valid_header_is_rejected(client, headers):
     client.get("/action")
-    assert client.post("/action", headers=headers).status_code == 403
+    response = client.post("/action", headers=headers)
+    assert response.status_code == 403
+    assert response.json()["code"] == "csrf_failed"
 
 
 def test_post_without_cookie_is_rejected_even_with_header(client):

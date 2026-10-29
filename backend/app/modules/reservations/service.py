@@ -37,21 +37,29 @@ def _validate_slot(data: ReservationIn) -> None:
     if data.guest_count > policy.max_guests:
         raise BadRequestError(
             f"Online bookings are for up to {policy.max_guests} guests. "
-            "Please call the restaurant for larger groups."
+            "Please call the restaurant for larger groups.",
+            code="too_many_guests",
+            params={"max_guests": policy.max_guests},
         )
     if data.reservation_date < policy.today:
-        raise BadRequestError("Reservation date cannot be in the past.")
+        raise BadRequestError("Reservation date cannot be in the past.", code="date_in_past")
     if data.reservation_date > policy.last_bookable_date:
         days = get_settings().reservation_max_days_ahead
-        raise BadRequestError(f"Tables can be booked at most {days} days in advance.")
+        raise BadRequestError(
+            f"Tables can be booked at most {days} days in advance.",
+            code="date_too_far",
+            params={"days": days},
+        )
     if data.reservation_date == policy.today and data.reservation_time <= now.time():
-        raise BadRequestError("That time has already passed today. Please pick a later time.")
+        raise BadRequestError(
+            "That time has already passed today. Please pick a later time.", code="time_passed"
+        )
 
 
 def create_reservation(db: Session, user: User | None, data: ReservationIn) -> Reservation:
     _validate_slot(data)
     if db.get(Location, data.location_id) is None:
-        raise BadRequestError("Please choose one of our branches.")
+        raise BadRequestError("Please choose one of our branches.", code="unknown_branch")
 
     reservation = Reservation(
         # Guests may book without an account; signed-in bookings appear in "My reservations".
@@ -83,9 +91,11 @@ def cancel_my_reservation(db: Session, user: User, reservation_id: int) -> Reser
         .with_for_update(of=Reservation)
     )
     if reservation is None:
-        raise NotFoundError("Reservation not found.")
+        raise NotFoundError("Reservation not found.", code="reservation_not_found")
     if reservation.status != ReservationStatus.PENDING:
-        raise ConflictError("Only pending reservations can be cancelled online.")
+        raise ConflictError(
+            "Only pending reservations can be cancelled online.", code="reservation_not_cancellable"
+        )
     reservation.status = ReservationStatus.CANCELLED
     reservation.cancelled_at = utcnow()
     db.commit()

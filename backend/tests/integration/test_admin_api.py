@@ -162,7 +162,8 @@ class TestOrders:
         )
 
         assert response.status_code == 409
-        assert "cannot become" in response.json()["detail"]
+        assert response.json()["code"] == "invalid_status_transition"
+        assert response.json()["params"] == {"from": start, "to": target}
 
     def test_cancelling_a_paid_order_marks_it_for_refund(self, admin_client, customer, catalog, db):
         order = make_order(
@@ -340,21 +341,21 @@ class TestProducts:
         assert (media_dir / second.removeprefix("/media/")).exists()
 
     @pytest.mark.parametrize(
-        ("content", "message"),
+        ("content", "code"),
         [
-            (b"GIF89a" + b"\x00" * 64, "Only JPEG, PNG and WebP"),
-            (b"<?php echo 1; ?>", "Only JPEG, PNG and WebP"),
-            (PNG + b"\x00" * (5 * 1024 * 1024), "5 MB or smaller"),
-            (b"", "empty"),
+            (b"GIF89a" + b"\x00" * 64, "image_type_not_allowed"),
+            (b"<?php echo 1; ?>", "image_type_not_allowed"),
+            (PNG + b"\x00" * (5 * 1024 * 1024), "image_too_large"),
+            (b"", "empty_upload"),
         ],
     )
-    def test_rejects_bad_uploads(self, admin_client, catalog, content, message):
+    def test_rejects_bad_uploads(self, admin_client, catalog, content, code):
         pho = catalog.products["pho-bo"]
         response = admin_client.put(
             f"/api/admin/products/{pho.id}/image", files={"image": ("x.png", content)}
         )
         assert response.status_code == 400
-        assert message in response.json()["detail"]
+        assert response.json()["code"] == code
 
 
 class TestUsers:

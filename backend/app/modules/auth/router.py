@@ -85,7 +85,7 @@ def change_password(
     data: ChangePasswordIn, db: DbSession, user: CurrentUser, user_session: CurrentSession
 ):
     if user_session is None:
-        raise UnauthorizedError("Please sign in to continue.")
+        raise UnauthorizedError("Please sign in to continue.", code="auth_required")
     service.change_password(db, user, user_session, data.current_password, data.new_password)
 
 

@@ -34,16 +34,18 @@ class TestRegister:
     def test_rejects_duplicate_email(self, client, registered_user):
         response = client.post("/api/auth/register", json={**USER, "phone": "0999999999"})
         assert response.status_code == 409
-        assert response.json()["detail"] == "Email already registered."
+        assert response.json()["code"] == "email_taken"
 
     def test_rejects_duplicate_phone(self, client, registered_user):
         response = client.post("/api/auth/register", json={**USER, "email": "b@example.com"})
         assert response.status_code == 409
-        assert response.json()["detail"] == "Phone number already registered."
+        assert response.json()["code"] == "phone_taken"
 
     def test_rejects_invalid_payload_with_422(self, client):
         response = client.post("/api/auth/register", json={**USER, "password": "short"})
         assert response.status_code == 422
+        assert response.json()["code"] == "validation_error"
+        assert response.json()["detail"][0]["loc"] == ["body", "password"]
 
 
 class TestLogin:
@@ -74,7 +76,8 @@ class TestLogin:
 
         locked = login(client)
         assert locked.status_code == 429
-        assert "Too many failed sign-in attempts" in locked.json()["detail"]
+        assert locked.json()["code"] == "login_locked"
+        assert locked.json()["params"] == {"minutes": 15}
 
     def test_deactivated_user_cannot_login_and_loses_sessions(self, client, registered_user, db):
         login(client)

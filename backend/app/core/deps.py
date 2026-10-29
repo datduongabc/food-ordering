@@ -42,13 +42,13 @@ def get_optional_user(user_session: CurrentSession) -> User | None:
 
 def get_current_user(user: Annotated[User | None, Depends(get_optional_user)]) -> User:
     if user is None:
-        raise UnauthorizedError("Please sign in to continue.")
+        raise UnauthorizedError("Please sign in to continue.", code="auth_required")
     return user
 
 
 def require_admin(user: Annotated[User, Depends(get_current_user)]) -> User:
     if not user.is_admin:
-        raise ForbiddenError("Administrator access required.")
+        raise ForbiddenError("Administrator access required.", code="admin_required")
     return user
 
 

@@ -73,7 +73,7 @@ class TestCheckout:
         response = checkout(shopper)
 
         assert response.status_code == 400
-        assert "cart is empty" in response.json()["detail"]
+        assert response.json()["code"] == "cart_empty"
 
     def test_second_submit_finds_empty_cart(self, shopper, catalog):
         fill_cart(shopper, catalog, pho_bo=1)
@@ -210,7 +210,8 @@ class TestMomoSandbox:
         response = self.start(shopper, order_id)
 
         assert response.status_code == 400
-        assert "1,000-50,000,000 VND" in response.json()["detail"]
+        assert response.json()["code"] == "momo_amount_out_of_range"
+        assert response.json()["params"] == {"min_vnd": 1_000, "max_vnd": 50_000_000}
 
     def test_unavailable_outside_local_mode(self, shopper, order_id, monkeypatch):
         momo_order_id = self.start(shopper, order_id).json()["momo_order_id"]
@@ -240,9 +241,11 @@ class TestDeliveryDetails:
         response = checkout(shopper, branch="District 7")
 
         assert response.status_code == 400
-        assert response.json()["detail"].startswith(
-            "Not available at District 7: Shrimp Spring Rolls."
-        )
+        assert response.json()["code"] == "dishes_unavailable_at_branch"
+        assert response.json()["params"] == {
+            "branch": "District 7",
+            "dishes": ["Shrimp Spring Rolls"],
+        }
         assert shopper.get("/api/cart").json()["total_count"] == 2  # cart left untouched
 
     def test_unknown_branch(self, shopper, catalog):

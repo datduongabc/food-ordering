@@ -45,14 +45,14 @@ def list_products(db: Session) -> Sequence[Product]:
 def get_product(db: Session, product_id: int) -> Product:
     product = db.get(Product, product_id)
     if product is None:
-        raise NotFoundError("Dish not found.")
+        raise NotFoundError("Dish not found.", code="dish_not_found")
     return product
 
 
 def _category(db: Session, category_id: int) -> Category:
     category = db.get(Category, category_id)
     if category is None or category.deleted_at is not None:
-        raise BadRequestError("Unknown category.")
+        raise BadRequestError("Unknown category.", code="unknown_category")
     return category
 
 
@@ -60,7 +60,7 @@ def _locations(db: Session, location_ids: list[int]) -> list[Location]:
     ids = set(location_ids)
     locations = db.scalars(select(Location).where(Location.id.in_(ids))).all()
     if len(locations) != len(ids):
-        raise BadRequestError("Unknown branch selected.")
+        raise BadRequestError("Unknown branch selected.", code="unknown_branch")
     return list(locations)
 
 
@@ -69,13 +69,15 @@ def _commit_unique_slug(db: Session, slug: str) -> None:
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise ConflictError(f'Another dish already uses the URL "{slug}".') from exc
+        raise ConflictError(
+            f'Another dish already uses the URL "{slug}".', code="slug_taken", params={"slug": slug}
+        ) from exc
 
 
 def create_product(db: Session, data: ProductCreate) -> Product:
     slug = data.slug or slugify(data.name)
     if not slug:
-        raise BadRequestError("Please provide a URL slug for this dish name.")
+        raise BadRequestError("Please provide a URL slug for this dish name.", code="slug_required")
     category = _category(db, data.category_id)
     product = Product(
         name=data.name,
@@ -110,10 +112,14 @@ def update_product(db: Session, product_id: int, data: ProductUpdate) -> Product
 def replace_image(db: Session, product_id: int, data: bytes) -> Product:
     product = get_product(db, product_id)
     if len(data) > MAX_IMAGE_BYTES:
-        raise BadRequestError("Images must be 5 MB or smaller.")
+        raise BadRequestError(
+            "Images must be 5 MB or smaller.", code="image_too_large", params={"max_mb": 5}
+        )
     extension = image_extension(data)
     if extension is None:
-        raise BadRequestError("Only JPEG, PNG and WebP images are allowed.")
+        raise BadRequestError(
+            "Only JPEG, PNG and WebP images are allowed.", code="image_type_not_allowed"
+        )
 
     products_dir = get_settings().media_dir / "products"
     (products_dir / UPLOAD_DIR).mkdir(parents=True, exist_ok=True)

@@ -137,4 +137,4 @@ class TestProductDetail:
         response = client.get(f"/api/products/{slug}")
 
         assert response.status_code == 404
-        assert response.json()["detail"] == "Dish not found."
+        assert response.json()["code"] == "dish_not_found"

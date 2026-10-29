@@ -32,7 +32,7 @@ def _build_cart(lines: Iterable[tuple[Product, int]]) -> CartOut:
 def _active_product(db: Session, product_id: int) -> Product:
     product = db.get(Product, product_id)
     if product is None or product.deleted_at is not None:
-        raise NotFoundError("Dish not found or no longer available.")
+        raise NotFoundError("Dish not found or no longer available.", code="dish_not_found")
     return product
 
 
@@ -99,7 +99,7 @@ def set_quantity(db: Session, user: User, product_id: int, quantity: int) -> Car
         select(CartItem).where(CartItem.user_id == user.id, CartItem.product_id == product_id)
     )
     if item is None:
-        raise NotFoundError("This dish is not in your cart.")
+        raise NotFoundError("This dish is not in your cart.", code="not_in_cart")
     item.quantity = quantity
     db.commit()
     return get_cart(db, user)

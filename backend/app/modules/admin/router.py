@@ -88,7 +88,7 @@ async def replace_image(product_id: int, image: UploadFile, db: DbSession):
     # Read one byte past the limit so oversized files are rejected without loading them fully.
     data = await image.read(MAX_IMAGE_BYTES + 1)
     if not data:
-        raise BadRequestError("The uploaded file is empty.")
+        raise BadRequestError("The uploaded file is empty.", code="empty_upload")
     return products.replace_image(db, product_id, data)
 
 

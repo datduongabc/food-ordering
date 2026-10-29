@@ -42,7 +42,7 @@ class TestAddReview:
         again = post_review(client, rating=1)
 
         assert again.status_code == 409
-        assert again.json()["detail"] == "You have already reviewed this dish."
+        assert again.json()["code"] == "already_reviewed"
         assert post_review(client, slug="beef-steak").status_code == 201
 
     @pytest.mark.parametrize(

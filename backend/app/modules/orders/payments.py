@@ -26,7 +26,7 @@ MOMO_MAX_VND = 50_000_000
 def _require_sandbox() -> None:
     if not get_settings().is_local:
         raise ServiceUnavailableError(
-            "MoMo payments are not available yet. Please pay on delivery."
+            "MoMo payments are not available yet. Please pay on delivery.", code="momo_unavailable"
         )
 
 
@@ -36,9 +36,17 @@ def to_vnd(amount_usd: Decimal, rate: int) -> int:
 
 def _ensure_payable(order: Order) -> None:
     if order.payment_status == PaymentStatus.PAID:
-        raise ConflictError(f"Order #{order.id} has already been paid.")
+        raise ConflictError(
+            f"Order #{order.id} has already been paid.",
+            code="order_already_paid",
+            params={"order_id": order.id},
+        )
     if order.status != OrderStatus.PENDING:
-        raise ConflictError(f"Order #{order.id} is {order.status.lower()} and cannot be paid.")
+        raise ConflictError(
+            f"Order #{order.id} is {order.status.lower()} and cannot be paid.",
+            code="order_not_payable",
+            params={"order_id": order.id, "status": order.status},
+        )
 
 
 def start_momo_payment(db: Session, user: User, order_id: int) -> MomoPaymentOut:
@@ -53,7 +61,9 @@ def start_momo_payment(db: Session, user: User, order_id: int) -> MomoPaymentOut
         # than the order total is worse than refusing.
         raise BadRequestError(
             f"MoMo accepts {MOMO_MIN_VND:,}-{MOMO_MAX_VND:,} VND per payment. "
-            "Please choose cash on delivery for this order."
+            "Please choose cash on delivery for this order.",
+            code="momo_amount_out_of_range",
+            params={"min_vnd": MOMO_MIN_VND, "max_vnd": MOMO_MAX_VND},
         )
 
     order.payment_method = PaymentMethod.MOMO
@@ -78,7 +88,9 @@ def complete_sandbox_payment(db: Session, user: User, data: SandboxCompleteIn) -
         .with_for_update(of=Order)
     )
     if order is None:
-        raise NotFoundError("Payment not found. Start the payment again from your orders.")
+        raise NotFoundError(
+            "Payment not found. Start the payment again from your orders.", code="payment_not_found"
+        )
     _ensure_payable(order)
 
     if data.result == SandboxResult.APPROVED:

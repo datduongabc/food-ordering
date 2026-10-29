@@ -51,7 +51,7 @@ def get_order(db: Session, order_id: int, *, for_update: bool = False) -> Order:
         query = query.with_for_update(of=Order)
     order = db.scalar(query)
     if order is None:
-        raise NotFoundError("Order not found.")
+        raise NotFoundError("Order not found.", code="order_not_found")
     return order
 
 
@@ -89,11 +89,13 @@ def change_reservation_status(
         select(Reservation).where(Reservation.id == reservation_id).with_for_update(of=Reservation)
     )
     if reservation is None:
-        raise NotFoundError("Reservation not found.")
+        raise NotFoundError("Reservation not found.", code="reservation_not_found")
     if status not in RESERVATION_TRANSITIONS[reservation.status]:
         raise ConflictError(
             f"Reservation #{reservation.id} is {reservation.status.lower()} "
-            f"and cannot become {status.lower()}."
+            f"and cannot become {status.lower()}.",
+            code="invalid_status_transition",
+            params={"from": reservation.status, "to": status},
         )
     reservation.status = status
     if status == ReservationStatus.CANCELLED:

@@ -70,5 +70,5 @@ def search_products(db: Session, term: str, limit: int) -> Sequence[Product]:
 def get_product_by_slug(db: Session, slug: str) -> Product:
     product = db.scalar(_active_products().where(Product.slug == slug))
     if product is None:
-        raise NotFoundError("Dish not found.")
+        raise NotFoundError("Dish not found.", code="dish_not_found")
     return product
