@@ -1,0 +1,46 @@
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 32px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 2px solid var(--color-ink);
+  border-radius: 8px;
+  background: var(--color-card);
+  color: var(--color-ink);
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.tab:hover {
+  color: var(--color-ink);
+  background: var(--color-yellow-soft);
+}
+
+/* NavLink marks the current section with aria-current="page". */
+.tab[aria-current='page'] {
+  background: var(--color-ink);
+  color: var(--color-ground);
+}
+
+@media (max-width: 640px) {
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-inline: calc(-1 * var(--gutter));
+    padding-inline: var(--gutter);
+  }
+
+  .tab {
+    flex: none;
+  }
+}

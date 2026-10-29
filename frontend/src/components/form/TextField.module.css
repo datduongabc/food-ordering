@@ -63,6 +63,10 @@
   cursor: pointer;
 }
 
+.input[type='file'] {
+  padding: 10px 14px;
+}
+
 .textarea {
   min-height: 80px;
   padding: 12px 14px;

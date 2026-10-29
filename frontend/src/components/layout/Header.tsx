@@ -84,6 +84,11 @@ export function Header() {
           </a>
           {user ? (
             <>
+              {user.role === 'ADMIN' && (
+                <NavLink to="/admin" className={navClass}>
+                  {t.nav.admin}
+                </NavLink>
+              )}
               <NavLink to="/account" className={navClass}>
                 {t.nav.account}
               </NavLink>

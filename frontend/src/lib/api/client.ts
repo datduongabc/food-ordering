@@ -90,7 +90,9 @@ export async function apiRequest<T>(
   { schema, query, body }: RequestOptions<T>,
 ): Promise<T> {
   const headers = new Headers({ Accept: 'application/json' })
-  if (body !== undefined) headers.set('Content-Type', 'application/json')
+  // The browser sets a multipart Content-Type, boundary included, for FormData itself.
+  const isForm = body instanceof FormData
+  if (body !== undefined && !isForm) headers.set('Content-Type', 'application/json')
   if (!SAFE_METHODS.has(method)) {
     const token = await csrfToken()
     if (token) headers.set(CSRF_HEADER, token)
@@ -100,7 +102,7 @@ export async function apiRequest<T>(
     method,
     headers,
     credentials: 'same-origin',
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
   })
   if (!response.ok) throw await toApiError(response)
 
@@ -117,6 +119,8 @@ export const api = {
     apiRequest('POST', path, { schema, body }),
   put: <T>(path: string, schema: z.ZodType<T>, body?: unknown) =>
     apiRequest('PUT', path, { schema, body }),
+  patch: <T>(path: string, schema: z.ZodType<T>, body?: unknown) =>
+    apiRequest('PATCH', path, { schema, body }),
   delete: <T>(path: string, schema: z.ZodType<T>) => apiRequest('DELETE', path, { schema }),
 }
 

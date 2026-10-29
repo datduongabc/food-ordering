@@ -44,6 +44,35 @@ export const routes: RouteObject[] = [
           import('@/features/orders/pages/PaymentPage').then((m) => m.PaymentPage),
         account: () => import('@/features/account/AccountPage').then((m) => m.AccountPage),
       }),
+      {
+        path: 'admin',
+        lazy: async () => ({
+          Component: (await import('@/features/admin/AdminLayout')).AdminLayout,
+        }),
+        children: [
+          {
+            index: true,
+            lazy: async () => ({
+              Component: (await import('@/features/admin/pages/DashboardPage')).DashboardPage,
+            }),
+          },
+          ...lazyPages({
+            orders: () =>
+              import('@/features/admin/pages/OrdersPage').then((m) => m.AdminOrdersPage),
+            reservations: () =>
+              import('@/features/admin/pages/ReservationsPage').then(
+                (m) => m.AdminReservationsPage,
+              ),
+            products: () =>
+              import('@/features/admin/pages/ProductsPage').then((m) => m.AdminProductsPage),
+            'products/new': () =>
+              import('@/features/admin/pages/ProductEditPage').then((m) => m.ProductEditPage),
+            'products/:id': () =>
+              import('@/features/admin/pages/ProductEditPage').then((m) => m.ProductEditPage),
+            users: () => import('@/features/admin/pages/UsersPage').then((m) => m.AdminUsersPage),
+          }),
+        ],
+      },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
