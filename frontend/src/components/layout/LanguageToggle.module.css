@@ -1,0 +1,22 @@
+.toggle {
+  display: flex;
+  border: 2px solid var(--color-yellow);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.option {
+  min-width: 44px;
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--color-yellow);
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.option[aria-pressed='true'] {
+  background: var(--color-yellow);
+  color: var(--color-ink);
+}

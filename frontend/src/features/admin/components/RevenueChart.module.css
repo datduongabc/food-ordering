@@ -1,0 +1,106 @@
+.figure {
+  margin: 0;
+}
+
+/* Left padding holds the y-axis labels; bars sit in the remaining width. */
+.plot {
+  position: relative;
+  height: 220px;
+  margin-top: 12px;
+  padding-left: 52px;
+}
+
+.grid {
+  position: absolute;
+  left: 52px;
+  right: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.tick {
+  position: absolute;
+  right: calc(100% + 10px);
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--color-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.bars {
+  position: relative;
+  display: flex;
+  height: 100%;
+  gap: 2px;
+}
+
+/* The whole column is the hover target, so short bars are as easy to point at as tall ones. */
+.slot {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.slot[data-active='true'] {
+  background: var(--color-yellow-soft);
+}
+
+.bar {
+  width: 100%;
+  max-width: 24px;
+  background: var(--color-red);
+  border-radius: 4px 4px 0 0;
+}
+
+.bar[data-empty='true'] {
+  height: 0;
+}
+
+.tooltip {
+  position: absolute;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 160px;
+  padding: 10px 12px;
+  background: var(--color-ink);
+  color: var(--color-ground);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.tooltip[data-edge='start'] {
+  transform: translateX(-12px);
+}
+
+.tooltip[data-edge='end'] {
+  transform: translateX(calc(-100% + 12px));
+}
+
+.tooltipMuted {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.axis {
+  display: flex;
+  gap: 2px;
+  margin-top: 8px;
+  padding-left: 52px;
+}
+
+.axisLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: visible;
+  font-size: 12px;
+  color: var(--color-muted);
+  text-align: center;
+  white-space: nowrap;
+}

@@ -1,0 +1,120 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.body {
+  line-height: 1.6;
+  color: var(--color-ink-soft);
+}
+
+.notice {
+  padding: 14px 16px;
+  background: var(--color-green-soft);
+  color: var(--color-green-dark);
+  border-radius: 8px;
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+.muted {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.link {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.linkButton {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--color-red);
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.linkButton:disabled {
+  color: var(--color-faint);
+  cursor: wait;
+}
+
+.back {
+  align-self: flex-start;
+  padding: 8px 0;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-red);
+}
+
+.tabs {
+  display: flex;
+  margin-bottom: 28px;
+  border: 2px solid var(--color-ink);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  color: var(--color-ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.tab:hover {
+  color: var(--color-ink);
+  background: var(--color-yellow-soft);
+}
+
+.tabActive,
+.tabActive:hover {
+  background: var(--color-ink);
+  color: var(--color-ground);
+}
+
+.done {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.doneIcon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-green);
+  color: var(--color-ground);
+  font-size: 28px;
+  font-weight: 800;
+}

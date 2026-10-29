@@ -1,0 +1,71 @@
+name: Frontend
+
+on:
+  push:
+    paths: ["frontend/**", "backend/**", ".github/workflows/frontend.yml"]
+  pull_request:
+    paths: ["frontend/**", "backend/**", ".github/workflows/frontend.yml"]
+
+jobs:
+  test:
+    name: Lint, unit, integration and e2e
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    # Production runs on Postgres, so the end-to-end journeys do too.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: dateno_e2e
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d dateno_e2e"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # The e2e suite runs the real backend (migrations, CLI, uvicorn).
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          (cd ../backend && uv sync --locked)
+
+      - name: Type-check, lint and format
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run format:check
+
+      - name: Unit and integration tests (with coverage thresholds)
+        run: npm test -- --coverage
+
+      - name: End-to-end tests
+        env:
+          E2E_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/dateno_e2e
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: frontend/test-results

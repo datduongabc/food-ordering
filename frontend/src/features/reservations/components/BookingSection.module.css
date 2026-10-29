@@ -1,0 +1,160 @@
+.section {
+  margin-top: 40px;
+  background: var(--color-green);
+  color: var(--color-ground);
+  scroll-margin-top: 0;
+}
+
+.inner {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 56px var(--gutter);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 48px;
+}
+
+.intro {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kicker {
+  font-family: var(--font-hand);
+  font-size: 28px;
+  color: var(--color-yellow);
+}
+
+.title {
+  font-size: 36px;
+  font-weight: 800;
+}
+
+.body {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #e4ede3;
+}
+
+.card {
+  flex: 2 1 560px;
+  min-width: 0;
+  padding: 28px;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  border-radius: var(--radius-md);
+  box-shadow: 8px 8px 0 var(--color-green-dark);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.dates {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.legend {
+  margin-bottom: 10px;
+  padding: 0;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.dateGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 10px;
+}
+
+.hint {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.submit {
+  align-self: flex-end;
+}
+
+.done {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.doneKicker {
+  font-family: var(--font-hand);
+  font-size: 26px;
+  color: var(--color-green);
+}
+
+.doneTitle {
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.doneBody {
+  line-height: 1.6;
+  color: var(--color-ink-soft);
+}
+
+.doneActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+@media (max-width: 640px) {
+  .inner {
+    padding: 40px var(--gutter);
+    gap: 28px;
+  }
+
+  .card {
+    padding: 20px 16px;
+    box-shadow: 5px 5px 0 var(--color-green-dark);
+  }
+
+  .title {
+    font-size: 30px;
+  }
+
+  .submit {
+    align-self: stretch;
+  }
+
+  /* Time and party size share a row; branch names are too long for half the width. */
+  .row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .row > :last-child {
+    grid-column: 1 / -1;
+  }
+}

@@ -1,0 +1,26 @@
+name: Docker
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  docker-build:
+    name: Docker Compose build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose Configuration
+        env:
+          SECRET_KEY: ci-placeholder-secret-key
+        run: docker compose config -q
+
+      - name: Build Docker Compose Images
+        env:
+          SECRET_KEY: ci-placeholder-secret-key
+        run: docker compose build

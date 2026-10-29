@@ -1,10 +1,7 @@
-/vendor
-
 .env
 .env.*
 !.env.example
 *.log
-error_log
 
 .vscode/
 .idea/
@@ -20,3 +17,14 @@ error_log
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Python backend
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.db
+
+# Coverage reports
+coverage/
+.coverage

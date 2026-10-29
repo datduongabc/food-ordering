@@ -1,0 +1,25 @@
+"""Imports every model so Base.metadata is complete for Alembic and test schema creation."""
+
+from app.modules.auth.models import OtpCode, UserSession
+from app.modules.cart.models import CartItem
+from app.modules.catalog.models import Category, Location, Product, product_availabilities
+from app.modules.feedback.models import Review
+from app.modules.orders.models import Order, OrderEvent, OrderItem
+from app.modules.reservations.models import Reservation
+from app.modules.users.models import User
+
+__all__ = [
+    "CartItem",
+    "Category",
+    "Location",
+    "OtpCode",
+    "Order",
+    "OrderEvent",
+    "OrderItem",
+    "Product",
+    "Reservation",
+    "Review",
+    "User",
+    "UserSession",
+    "product_availabilities",
+]
