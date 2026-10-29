@@ -1,21 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { formatDateTime, formatPrice, formatVnd, interpolate } from '@/lib/format'
-
-describe('formatPrice', () => {
-  it('converts the stored USD price to the VND amount charged', () => {
-    expect(formatPrice('9.50')).toMatch(/^237\.500\s₫$/)
-    expect(formatPrice(18)).toMatch(/^450\.000\s₫$/)
-  })
-
-  it('rounds to whole dong', () => {
-    expect(formatPrice('0.01')).toMatch(/^250\s₫$/)
-    expect(formatPrice('0.00002')).toMatch(/^1\s₫$/)
-  })
-})
+import { formatDateTime, formatVnd, interpolate } from '@/lib/format'
 
 describe('formatVnd', () => {
-  it('uses Vietnamese grouping', () => {
+  it('uses Vietnamese grouping and the dong sign', () => {
+    expect(formatVnd(237_500)).toMatch(/^237\.500\s₫$/)
     expect(formatVnd(50_000_000)).toMatch(/^50\.000\.000\s₫$/)
+  })
+
+  it('shows small amounts without decimals', () => {
+    expect(formatVnd(500)).toMatch(/^500\s₫$/)
   })
 })
 

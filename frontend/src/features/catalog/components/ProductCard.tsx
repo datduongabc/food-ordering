@@ -4,7 +4,7 @@ import { Stars } from '@/components/ui/Stars'
 import { useAddToCart } from '@/features/cart/useAddToCart'
 import { useI18n } from '@/i18n/context'
 import { useLocalize } from '@/i18n/useLocalize'
-import { formatPrice, interpolate } from '@/lib/format'
+import { formatVnd, interpolate } from '@/lib/format'
 import type { Product } from '../schemas'
 import styles from './ProductCard.module.css'
 
@@ -37,7 +37,7 @@ export function ProductCard({
         <p className={styles.description}>{localize(product.description)}</p>
         <Stars rating={product.average_rating === null ? null : Number(product.average_rating)} />
         <div className={styles.footer}>
-          <span className={styles.price}>{formatPrice(product.price)}</span>
+          <span className={styles.price}>{formatVnd(product.price)}</span>
           <Button
             variant="dark"
             aria-label={interpolate(t.common.addToCartLabel, { name })}

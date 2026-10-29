@@ -90,6 +90,15 @@ test.describe('browsing the seeded menu', () => {
     await expect(page.getByRole('link', { name: 'Giỏ hàng, 1 món' })).toBeVisible()
   })
 
+  test('shows the stored VND price and totals by quantity', async ({ page }) => {
+    // Caesar salad is seeded at 312.500 ₫, carried over from its old 12.50 USD price.
+    await page.goto('/menu/caesar-salad')
+    await expect(page.getByText(/^312\.500\s₫$/)).toBeVisible()
+
+    await page.getByRole('button', { name: 'Tăng số lượng' }).click()
+    await expect(page.getByRole('button', { name: /^Thêm vào giỏ · 625\.000\s₫$/ })).toBeVisible()
+  })
+
   test('unknown pages and dishes are explained', async ({ page }) => {
     await page.goto('/khong-co-trang-nay')
     await expect(page.getByText('Không tìm thấy trang')).toBeVisible()

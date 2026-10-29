@@ -7,7 +7,7 @@ import { catalogQueries } from '@/features/catalog/queries'
 import { reviewQueries } from '@/features/reviews/queries'
 import { useI18n } from '@/i18n/context'
 import { useLocalize } from '@/i18n/useLocalize'
-import { formatPrice } from '@/lib/format'
+import { formatVnd } from '@/lib/format'
 import styles from './HomePage.module.css'
 
 const PICKS = 4
@@ -43,7 +43,7 @@ export function HomePage() {
             </Link>
             <div className={styles.tag}>
               <span className={styles.tagLabel}>{t.home.featuredTag}</span>
-              <span className={styles.tagPrice}>{formatPrice(dish.price)}</span>
+              <span className={styles.tagPrice}>{formatVnd(dish.price)}</span>
             </div>
             <figcaption className={styles.caption}>
               <Link to={`/menu/${dish.slug}`}>{localize(dish.name)}</Link>

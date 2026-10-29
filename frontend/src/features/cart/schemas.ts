@@ -8,11 +8,11 @@ export const cartSchema = z.object({
     z.object({
       product: productSchema,
       quantity: z.number().int(),
-      subtotal: z.string(),
+      subtotal: z.number().int(),
     }),
   ),
   total_count: z.number().int(),
-  total_price: z.string(),
+  total_price: z.number().int(),
 })
 
 export const guestLineSchema = z.object({

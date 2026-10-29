@@ -19,7 +19,8 @@ export const productSchema = z.object({
   name: localizedTextSchema,
   slug: z.string(),
   description: localizedTextSchema,
-  price: z.string(),
+  // Whole dong; VND has no minor unit.
+  price: z.number().int(),
   average_rating: z.string().nullable(),
   category: categorySchema.nullable(),
   locations: z.array(locationSchema),

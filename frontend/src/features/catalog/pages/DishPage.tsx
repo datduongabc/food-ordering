@@ -10,7 +10,7 @@ import { ReviewSection } from '@/features/reviews/components/ReviewSection'
 import { useI18n } from '@/i18n/context'
 import { useLocalize } from '@/i18n/useLocalize'
 import { isApiError } from '@/lib/api/client'
-import { formatPrice, interpolate } from '@/lib/format'
+import { formatVnd, interpolate } from '@/lib/format'
 import { catalogQueries } from '../queries'
 import styles from './DishPage.module.css'
 
@@ -68,7 +68,7 @@ export function DishPage() {
             <Stars rating={rating} />
             <a href="#reviews">{rating === null ? t.common.noReviews : t.reviews.title}</a>
           </div>
-          <span className={styles.price}>{formatPrice(dish.price)}</span>
+          <span className={styles.price}>{formatVnd(dish.price)}</span>
           <p className={styles.description}>{localize(dish.description)}</p>
 
           <div className={styles.branches}>
@@ -99,7 +99,7 @@ export function DishPage() {
               }}
             >
               {interpolate(t.dish.addFor, {
-                price: formatPrice(Number(dish.price) * quantity),
+                price: formatVnd(dish.price * quantity),
               })}
             </Button>
           </div>

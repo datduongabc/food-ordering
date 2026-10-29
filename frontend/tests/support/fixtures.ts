@@ -29,7 +29,7 @@ export function product(overrides: Partial<Product> = {}): Product {
     name: { vi: `Món ${id}`, en: `Dish ${id}` },
     slug: `dish-${id}`,
     description: { vi: 'Món ăn ngon.', en: 'A tasty dish.' },
-    price: '10.00',
+    price: 250_000,
     average_rating: null,
     category: starters,
     locations: [district1],
@@ -42,14 +42,14 @@ export const springRolls = product({
   id: 1,
   name: { vi: 'Gỏi cuốn tôm thịt', en: 'Shrimp Spring Rolls' },
   slug: 'shrimp-spring-rolls',
-  price: '9.50',
+  price: 237_500,
 })
 
 export const shakingBeef = product({
   id: 2,
   name: { vi: 'Bò lúc lắc', en: 'Shaking Beef' },
   slug: 'shaking-beef',
-  price: '18.00',
+  price: 450_000,
   category: mains,
   average_rating: '4.50',
 })
@@ -58,12 +58,12 @@ export function cartOf(...lines: [Product, number][]): Cart {
   const items = lines.map(([dish, quantity]) => ({
     product: dish,
     quantity,
-    subtotal: (Number(dish.price) * quantity).toFixed(2),
+    subtotal: dish.price * quantity,
   }))
   return {
     items,
     total_count: items.reduce((sum, line) => sum + line.quantity, 0),
-    total_price: items.reduce((sum, line) => sum + Number(line.subtotal), 0).toFixed(2),
+    total_price: items.reduce((sum, line) => sum + line.subtotal, 0),
   }
 }
 

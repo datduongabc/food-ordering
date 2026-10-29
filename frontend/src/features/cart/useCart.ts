@@ -7,7 +7,7 @@ import { cartSchema, type Cart, type GuestLine } from './schemas'
 
 const ACCOUNT_CART_KEY = ['cart', 'account'] as const
 
-const EMPTY_CART: Cart = { items: [], total_count: 0, total_price: '0.00' }
+const EMPTY_CART: Cart = { items: [], total_count: 0, total_price: 0 }
 
 function previewGuestCart(lines: readonly GuestLine[]): Promise<Cart> {
   if (lines.length === 0) return Promise.resolve(EMPTY_CART)
