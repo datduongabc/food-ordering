@@ -131,6 +131,8 @@ def _run_server(workdir: Path, database_url: str) -> Iterator[Server]:
         "DATABASE_URL": database_url,
         "MEDIA_DIR": str(media_dir),
         "SECRET_KEY": "e2e-secret",
+        # Journeys sign up many accounts from one address; limits have their own tests.
+        "RATE_LIMITS_ENABLED": "false",
         "SMTP_USERNAME": "",
         "SMTP_PASSWORD": "",
     }

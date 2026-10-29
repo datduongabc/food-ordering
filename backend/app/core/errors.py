@@ -21,11 +21,19 @@ class AppError(Exception):
 
     status_code = 400
 
-    def __init__(self, detail: str, *, code: str, params: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        detail: str,
+        *,
+        code: str,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ):
         super().__init__(detail)
         self.detail = detail
         self.code = code
         self.params = params or {}
+        self.headers = headers
 
 
 class BadRequestError(AppError):
@@ -62,6 +70,7 @@ def register_error_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=exc.status_code,
             content=jsonable_encoder(error_body(exc.detail, exc.code, exc.params)),
+            headers=exc.headers,
         )
 
     @app.exception_handler(RequestValidationError)

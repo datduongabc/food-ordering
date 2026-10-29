@@ -3,16 +3,21 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
+
+
+DEFAULT_SECRET_KEY = "change-me-in-production"
+MIN_SECRET_KEY_LENGTH = 32
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     app_env: Literal["local", "test", "production"] = "local"
-    secret_key: str = "change-me-in-production"
+    secret_key: str = DEFAULT_SECRET_KEY
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/food_ordering_db"
 
@@ -39,11 +44,26 @@ class Settings(BaseSettings):
     reservation_opening_time: time = time(10, 0)
     reservation_last_seating_time: time = time(21, 0)
 
+    # Off only for end-to-end suites, which sign up many accounts from one address in seconds.
+    rate_limits_enabled: bool = True
+
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
     smtp_username: str = ""
     smtp_password: str = ""
     mail_from: str = ""
+
+    @model_validator(mode="after")
+    def _production_needs_a_real_secret(self) -> "Settings":
+        # The key signs one-time codes; a guessable one would let anyone forge them.
+        if self.app_env == "production" and (
+            self.secret_key == DEFAULT_SECRET_KEY or len(self.secret_key) < MIN_SECRET_KEY_LENGTH
+        ):
+            raise ValueError(
+                f"SECRET_KEY must be set to a random value of at least {MIN_SECRET_KEY_LENGTH} "
+                "characters in production."
+            )
+        return self
 
     @property
     def is_local(self) -> bool:

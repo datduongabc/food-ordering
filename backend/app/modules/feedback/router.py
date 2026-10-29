@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 
 from app.core.deps import CurrentUser, DbSession
+from app.core.rate_limit import REVIEWS, rate_limit
 from app.modules.feedback import service
 from app.modules.feedback.schemas import ReviewIn, ReviewOut, TopReviewOut
 
@@ -15,7 +16,10 @@ def list_reviews(slug: str, db: DbSession):
 
 
 @router.post(
-    "/products/{slug}/reviews", response_model=ReviewOut, status_code=status.HTTP_201_CREATED
+    "/products/{slug}/reviews",
+    response_model=ReviewOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[rate_limit(REVIEWS, per="user")],
 )
 def add_review(slug: str, data: ReviewIn, db: DbSession, user: CurrentUser):
     return service.add_review(db, user, slug, data)
