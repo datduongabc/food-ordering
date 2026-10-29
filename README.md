@@ -31,7 +31,7 @@
 
 ### Ordering & Payment
 - **Checkout** with delivery details pre-filled from the account; each branch card warns about dishes it does not serve.
-- **Cash on delivery or MoMo.** MoMo runs as a **sandbox** that simulates approval or decline; no real payments are made, and it is switched off outside local mode.
+- **Cash on delivery or MoMo.** With MoMo keys set, customers pay on MoMo's own page; the result comes back both server to server (IPN) and through the customer's return, each checked against MoMo's HMAC signature and the order total, and applied only once. Without keys, local mode offers a **sandbox** that simulates approval or decline, and production offers cash only.
 - **Change of mind:** a pending cash order can be paid with MoMo, and an unpaid MoMo order can go back to cash.
 - **Order history** with a status timeline that says who made each change (customer, restaurant or system); pending orders can be cancelled.
 - Prices are stored and shown in whole Vietnamese dong.
@@ -115,8 +115,9 @@ docker compose down
 
 All settings live in `.env`; see [`.env.example`](.env.example).
 
-- **`APP_ENV=local`** prints emails to the backend log, enables the MoMo sandbox, marks cookies non-Secure for plain HTTP and seeds the admin above. Use `production` only behind HTTPS; it seeds no admin, so create one with `docker compose exec backend python -m app.cli create-admin --email ... --name ... --phone ...`.
+- **`APP_ENV=local`** prints emails to the backend log, enables the MoMo sandbox when no MoMo keys are set, marks cookies non-Secure for plain HTTP and seeds the admin above. Use `production` only behind HTTPS; it seeds no admin, so create one with `docker compose exec backend python -m app.cli create-admin --email ... --name ... --phone ...`.
 - **Database password with special characters:** keep the raw password in `DB_PASSWORD` (Postgres uses it to create the user) and also set `DATABASE_URL` with the password URL-encoded (the backend connects with it).
+- **MoMo:** register at [business.momo.vn](https://business.momo.vn), copy the test environment's partner code, access key and secret key into `MOMO_PARTNER_CODE`, `MOMO_ACCESS_KEY` and `MOMO_SECRET_KEY`, and set `PUBLIC_URL` to the address customers use. MoMo must be able to reach `PUBLIC_URL/api/payments/momo/ipn`; on a development machine it cannot, and results arrive only when the customer returns to the site. Switch `MOMO_ENDPOINT` to `https://payment.momo.vn` with production keys to take real money.
 - **Real emails:** set `SMTP_USERNAME` to a Gmail address and `SMTP_PASSWORD` to a Google [App Password](https://myaccount.google.com/apppasswords); `MAIL_FROM` defaults to the username.
 
 ### Known Security Limitations
@@ -126,6 +127,7 @@ All settings live in `.env`; see [`.env.example`](.env.example).
 - **Counters live in one process's memory.** Rate limits, failed sign-ins and the stand-in reset codes for unknown emails reset when the backend restarts, and several backend processes or replicas would each count separately. Scaling out needs a shared store such as Redis first.
 - **Small timing differences remain.** A reset request for a real account writes a code to the database and one for an unknown email does not; the difference is a few milliseconds, well inside normal network jitter, but it is not zero.
 - **Client addresses come from the proxy.** The bundled nginx overwrites `X-Forwarded-For`; behind another proxy or load balancer, make sure it does too, or visitors share one address (or can pick their own).
+- **Late MoMo charges need a manual refund.** If MoMo charges an attempt the customer already abandoned (a retry or a switch to cash) or an order cancelled meanwhile, the backend logs an error instead of changing the order; refund it from the MoMo portal. There is no automatic reconciliation with MoMo's query API, so a payment whose IPN and return were both lost stays unpaid until checked by hand.
 - **No HSTS yet.** Add `Strict-Transport-Security` to `frontend/security-headers.conf` once the site is served over HTTPS.
 
 ---
@@ -197,7 +199,7 @@ restaurant_project/
 ├── backend/
 │   ├── app/
 │   │   ├── core/              # Settings, database, sessions & security, CSRF, rate limits, headers, email
-│   │   ├── modules/           # auth, catalog, cart, orders (incl. MoMo sandbox),
+│   │   ├── modules/           # auth, catalog, cart, orders (incl. MoMo and its sandbox),
 │   │   │                      # reservations, feedback, users, admin
 │   │   ├── cli.py             # create-admin command
 │   │   └── main.py            # FastAPI application

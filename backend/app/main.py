@@ -29,7 +29,8 @@ def create_app() -> FastAPI:
     app.state.rate_limiter = RateLimiter()
     app.state.phantom_reset_codes = PhantomResetCodes()
     # Added last runs first: headers wrap every response, floods are refused before CSRF checks.
-    app.add_middleware(CSRFMiddleware)
+    # MoMo posts payment results server to server; they carry a signature instead of a token.
+    app.add_middleware(CSRFMiddleware, exempt_paths=frozenset({"/api/payments/momo/ipn"}))
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     register_error_handlers(app)

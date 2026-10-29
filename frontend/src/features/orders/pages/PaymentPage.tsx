@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router'
-import { Button, ButtonLink } from '@/components/ui/Button'
+import { Button } from '@/components/ui/Button'
 import { Loading } from '@/components/ui/StatusView'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { useI18n } from '@/i18n/context'
@@ -9,6 +9,7 @@ import { useErrorMessage } from '@/i18n/errors'
 import { formatVnd, interpolate } from '@/lib/format'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { orderQueries, useCompleteSandboxPayment } from '../api'
+import { FailedOutcome, NoticeOutcome, PaidOutcome } from '../components/PaymentOutcome'
 import { SandboxQr } from '../components/SandboxQr'
 import styles from './PaymentPage.module.css'
 
@@ -16,16 +17,15 @@ export function PaymentPage() {
   const { id } = useParams()
   const orderId = Number(id)
   if (!Number.isInteger(orderId) || orderId <= 0) return <NotFoundPage />
-  return <RequireAuth>{() => <MomoSandbox orderId={orderId} />}</RequireAuth>
+  return <RequireAuth>{() => <MomoPayment orderId={orderId} />}</RequireAuth>
 }
 
-function MomoSandbox({ orderId }: { orderId: number }) {
+function MomoPayment({ orderId }: { orderId: number }) {
   const { t } = useI18n()
   const errorMessage = useErrorMessage()
   const attempt = useQuery(orderQueries.momo(orderId))
   const complete = useCompleteSandboxPayment()
   const [result, setResult] = useState<'paid' | 'failed'>()
-  const orderLink = `/account?order=${orderId}`
 
   function finish(outcome: 'approved' | 'declined', momoOrderId: string) {
     complete.mutate(
@@ -39,42 +39,21 @@ function MomoSandbox({ orderId }: { orderId: number }) {
     body = <Loading />
   } else if (attempt.error) {
     body = (
-      <section className={`${styles.outcome} ${styles.failed}`}>
-        <span aria-hidden="true" className={`${styles.icon} ${styles.iconFailed}`}>
-          !
-        </span>
-        <h1 className={styles.outcomeTitle}>{t.payment.unavailableTitle}</h1>
-        <p className={styles.outcomeBody}>{errorMessage(attempt.error)}</p>
-        <ButtonLink to={orderLink} size="lg">
-          {t.payment.viewOrder}
-        </ButtonLink>
-      </section>
+      <NoticeOutcome
+        title={t.payment.unavailableTitle}
+        body={errorMessage(attempt.error)}
+        orderId={orderId}
+      />
     )
+  } else if (attempt.data.mode === 'gateway') {
+    body = <RedirectToMomo payUrl={attempt.data.pay_url ?? ''} />
   } else if (result === 'paid') {
-    body = (
-      <section className={`${styles.outcome} ${styles.paid}`}>
-        <span aria-hidden="true" className={`${styles.icon} ${styles.iconPaid}`}>
-          ✓
-        </span>
-        <p className={styles.paidKicker}>{t.payment.paidKicker}</p>
-        <h1 className={styles.outcomeTitle}>{interpolate(t.payment.paidTitle, { id: orderId })}</h1>
-        <p className={styles.outcomeBody}>
-          {interpolate(t.payment.paidBody, { amount: formatVnd(attempt.data.amount) })}
-        </p>
-        <ButtonLink to={orderLink} size="lg">
-          {t.payment.viewOrder}
-        </ButtonLink>
-      </section>
-    )
+    body = <PaidOutcome orderId={orderId} amount={attempt.data.amount} />
   } else if (result === 'failed') {
     body = (
-      <section className={`${styles.outcome} ${styles.failed}`}>
-        <span aria-hidden="true" className={`${styles.icon} ${styles.iconFailed}`}>
-          !
-        </span>
-        <h1 className={styles.outcomeTitle}>{t.payment.failedTitle}</h1>
-        <p className={styles.outcomeBody}>{t.payment.failedBody}</p>
-        <div className={styles.actions}>
+      <FailedOutcome
+        orderId={orderId}
+        retry={
           <Button
             variant="momo"
             size="lg"
@@ -87,11 +66,8 @@ function MomoSandbox({ orderId }: { orderId: number }) {
           >
             {t.payment.retry}
           </Button>
-          <ButtonLink to={orderLink} variant="outline" size="lg">
-            {t.payment.later}
-          </ButtonLink>
-        </div>
-      </section>
+        }
+      />
     )
   } else {
     const { momo_order_id: momoOrderId, amount } = attempt.data
@@ -150,10 +126,28 @@ function MomoSandbox({ orderId }: { orderId: number }) {
 
   return (
     <>
-      <p role="note" className={styles.sandbox}>
-        {t.payment.sandbox}
-      </p>
+      {attempt.data?.mode !== 'gateway' && (
+        <p role="note" className={styles.sandbox}>
+          {t.payment.sandbox}
+        </p>
+      )}
       <div className={styles.page}>{body}</div>
     </>
+  )
+}
+
+function RedirectToMomo({ payUrl }: { payUrl: string }) {
+  const { t } = useI18n()
+  useEffect(() => {
+    window.location.assign(payUrl)
+  }, [payUrl])
+  return (
+    <section className={styles.outcome}>
+      <Loading label={t.payment.redirecting} />
+      {/* In case the browser blocks or stalls the automatic redirect. */}
+      <a className={styles.momoLink} href={payUrl}>
+        {t.payment.openMomo}
+      </a>
+    </section>
   )
 }

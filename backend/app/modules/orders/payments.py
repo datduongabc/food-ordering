@@ -1,10 +1,10 @@
-"""MoMo payment sandbox.
+"""MoMo payments: the live gateway when keys are configured, otherwise a local sandbox.
 
-The PHP app never called MoMo; it faked the gateway's signatures in the browser. This keeps
-the same customer flow (pay, then approve or decline on a MoMo-style screen) but makes the
-simulation explicit and impossible to reach outside local development.
+The sandbox keeps the customer flow (pay, then approve or decline on a MoMo-style screen)
+for development without MoMo keys, and cannot be reached outside local development.
 """
 
+import logging
 import secrets
 
 from sqlalchemy import select
@@ -13,9 +13,12 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.errors import BadRequestError, ConflictError, NotFoundError, ServiceUnavailableError
 from app.modules.orders.models import Order, OrderStatus, PaymentMethod, PaymentStatus
+from app.modules.orders.momo import MomoGateway, MomoResult
 from app.modules.orders.schemas import MomoPaymentOut, SandboxCompleteIn, SandboxResult
 from app.modules.orders.service import get_order, transition
 from app.modules.users.models import User
+
+logger = logging.getLogger(__name__)
 
 # Per-transaction limits of a MoMo wallet payment.
 MOMO_MIN_VND = 1_000
@@ -23,7 +26,9 @@ MOMO_MAX_VND = 50_000_000
 
 
 def _require_sandbox() -> None:
-    if not get_settings().is_local:
+    settings = get_settings()
+    # With live keys set, a sandbox approval would mark orders paid that MoMo never charged.
+    if not settings.is_local or settings.momo_configured:
         raise ServiceUnavailableError(
             "MoMo payments are not available yet. Please pay on delivery.", code="momo_unavailable"
         )
@@ -44,8 +49,11 @@ def _ensure_payable(order: Order) -> None:
         )
 
 
-def start_momo_payment(db: Session, user: User, order_id: int) -> MomoPaymentOut:
-    _require_sandbox()
+def start_momo_payment(
+    db: Session, user: User, order_id: int, gateway: MomoGateway | None
+) -> MomoPaymentOut:
+    if gateway is None:
+        _require_sandbox()
     order = get_order(db, user, order_id, for_update=True)
     _ensure_payable(order)
 
@@ -59,15 +67,24 @@ def start_momo_payment(db: Session, user: User, order_id: int) -> MomoPaymentOut
             params={"min_vnd": MOMO_MIN_VND, "max_vnd": MOMO_MAX_VND},
         )
 
+    # A fresh id per attempt, as MoMo rejects reused order ids after a failed payment.
+    momo_order_id = f"DATENO_{order.id}_{secrets.token_hex(4)}"
+    pay_url = None
+    if gateway is not None:
+        # Before saving: if MoMo is down, the order stays as it was.
+        pay_url = gateway.create_payment(
+            momo_order_id, order.total_price, f"Thanh toan don hang DaTeNO #{order.id}"
+        )
     order.payment_method = PaymentMethod.MOMO
     order.payment_status = PaymentStatus.UNPAID
-    # A fresh id per attempt, as MoMo rejects reused order ids after a failed payment.
-    order.momo_order_id = f"DATENO_{order.id}_{secrets.token_hex(4)}"
+    order.momo_order_id = momo_order_id
     db.commit()
     return MomoPaymentOut(
         order_id=order.id,
-        momo_order_id=order.momo_order_id,
+        momo_order_id=momo_order_id,
         amount=order.total_price,
+        mode="sandbox" if gateway is None else "gateway",
+        pay_url=pay_url,
     )
 
 
@@ -104,3 +121,39 @@ def complete_sandbox_payment(db: Session, user: User, data: SandboxCompleteIn) -
         order.payment_status = PaymentStatus.FAILED
     db.commit()
     return get_order(db, user, order.id)
+
+
+def apply_momo_result(db: Session, result: MomoResult) -> Order | None:
+    """Records a verified MoMo result. Safe to call twice: the IPN and the customer's return
+    both deliver it. Returns None when no open attempt has that id."""
+    order = db.scalar(
+        select(Order).where(Order.momo_order_id == result.order_id).with_for_update(of=Order)
+    )
+    if order is None:
+        if result.succeeded:
+            # The attempt was replaced (a retry or a switch to cash) yet MoMo still charged.
+            logger.error("MoMo charged retired attempt %s; refund it", result.order_id)
+        return None
+    if order.payment_status == PaymentStatus.PAID or result.pending:
+        return order
+    if result.amount != order.total_price:
+        logger.error(
+            "MoMo amount %s for order #%s does not match its total %s",
+            result.amount,
+            order.id,
+            order.total_price,
+        )
+        return order
+    if order.status != OrderStatus.PENDING:
+        if result.succeeded:
+            logger.error("MoMo charged order #%s, which is %s; refund it", order.id, order.status)
+        return order
+
+    if result.succeeded:
+        order.payment_status = PaymentStatus.PAID
+        order.momo_trans_id = result.trans_id
+        transition(order, OrderStatus.CONFIRMED, None)
+    else:
+        order.payment_status = PaymentStatus.FAILED
+    db.commit()
+    return order

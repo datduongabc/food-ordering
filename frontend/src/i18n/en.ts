@@ -217,6 +217,12 @@ export const en: Dictionary = {
       'The transaction was declined and you have not been charged. Your order is kept, so you can pay again at any time.',
     retry: 'Try again',
     later: 'Pay later',
+    redirecting: 'Taking you to MoMo…',
+    openMomo: 'Open the MoMo payment page',
+    checking: 'Confirming your payment…',
+    pendingTitle: 'MoMo is processing the payment',
+    pendingBody: 'Your order will show the result in a few minutes. There is no need to pay again.',
+    returnErrorTitle: 'We could not confirm this payment',
     unavailableTitle: 'This order cannot be paid',
   },
   account: {
@@ -490,6 +496,8 @@ export const en: Dictionary = {
     order_not_cancellable:
       'Only orders awaiting confirmation can be cancelled. Please call the restaurant.',
     invalid_status_transition: 'Cannot change the status from “{from}” to “{to}”.',
+    momo_unreachable: 'MoMo is not responding. Please try again in a moment or pay on delivery.',
+    invalid_momo_result: 'This payment result could not be verified. Please check your order.',
     momo_unavailable: 'MoMo payments are not available right now. Please pay on delivery.',
     order_already_paid: 'Order #{order_id} has already been paid.',
     order_not_payable: 'Order #{order_id} is “{status}” and cannot be paid.',

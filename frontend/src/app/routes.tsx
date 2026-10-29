@@ -42,6 +42,8 @@ export const routes: RouteObject[] = [
         checkout: () => import('@/features/orders/pages/CheckoutPage').then((m) => m.CheckoutPage),
         'orders/:id/pay': () =>
           import('@/features/orders/pages/PaymentPage').then((m) => m.PaymentPage),
+        'payment/momo/return': () =>
+          import('@/features/orders/pages/MomoReturnPage').then((m) => m.MomoReturnPage),
         account: () => import('@/features/account/AccountPage').then((m) => m.AccountPage),
       }),
       {

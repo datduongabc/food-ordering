@@ -207,3 +207,8 @@
     font-size: 30px;
   }
 }
+
+.momoLink {
+  color: var(--color-momo);
+  font-weight: 600;
+}

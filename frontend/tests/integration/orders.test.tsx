@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw/http'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { guestCart } from '@/features/cart/guestCart'
 import { apiError, mockApi, mockLayout, recordCalls } from '../support/api'
 import {
@@ -363,5 +363,80 @@ describe('account orders', () => {
     mockApi('get', '/orders', [])
     renderApp('/account')
     expect(await screen.findByText('Quý khách chưa có đơn hàng nào')).toBeInTheDocument()
+  })
+})
+
+describe('live MoMo payment', () => {
+  it('sends the customer to the MoMo pay URL', async () => {
+    const assign = vi.fn()
+    vi.spyOn(window, 'location', 'get').mockReturnValue({ ...window.location, assign })
+    mockLayout({ signedIn: customer })
+    mockApi('post', '/orders/7/payments/momo', {
+      order_id: 7,
+      momo_order_id: 'DATENO_7_a',
+      amount: 475_000,
+      mode: 'gateway',
+      pay_url: 'https://test-payment.momo.vn/pay/abc',
+    })
+    renderApp('/orders/7/pay')
+
+    expect(await screen.findByText('Đang chuyển tới trang thanh toán MoMo…')).toBeInTheDocument()
+    expect(assign).toHaveBeenCalledWith('https://test-payment.momo.vn/pay/abc')
+    expect(screen.getByRole('link', { name: 'Mở trang thanh toán MoMo' })).toHaveAttribute(
+      'href',
+      'https://test-payment.momo.vn/pay/abc',
+    )
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+    vi.restoreAllMocks()
+  })
+
+  const returnUrl = '/payment/momo/return?orderId=DATENO_7_a&resultCode=0&signature=abc'
+
+  it('forwards the signed result and shows the paid order', async () => {
+    mockLayout({ signedIn: customer })
+    const calls = recordCalls([
+      'post',
+      '/payments/momo/return',
+      order({ id: 7, payment_method: 'MOMO', payment_status: 'PAID', status: 'CONFIRMED' }),
+    ])
+    renderApp(returnUrl)
+
+    expect(await screen.findByRole('heading', { name: 'Đơn hàng #7 đã được thanh toán' }))
+    expect(calls.map((call) => call.body)).toEqual([
+      { orderId: 'DATENO_7_a', resultCode: '0', signature: 'abc' },
+    ])
+  })
+
+  it('offers another attempt after a declined payment', async () => {
+    mockLayout({ signedIn: customer })
+    mockApi(
+      'post',
+      '/payments/momo/return',
+      order({ id: 7, payment_method: 'MOMO', payment_status: 'FAILED', can_pay: true }),
+    )
+    renderApp(returnUrl)
+
+    expect(await screen.findByRole('heading', { name: 'Thanh toán chưa thành công' }))
+    expect(screen.getByRole('link', { name: 'Thử lại' })).toHaveAttribute('href', '/orders/7/pay')
+  })
+
+  it('says when MoMo is still processing', async () => {
+    mockLayout({ signedIn: customer })
+    mockApi('post', '/payments/momo/return', order({ id: 7, payment_method: 'MOMO' }))
+    renderApp(returnUrl)
+
+    expect(await screen.findByRole('heading', { name: 'MoMo đang xử lý giao dịch' }))
+  })
+
+  it('explains a result that cannot be verified', async () => {
+    mockLayout({ signedIn: customer })
+    mockApi('post', '/payments/momo/return', apiError('invalid_momo_result'), 400)
+    renderApp(returnUrl)
+
+    expect(
+      await screen.findByText(
+        'Không xác minh được kết quả thanh toán này. Vui lòng kiểm tra lại trong đơn hàng.',
+      ),
+    ).toBeInTheDocument()
   })
 })
