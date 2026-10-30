@@ -2,7 +2,9 @@ import logging
 import smtplib
 from dataclasses import dataclass
 from email.message import EmailMessage
-from typing import Protocol
+from typing import Annotated, Protocol
+
+from fastapi import BackgroundTasks, Depends
 
 from app.core.config import Settings, get_settings
 
@@ -59,3 +61,12 @@ def send_safely(sender: EmailSender, email: Email) -> None:
         sender.send(email)
     except Exception:
         logger.exception("Failed to send email to %s", email.to)
+
+
+Mailer = Annotated[EmailSender, Depends(get_email_sender)]
+
+
+def notify(background: BackgroundTasks, mailer: EmailSender, email: Email | None) -> None:
+    """Sends after the response, so a slow or failing mail server never holds up the request."""
+    if email is not None:
+        background.add_task(send_safely, mailer, email)

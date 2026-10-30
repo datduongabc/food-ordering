@@ -1,10 +1,8 @@
-from typing import Annotated
-
-from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Request, Response, status
 
 from app.core.config import get_settings
 from app.core.deps import CurrentSession, CurrentUser, DbSession
-from app.core.email import EmailSender, get_email_sender, send_safely
+from app.core.email import Mailer, send_safely
 from app.core.errors import UnauthorizedError
 from app.core.rate_limit import (
     CODE_ENTRY,
@@ -31,8 +29,6 @@ from app.modules.auth.schemas import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-Mailer = Annotated[EmailSender, Depends(get_email_sender)]
 
 
 def _set_session_cookie(response: Response, issued: service.IssuedSession) -> None:

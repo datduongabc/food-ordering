@@ -1,11 +1,14 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, Depends, Response, status
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Response, status
 
 from app.core.deps import CurrentUser, DbSession
+from app.core.email import Mailer, notify
 from app.core.errors import BadRequestError, NotFoundError
 from app.core.rate_limit import ORDERS, PAYMENTS, rate_limit
+from app.modules.notifications import emails
 from app.modules.orders import payments, service
+from app.modules.orders.models import PaymentStatus
 from app.modules.orders.momo import MomoGateway, MomoResult, get_momo_gateway
 from app.modules.orders.schemas import CheckoutIn, MomoPaymentOut, OrderOut, SandboxCompleteIn
 
@@ -30,8 +33,12 @@ def _verified(gateway: MomoGateway | None, params: dict[str, Any]) -> MomoResult
     status_code=status.HTTP_201_CREATED,
     dependencies=[rate_limit(ORDERS, per="user")],
 )
-def place_order(data: CheckoutIn, db: DbSession, user: CurrentUser):
-    return service.place_order(db, user, data)
+def place_order(
+    data: CheckoutIn, db: DbSession, user: CurrentUser, background: BackgroundTasks, mailer: Mailer
+):
+    order = service.place_order(db, user, data)
+    notify(background, mailer, emails.order_placed(order))
+    return order
 
 
 @router.get("/orders", response_model=list[OrderOut])
@@ -45,8 +52,12 @@ def get_order(order_id: int, db: DbSession, user: CurrentUser):
 
 
 @router.post("/orders/{order_id}/cancel", response_model=OrderOut)
-def cancel_order(order_id: int, db: DbSession, user: CurrentUser):
-    return service.cancel_order(db, user, order_id)
+def cancel_order(
+    order_id: int, db: DbSession, user: CurrentUser, background: BackgroundTasks, mailer: Mailer
+):
+    order = service.cancel_order(db, user, order_id)
+    notify(background, mailer, emails.order_status_changed(order))
+    return order
 
 
 PAYMENT_LIMIT = [rate_limit(PAYMENTS, per="user")]
@@ -65,25 +76,52 @@ def switch_to_cod(order_id: int, db: DbSession, user: CurrentUser):
 
 
 @router.post("/payments/momo/sandbox/complete", response_model=OrderOut, dependencies=PAYMENT_LIMIT)
-def complete_sandbox_payment(data: SandboxCompleteIn, db: DbSession, user: CurrentUser):
+def complete_sandbox_payment(
+    data: SandboxCompleteIn,
+    db: DbSession,
+    user: CurrentUser,
+    background: BackgroundTasks,
+    mailer: Mailer,
+):
     """Local development only: plays the part of the customer approving in the MoMo app."""
-    return payments.complete_sandbox_payment(db, user, data)
+    order = payments.complete_sandbox_payment(db, user, data)
+    if order.payment_status == PaymentStatus.PAID:
+        notify(background, mailer, emails.order_status_changed(order))
+    return order
 
 
 @router.post("/payments/momo/return", response_model=OrderOut, dependencies=PAYMENT_LIMIT)
-def momo_return(params: MomoParams, db: DbSession, user: CurrentUser, gateway: Gateway):
+def momo_return(
+    params: MomoParams,
+    db: DbSession,
+    user: CurrentUser,
+    gateway: Gateway,
+    background: BackgroundTasks,
+    mailer: Mailer,
+):
     """The query string MoMo appends to the redirect URL, forwarded by the SPA. It often
     arrives before the IPN, and is the only report a development machine ever gets."""
-    order = payments.apply_momo_result(db, _verified(gateway, params))
+    outcome = payments.apply_momo_result(db, _verified(gateway, params))
+    order = outcome.order
     if order is None:
         raise NotFoundError(
             "Payment not found. Start the payment again from your orders.", code="payment_not_found"
         )
+    if outcome.changed:
+        notify(background, mailer, emails.order_status_changed(order))
     return service.get_order(db, user, order.id)
 
 
 @router.post("/payments/momo/ipn", status_code=status.HTTP_204_NO_CONTENT)
-def momo_ipn(params: MomoParams, db: DbSession, gateway: Gateway):
+def momo_ipn(
+    params: MomoParams,
+    db: DbSession,
+    gateway: Gateway,
+    background: BackgroundTasks,
+    mailer: Mailer,
+):
     """MoMo's server-to-server notification; exempt from CSRF, trusted only by signature."""
-    payments.apply_momo_result(db, _verified(gateway, params))
+    outcome = payments.apply_momo_result(db, _verified(gateway, params))
+    if outcome.changed and outcome.order is not None:
+        notify(background, mailer, emails.order_status_changed(outcome.order))
     return Response(status_code=status.HTTP_204_NO_CONTENT)

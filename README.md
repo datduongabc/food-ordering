@@ -36,10 +36,12 @@
 - **Change of mind:** a pending cash order can be paid with MoMo, and an unpaid MoMo order can go back to cash.
 - **Order history** with a status timeline that says who made each change (customer, restaurant or system); pending orders can be cancelled.
 - Prices are stored and shown in whole Vietnamese dong.
+- **Status emails** in Vietnamese with English below: when an order is placed, confirmed (or paid with MoMo), delivered or cancelled, including any note from the staff and a refund line for paid orders. They go out after the response, so a slow or failing mail server never delays or fails an order; a MoMo payment reported twice sends one email.
 
 ### Table Booking
 - Book from today up to 3 days ahead, in half-hour seatings from 10:00 to 21:00, for up to 10 guests.
 - Customers see and cancel their pending bookings from their account.
+- Signed-in customers get an email when a booking is received, confirmed or cancelled. Guests leave only a phone number, so the restaurant calls them instead.
 
 ### Admin Console (`/admin`)
 - **Overview:** revenue, average order value, pending orders and bookings, a daily revenue chart, best and slowest sellers, MoMo success rate and lowest-rated dishes, over 7, 30 or 90 days.
@@ -233,7 +235,8 @@ restaurant_project/
 │   │   ├── core/              # Settings, database, sessions & security, CSRF, rate limits,
 │   │   │                      # headers, logging & Sentry, email
 │   │   ├── modules/           # auth, catalog, cart, orders (incl. MoMo and its sandbox),
-│   │   │                      # reservations, feedback, users, admin
+│   │   │                      # reservations, feedback, users, admin,
+│   │   │                      # notifications (order and booking emails)
 │   │   ├── cli.py             # create-admin command
 │   │   └── main.py            # FastAPI application
 │   ├── alembic/versions/      # Schema migrations and seed data (menu, local admin)
