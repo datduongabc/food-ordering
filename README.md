@@ -26,6 +26,7 @@
 
 ### Menu & Reviews
 - **Bilingual catalog:** every dish, category and branch has a Vietnamese and an English name; switching language is instant.
+- **Seeded menu:** 60 dishes in four categories (12 starters, 28 mains, 10 desserts, 10 drinks) across three branches, all photos in WebP. The dessert, drink and newer main-dish photos are freely licensed from Wikimedia Commons; authors and licences are in `backend/media/products/CREDITS.md`. Each backend start copies any seeded photo missing from the media volume, so a new menu migration's photos reach existing installs without touching uploads.
 - **Filtering, sorting and pagination** kept in the URL, so a filtered menu can be shared and reloaded.
 - **Search** matches dish names in both languages ("gỏi" or "spring rolls"), with or without accents and in any word order: "goi cuon", "GỎI CUỐN" and "tom goi" all find "Gỏi cuốn tôm". Each dish keeps an accent-free copy of its names, refreshed on every save, so it works the same on SQLite and PostgreSQL with no database extension.
 - **Reviews:** one 1-5 star review per customer per dish, averaged on the menu.
