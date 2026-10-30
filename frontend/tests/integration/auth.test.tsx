@@ -120,8 +120,9 @@ describe('sign in', () => {
       password: 'secret-pass',
       remember: true,
     })
-    expect(screen.getByRole('link', { name: 'Tài khoản' })).toBeInTheDocument()
     expect(await screen.findByRole('heading', { level: 1, name: 'Gỏi cuốn tôm thịt' }))
+    await user.click(screen.getByRole('button', { name: 'Tài khoản của bạn' }))
+    expect(screen.getByRole('link', { name: 'Tài khoản' })).toBeInTheDocument()
   })
 
   it('translates a blocked sign-in', async () => {
@@ -251,9 +252,13 @@ describe('sign out', () => {
     server.use(http.post('*/api/auth/logout', () => new HttpResponse(null, { status: 204 })))
     renderApp('/')
 
-    await user.click(await screen.findByRole('button', { name: 'Đăng xuất' }))
+    await user.click(await screen.findByRole('button', { name: 'Tài khoản của bạn' }))
+    await user.click(screen.getByRole('button', { name: 'Đăng xuất' }))
 
-    expect(await screen.findByRole('link', { name: 'Đăng nhập' })).toBeInTheDocument()
-    expect(screen.getByText('Đã đăng xuất.')).toBeInTheDocument()
+    expect(await screen.findByText('Đã đăng xuất.')).toBeInTheDocument()
+    // The dropdown closes, and opened again it offers sign-in.
+    expect(screen.queryByRole('button', { name: 'Đăng xuất' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Tài khoản của bạn' }))
+    expect(screen.getByRole('link', { name: 'Đăng nhập' })).toBeInTheDocument()
   })
 })

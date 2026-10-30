@@ -1,0 +1,101 @@
+.root {
+  position: relative;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--color-yellow);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-yellow);
+  cursor: pointer;
+}
+
+.button:hover,
+.button[aria-expanded='true'] {
+  background: var(--color-yellow);
+  color: var(--color-ink);
+}
+
+.initial {
+  font-weight: 800;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 20;
+  min-width: 260px;
+  max-width: calc(100vw - 2 * var(--gutter));
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-card);
+  color: var(--color-ink);
+  border: 2px solid var(--color-ink);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-hard);
+}
+
+.who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.name {
+  font-weight: 700;
+}
+
+.email {
+  font-size: 13px;
+  color: var(--color-muted);
+  overflow-wrap: break-word;
+}
+
+.item {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-ink);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.item:hover {
+  background: var(--color-yellow-soft);
+  color: var(--color-ink);
+}
+
+.active {
+  color: var(--color-red);
+  font-weight: 700;
+}
+
+.primary {
+  color: var(--color-red);
+  font-weight: 700;
+}
+
+.signOut {
+  margin-top: 4px;
+  border-top: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}

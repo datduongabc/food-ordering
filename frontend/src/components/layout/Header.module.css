@@ -12,7 +12,7 @@
   grid-template-columns: auto 1fr auto;
   grid-template-areas: 'brand nav tools';
   align-items: center;
-  gap: 16px;
+  gap: 24px;
 }
 
 .brand {
@@ -44,9 +44,10 @@
 .nav {
   grid-area: nav;
   display: flex;
-  justify-content: flex-end;
+  /* Centred in the space between the brand and the cart, whatever their widths. */
+  justify-content: center;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 
 .navLink {
@@ -66,8 +67,7 @@
   color: var(--color-yellow);
 }
 
-.active,
-.signIn {
+.active {
   color: var(--color-yellow);
   font-weight: 700;
 }
@@ -97,6 +97,10 @@
   background: #ffd65a;
 }
 
+.navLanguage {
+  display: none;
+}
+
 .menuButton {
   display: none;
   width: 44px;
@@ -107,6 +111,24 @@
   color: var(--color-yellow);
   font-size: 20px;
   cursor: pointer;
+}
+
+@media (max-width: 1024px) {
+  .inner {
+    gap: 16px;
+  }
+
+  .nav {
+    gap: 2px;
+  }
+
+  .navLink {
+    padding: 12px 10px;
+  }
+
+  .tools {
+    gap: 8px;
+  }
 }
 
 @media (max-width: 760px) {
@@ -121,6 +143,19 @@
   .tools {
     justify-self: end;
     gap: 8px;
+  }
+
+  .wideOnly {
+    display: none;
+  }
+
+  .navLanguage {
+    display: flex;
+    padding: 8px 14px 4px;
+  }
+
+  .cart {
+    padding: 0 14px;
   }
 
   .brandName {

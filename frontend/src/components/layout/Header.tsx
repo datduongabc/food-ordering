@@ -1,12 +1,10 @@
 import { useId, useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router'
-import { useLogout } from '@/features/auth/api'
-import { useCurrentUser } from '@/features/auth/queries'
-import { useToast } from '@/components/ui/toastContext'
+import { Link, NavLink, useLocation } from 'react-router'
 import { useCart } from '@/features/cart/useCart'
 import { useI18n } from '@/i18n/context'
 import { interpolate } from '@/lib/format'
 import { LanguageToggle } from './LanguageToggle'
+import { UserMenu } from './UserMenu'
 import styles from './Header.module.css'
 
 function CartIcon() {
@@ -31,12 +29,8 @@ function CartIcon() {
 
 export function Header() {
   const { t } = useI18n()
-  const user = useCurrentUser()
   const { cart } = useCart()
   const location = useLocation()
-  const navigate = useNavigate()
-  const logout = useLogout()
-  const toast = useToast()
   // Remembering where the mobile menu was opened closes it once the customer navigates away.
   const [openOn, setOpenOn] = useState<string | null>(null)
   const open = openOn === location.pathname
@@ -59,7 +53,10 @@ export function Header() {
             <CartIcon />
             <span>{count}</span>
           </Link>
-          <LanguageToggle />
+          <div className={styles.wideOnly}>
+            <LanguageToggle />
+          </div>
+          <UserMenu />
           <button
             type="button"
             className={styles.menuButton}
@@ -82,36 +79,11 @@ export function Header() {
           <a href="#branches" className={styles.navLink}>
             {t.nav.branches}
           </a>
-          {user ? (
-            <>
-              {user.role === 'ADMIN' && (
-                <NavLink to="/admin" className={navClass}>
-                  {t.nav.admin}
-                </NavLink>
-              )}
-              <NavLink to="/account" className={navClass}>
-                {t.nav.account}
-              </NavLink>
-              <button
-                type="button"
-                className={styles.navLink}
-                disabled={logout.isPending}
-                onClick={() =>
-                  logout.mutate(undefined, {
-                    onSettled: () => {
-                      toast(t.auth.loggedOut)
-                      navigate('/')
-                    },
-                  })
-                }
-              >
-                {t.auth.logout}
-              </button>
-            </>
-          ) : (
-            <NavLink to="/login" className={`${styles.navLink} ${styles.signIn}`}>
-              {t.nav.signIn}
-            </NavLink>
+          {/* Phones have no room for it beside the cart; only one copy exists at a time. */}
+          {open && (
+            <div className={styles.navLanguage}>
+              <LanguageToggle />
+            </div>
           )}
         </nav>
       </div>
