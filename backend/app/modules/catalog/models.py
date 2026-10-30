@@ -69,6 +69,8 @@ class Product(Base):
     price: Mapped[int] = mapped_column(BigInteger)
     # Denormalised from reviews so menu sorting by rating needs no aggregate join.
     average_rating: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
+    # Visible reviews behind that average; the menu shows it and weighs rankings by it.
+    review_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     slug: Mapped[str] = mapped_column(String(255), unique=True)
     # Both names through fold(), kept current on every save, so search needs no accents.
     search_text: Mapped[str] = mapped_column(Text, server_default="")

@@ -4,7 +4,7 @@ from app.modules.admin.models import AuditLog
 from app.modules.auth.models import OtpCode, UserSession
 from app.modules.cart.models import CartItem
 from app.modules.catalog.models import Category, Location, Product, product_availabilities
-from app.modules.feedback.models import Review
+from app.modules.feedback.models import Review, ReviewPhoto
 from app.modules.orders.models import Order, OrderEvent, OrderItem
 from app.modules.promotions.models import PromoCode
 from app.modules.reservations.models import Reservation
@@ -23,6 +23,7 @@ __all__ = [
     "PromoCode",
     "Reservation",
     "Review",
+    "ReviewPhoto",
     "User",
     "UserSession",
     "product_availabilities",

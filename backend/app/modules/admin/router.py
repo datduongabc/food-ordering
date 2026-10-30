@@ -5,14 +5,23 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response, Upload
 
 from app.core.deps import AdminUser, DbSession, require_admin
 from app.core.email import Mailer, notify
-from app.core.errors import BadRequestError
-from app.modules.admin import audit, exports, operations, products, promotions, stats, users
-from app.modules.admin.products import MAX_IMAGE_BYTES
+from app.core.images import MAX_UPLOAD_BYTES
+from app.modules.admin import (
+    audit,
+    exports,
+    operations,
+    products,
+    promotions,
+    reviews,
+    stats,
+    users,
+)
 from app.modules.admin.schemas import (
     AdminOrderOut,
     AdminProductOut,
     AdminPromoOut,
     AdminReservationOut,
+    AdminReviewOut,
     AdminUserOut,
     AuditLogOut,
     DashboardSummary,
@@ -25,6 +34,8 @@ from app.modules.admin.schemas import (
     RatingStats,
     ReservationStatusIn,
     RevenueTrend,
+    ReviewReplyIn,
+    ReviewVisibility,
     TopDishes,
     UserCreate,
     UserUpdate,
@@ -93,9 +104,7 @@ def update_product(product_id: int, data: ProductUpdate, db: DbSession, admin: A
 @router.put("/products/{product_id}/image", response_model=AdminProductOut)
 async def replace_image(product_id: int, image: UploadFile, db: DbSession, admin: AdminUser):
     # Read one byte past the limit so oversized files are rejected without loading them fully.
-    data = await image.read(MAX_IMAGE_BYTES + 1)
-    if not data:
-        raise BadRequestError("The uploaded file is empty.", code="empty_upload")
+    data = await image.read(MAX_UPLOAD_BYTES + 1)
     return products.replace_image(db, admin, product_id, data)
 
 
@@ -232,6 +241,36 @@ def disable_promo_code(promo_id: int, db: DbSession, admin: AdminUser):
 @router.post("/promo-codes/{promo_id}/enable", response_model=AdminPromoOut)
 def enable_promo_code(promo_id: int, db: DbSession, admin: AdminUser):
     return promotions.enable_promo(db, admin, promo_id)
+
+
+# --- Reviews ---
+
+
+@router.get("/reviews", response_model=Page[AdminReviewOut])
+def list_reviews(
+    db: DbSession,
+    visibility: ReviewVisibility | None = None,
+    rating: Annotated[int | None, Query(ge=1, le=5)] = None,
+    product: Annotated[str | None, Query(max_length=120)] = None,
+    page: PageNo = 1,
+    page_size: PageSize = 20,
+):
+    return reviews.list_reviews(db, visibility, rating, product, page, page_size)
+
+
+@router.post("/reviews/{review_id}/hide", response_model=AdminReviewOut)
+def hide_review(review_id: int, db: DbSession, admin: AdminUser):
+    return reviews.hide_review(db, admin, review_id)
+
+
+@router.post("/reviews/{review_id}/restore", response_model=AdminReviewOut)
+def restore_review(review_id: int, db: DbSession, admin: AdminUser):
+    return reviews.restore_review(db, admin, review_id)
+
+
+@router.put("/reviews/{review_id}/reply", response_model=AdminReviewOut)
+def reply_to_review(review_id: int, data: ReviewReplyIn, db: DbSession, admin: AdminUser):
+    return reviews.reply_to_review(db, admin, review_id, data.reply)
 
 
 # --- Reports ---

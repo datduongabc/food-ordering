@@ -169,3 +169,72 @@ test('staff create a promo code, a customer pays less with it and orders the sam
   await expect(page).toHaveURL(/\/cart$/)
   await expect(page.getByRole('link', { name: 'Giỏ hàng, 1 món' })).toBeVisible()
 })
+
+test('a customer reviews a delivered dish with a photo and staff reply, then hide it', async ({
+  page,
+}, testInfo) => {
+  const comment = `Nước dùng đậm đà (${testInfo.project.name} ${Date.now()})`
+  await page.goto('/login')
+  const email = await signUpHere(page, 'Lý Văn Tâm')
+  await page.goto('/menu')
+  const card = page.locator('article').first()
+  const dish = (await card.getByRole('heading').textContent())!.trim()
+  await card.getByRole('button', { name: /^Thêm .* vào giỏ hàng$/ }).click()
+  await expect(page.getByRole('link', { name: 'Giỏ hàng, 1 món' })).toBeVisible()
+  await page.goto('/checkout')
+  await page.getByLabel('Địa chỉ giao hàng').fill('5 Hai Bà Trưng, Quận 1')
+  await page.getByRole('button', { name: 'Xác nhận đặt hàng' }).click()
+  const placed = await page.getByText(/^Đã đặt đơn hàng #\d+\.$/).textContent()
+  const orderId = placed!.match(/#(\d+)/)![1]!
+
+  // Not delivered yet, so the dish page explains instead of offering the form.
+  await page.goto('/menu')
+  await page.getByRole('link', { name: dish, exact: true }).first().click()
+  await expect(
+    page.getByText('Quý khách có thể đánh giá sau khi nhận được đơn hàng có món này.'),
+  ).toBeVisible()
+
+  await signInAsAdmin(page)
+  await page.goto('/admin/orders')
+  await page.getByRole('button', { name: new RegExp(`^#${orderId} `) }).click()
+  const order = page.getByRole('region', { name: `Đơn hàng #${orderId}` })
+  await order.getByRole('button', { name: 'Xác nhận đơn' }).click()
+  await expect(page.getByText(`Đơn hàng #${orderId}: Đã xác nhận.`)).toBeVisible()
+  await page.getByRole('button', { name: new RegExp(`^#${orderId} `) }).click()
+  await order.getByRole('button', { name: 'Đã giao xong' }).click()
+  await expect(order.getByText('Hoàn thành', { exact: true })).toBeVisible()
+
+  // The delivered order links to the review form.
+  await page.context().clearCookies()
+  await page.goto('/login?next=%2Faccount')
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Mật khẩu').fill('mat-khau-123')
+  await page.getByRole('button', { name: 'Đăng nhập' }).click()
+  await page.getByRole('link', { name: `Đánh giá ${dish}` }).click()
+  await page.getByRole('button', { name: '4 sao', exact: true }).click()
+  await page.getByRole('textbox', { name: 'Nhận xét' }).fill(comment)
+  await page.getByLabel(/Ảnh món ăn/).setInputFiles(PHOTO)
+  await page.getByRole('button', { name: 'Gửi đánh giá' }).click()
+  await expect(page.getByText('Đánh giá đã được ghi nhận.')).toBeVisible()
+
+  const mine = page.getByRole('listitem').filter({ hasText: comment })
+  await expect(mine.getByText('Đã mua')).toBeVisible()
+  await expect(mine.getByRole('img', { name: 'Ảnh món ăn của Lý Văn Tâm' })).toBeVisible()
+
+  // Staff reply, then hide it; it leaves the dish page.
+  await signInAsAdmin(page)
+  await page.goto('/admin/reviews')
+  const review = page.getByRole('listitem').filter({ hasText: comment })
+  await review.getByRole('button', { name: 'Phản hồi' }).click()
+  await review.getByLabel('Phản hồi công khai của nhà hàng').fill('Cảm ơn anh Tâm!')
+  await review.getByRole('button', { name: 'Lưu thay đổi' }).click()
+  await expect(page.getByText('Đã lưu phản hồi.')).toBeVisible()
+  await expect(review.getByText('Cảm ơn anh Tâm!')).toBeVisible()
+  await review.getByRole('button', { name: 'Ẩn' }).click()
+  await expect(page.getByText('Đã ẩn đánh giá của Lý Văn Tâm.')).toBeVisible()
+
+  await page.goto('/menu')
+  await page.getByRole('link', { name: dish, exact: true }).first().click()
+  await expect(page.getByRole('heading', { name: 'Đánh giá của khách hàng' })).toBeVisible()
+  await expect(page.getByText(comment)).toHaveCount(0)
+})

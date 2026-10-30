@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import (
     AliasPath,
@@ -15,6 +15,7 @@ from pydantic import (
 from app.core.localized import LocalizedDescription, LocalizedName, LocalizedText
 from app.modules.auth.schemas import Name, NormalizedEmail, Password, Phone
 from app.modules.catalog.schemas import ProductOut
+from app.modules.feedback.schemas import ReviewPhotoOut
 from app.modules.orders.models import OrderStatus
 from app.modules.orders.schemas import Note, OrderEventOut, OrderOut
 from app.modules.promotions.models import DiscountKind
@@ -102,6 +103,19 @@ class AdminReviewOut(BaseModel):
     user_name: str = Field(validation_alias=AliasPath("user", "name"))
     product_name: LocalizedText = Field(validation_alias=AliasPath("product", "name"))
     product_slug: str = Field(validation_alias=AliasPath("product", "slug"))
+    verified_purchase: bool
+    hidden_at: datetime | None
+    reply: str | None
+    replied_at: datetime | None
+    photos: list[ReviewPhotoOut]
+
+
+ReviewVisibility = Literal["visible", "hidden"]
+
+
+class ReviewReplyIn(BaseModel):
+    # Blank removes the reply.
+    reply: Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)]
 
 
 class RatingStats(BaseModel):

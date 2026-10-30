@@ -1,5 +1,5 @@
 import { useState, type Ref } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/toastContext'
@@ -89,6 +89,17 @@ export function OrderDetail({ order, ref }: { order: Order; ref?: Ref<HTMLElemen
               {localize(item.product_name)} <span className={styles.muted}>× {item.quantity}</span>
             </span>
             <strong>{formatVnd(item.subtotal)}</strong>
+            {order.status === 'COMPLETED' && (
+              <Link
+                to={`/menu/${item.product_slug}#reviews`}
+                className={styles.reviewLink}
+                aria-label={interpolate(t.reviews.reviewItemLabel, {
+                  name: localize(item.product_name),
+                })}
+              >
+                ★ {t.reviews.reviewItem}
+              </Link>
+            )}
           </li>
         ))}
       </ul>

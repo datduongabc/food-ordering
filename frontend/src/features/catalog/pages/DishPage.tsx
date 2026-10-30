@@ -66,7 +66,11 @@ export function DishPage() {
           <h1 className={styles.name}>{name}</h1>
           <div className={styles.rating}>
             <Stars rating={rating} />
-            <a href="#reviews">{rating === null ? t.common.noReviews : t.reviews.title}</a>
+            <a href="#reviews">
+              {rating === null
+                ? t.common.noReviews
+                : interpolate(t.reviews.count, { count: dish.review_count })}
+            </a>
           </div>
           <span className={styles.price}>{formatVnd(dish.price)}</span>
           <p className={styles.description}>{localize(dish.description)}</p>

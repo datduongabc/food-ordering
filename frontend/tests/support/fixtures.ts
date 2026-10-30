@@ -3,6 +3,7 @@ import type { Cart } from '@/features/cart/schemas'
 import type { User } from '@/features/auth/schemas'
 import type { Order } from '@/features/orders/schemas'
 import type { Reservation, ReservationPolicy } from '@/features/reservations/schemas'
+import type { Review, ReviewPage } from '@/features/reviews/schemas'
 
 export const starters: Category = {
   id: 1,
@@ -33,6 +34,7 @@ export function product(overrides: Partial<Product> = {}): Product {
     description: { vi: 'Món ăn ngon.', en: 'A tasty dish.' },
     price: 250_000,
     average_rating: null,
+    review_count: 0,
     category: starters,
     locations: [district1],
     image_url: `/media/products/dish-${id}.webp`,
@@ -55,6 +57,7 @@ export const shakingBeef = product({
   price: 450_000,
   category: mains,
   average_rating: '4.50',
+  review_count: 12,
 })
 
 export function cartOf(...lines: [Product, number][]): Cart {
@@ -155,5 +158,40 @@ export function reservation(overrides: Partial<Reservation> = {}): Reservation {
     cancelled_at: null,
     can_cancel: true,
     ...overrides,
+  }
+}
+
+export function review(overrides: Partial<Review> = {}): Review {
+  return {
+    id: nextId++,
+    rating: 5,
+    comment: 'Rất ngon.',
+    created_at: '2026-10-29T03:00:00Z',
+    user_name: 'Tran Thi B',
+    verified_purchase: true,
+    reply: null,
+    replied_at: null,
+    photos: [],
+    ...overrides,
+  }
+}
+
+/** One page of a dish's reviews; the summary counts `all`, which defaults to the page. */
+export function reviewPage(items: Review[], { all = items, totalPages = 1 } = {}): ReviewPage {
+  const average = all.length ? all.reduce((sum, r) => sum + r.rating, 0) / all.length : null
+  return {
+    items,
+    page: 1,
+    page_size: 5,
+    total: items.length,
+    total_pages: totalPages,
+    summary: {
+      average: average === null ? null : average.toFixed(2),
+      count: all.length,
+      distribution: [5, 4, 3, 2, 1].map((stars) => ({
+        stars,
+        count: all.filter((r) => r.rating === stars).length,
+      })),
+    },
   }
 }

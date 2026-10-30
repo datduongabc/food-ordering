@@ -51,6 +51,7 @@ class ProductOut(BaseModel):
     description: LocalizedText
     price: int
     average_rating: Decimal | None
+    review_count: int
     category: CategoryOut | None
     locations: list[LocationOut]
     image_path: str = Field(validation_alias="image_url", exclude=True)

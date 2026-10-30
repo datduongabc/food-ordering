@@ -3,6 +3,7 @@ import { userSchema } from '@/features/auth/schemas'
 import { productSchema } from '@/features/catalog/schemas'
 import { orderEventSchema, orderSchema } from '@/features/orders/schemas'
 import { reservationSchema } from '@/features/reservations/schemas'
+import { reviewSchema } from '@/features/reviews/schemas'
 import { localizedTextSchema } from '@/lib/localized'
 
 export function pageSchema<T extends z.ZodType>(item: T) {
@@ -71,6 +72,12 @@ export const paymentStatsSchema = z.object({
   }),
 })
 
+export const adminReviewSchema = reviewSchema.extend({
+  product_name: localizedTextSchema,
+  product_slug: z.string(),
+  hidden_at: z.string().nullable(),
+})
+
 export const ratingStatsSchema = z.object({
   lowest_rated: z.array(
     z.object({
@@ -81,17 +88,7 @@ export const ratingStatsSchema = z.object({
       review_count: z.number().int(),
     }),
   ),
-  latest_reviews: z.array(
-    z.object({
-      id: z.number(),
-      rating: z.number().int(),
-      comment: z.string(),
-      created_at: z.string(),
-      user_name: z.string(),
-      product_name: localizedTextSchema,
-      product_slug: z.string(),
-    }),
-  ),
+  latest_reviews: z.array(adminReviewSchema),
 })
 
 // --- Products ---
@@ -174,7 +171,17 @@ export interface PromoInput {
 
 // --- Audit log ---
 
-export const AUDIT_GROUPS = ['product', 'order', 'reservation', 'user', 'promo', 'export'] as const
+export const AUDIT_GROUPS = [
+  'product',
+  'order',
+  'reservation',
+  'user',
+  'promo',
+  'review',
+  'export',
+] as const
+
+export const REVIEW_VISIBILITIES = ['visible', 'hidden'] as const
 
 export const auditEntrySchema = z.object({
   id: z.number(),
@@ -202,3 +209,5 @@ export type AuditEntry = z.infer<typeof auditEntrySchema>
 export type AdminPromo = z.infer<typeof adminPromoSchema>
 export type DiscountKind = (typeof DISCOUNT_KINDS)[number]
 export type AuditGroup = (typeof AUDIT_GROUPS)[number]
+export type AdminReview = z.infer<typeof adminReviewSchema>
+export type ReviewVisibility = (typeof REVIEW_VISIBILITIES)[number]

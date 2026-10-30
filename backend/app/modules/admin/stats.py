@@ -203,7 +203,7 @@ def payments(db: Session, days: int) -> PaymentStats:
 
 
 def ratings(db: Session, limit: int) -> RatingStats:
-    review_count = func.count(Review.id)
+    # The stored average and count leave out reviews staff have hidden.
     lowest = db.execute(
         select(
             Product.id,
@@ -211,14 +211,10 @@ def ratings(db: Session, limit: int) -> RatingStats:
             Product.name_en,
             Product.slug,
             Product.average_rating,
-            review_count,
+            Product.review_count,
         )
-        .join(Review, Review.product_id == Product.id)
-        .where(Product.deleted_at.is_(None))
-        .group_by(
-            Product.id, Product.name_vi, Product.name_en, Product.slug, Product.average_rating
-        )
-        .order_by(Product.average_rating.asc(), review_count.desc(), Product.id)
+        .where(Product.deleted_at.is_(None), Product.review_count > 0)
+        .order_by(Product.average_rating.asc(), Product.review_count.desc(), Product.id)
         .limit(limit)
     ).all()
     latest = db.scalars(

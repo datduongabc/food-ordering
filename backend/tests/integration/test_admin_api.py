@@ -592,7 +592,11 @@ class TestDashboardAndStats:
             "momo": {"paid": 1, "failed": 1, "success_rate": 0.5},
         }
 
-    def test_ratings(self, admin_client, customer, catalog):
+    def test_ratings(self, admin_client, customer, catalog, db):
+        make_order(db, customer_id(db), [(catalog.products["pho-bo"], 1)], OrderStatus.COMPLETED)
+        make_order(
+            db, customer_id(db), [(catalog.products["beef-steak"], 1)], OrderStatus.COMPLETED
+        )
         customer.post("/api/products/pho-bo/reviews", json={"rating": 2, "comment": "Too salty"})
         customer.post("/api/products/beef-steak/reviews", json={"rating": 5, "comment": "Perfect"})
 
@@ -602,6 +606,7 @@ class TestDashboardAndStats:
             (d["slug"], d["average_rating"], d["review_count"]) for d in ratings["lowest_rated"]
         ] == [
             ("pho-bo", "2.00", 1),
+            ("spring-rolls", "4.00", 1),  # the fixture's stored rating
             ("beef-steak", "5.00", 1),
         ]
         assert [r["comment"] for r in ratings["latest_reviews"]] == ["Perfect", "Too salty"]

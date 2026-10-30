@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { mockApi, mockLayout } from '../support/api'
-import { district1, shakingBeef, springRolls } from '../support/fixtures'
+import { district1, review, shakingBeef, springRolls } from '../support/fixtures'
 import { renderApp } from '../support/render'
 
 function mockHome(reviews: unknown[]) {
@@ -39,11 +39,7 @@ describe('home page', () => {
     mockLayout()
     mockHome([
       {
-        id: 1,
-        rating: 5,
-        comment: 'Rất ngon!',
-        created_at: '2026-10-28T03:00:00Z',
-        user_name: 'Chi',
+        ...review({ comment: 'Rất ngon!', user_name: 'Chi' }),
         product_name: { vi: 'Bò lúc lắc', en: 'Bò lúc lắc' },
         product_slug: 'shaking-beef',
       },

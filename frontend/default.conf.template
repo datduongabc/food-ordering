@@ -41,8 +41,14 @@ server {
         include /etc/nginx/api-proxy.conf;
     }
 
-    # The one endpoint that takes more than a small JSON body: a dish photo of up to 5 MB.
+    # The endpoints that take more than a small JSON body: a dish photo of up to 5 MB.
     location ~ ^/api/admin/products/[0-9]+/image$ {
+        client_max_body_size 6m;
+        include /etc/nginx/api-proxy.conf;
+    }
+
+    # Customers' photos of a dish they reviewed, also up to 5 MB.
+    location ~ ^/api/reviews/[0-9]+/photos$ {
         client_max_body_size 6m;
         include /etc/nginx/api-proxy.conf;
     }

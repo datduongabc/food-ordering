@@ -80,6 +80,20 @@ def _order_summary(order: Order, lang: str) -> list[str]:
     return lines
 
 
+def _review_links(order: Order, lang: str) -> list[str]:
+    """One link per dish to its review form; the order now counts as a purchase of each."""
+    products = {item.product.slug: item.product for item in order.items}.values()
+    intro = (
+        "Món ăn hôm nay thế nào? Đánh giá giúp nhà hàng và những thực khách khác:"
+        if lang == "vi"
+        else "How was it? A review helps the kitchen and other diners:"
+    )
+    # The leading newline survives the filter that drops the empty lines around it.
+    return ["\n" + intro] + [
+        f"  {product.name[lang]}: {_link(f'/menu/{product.slug}#reviews')}" for product in products
+    ]
+
+
 def order_placed(order: Order) -> Email:
     n = order.id
     link = _link(f"/account?order={n}")
@@ -140,8 +154,14 @@ def order_status_changed(order: Order) -> Email | None:
         ]
     elif event.to_status == OrderStatus.COMPLETED:
         subject = (f"DaTeNO: Đơn hàng #{n} đã giao xong", f"Order #{n} delivered")
-        vi = [f"Đơn hàng #{n} đã được giao. Cảm ơn quý khách đã chọn DaTeNO, chúc ngon miệng!"]
-        en = [f"Your order #{n} has been delivered. Thank you for choosing DaTeNO, enjoy!"]
+        vi = [
+            f"Đơn hàng #{n} đã được giao. Cảm ơn quý khách đã chọn DaTeNO, chúc ngon miệng!",
+            *_review_links(order, "vi"),
+        ]
+        en = [
+            f"Your order #{n} has been delivered. Thank you for choosing DaTeNO, enjoy!",
+            *_review_links(order, "en"),
+        ]
     elif event.to_status == OrderStatus.CANCELLED:
         by_customer = event.actor_id == order.user_id
         refund = order.payment_status == PaymentStatus.REFUNDED

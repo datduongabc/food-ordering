@@ -77,6 +77,11 @@ class TestOrderEmails:
         assert "Lời nhắn từ nhà hàng: Giao trước 12h" in confirmed.text
         assert "Message from the restaurant: Giao trước 12h" in confirmed.text
         assert delivered.subject.endswith(f"Order #{order_id} delivered")
+        # One review link per dish, even ordered twice, in both languages.
+        assert delivered.text.count("https://dateno.example/menu/pho-bo#reviews") == 2
+        assert "  Phở bò: https://dateno.example/menu/pho-bo#reviews" in delivered.text
+        assert "  Pho Bo: https://dateno.example/menu/pho-bo#reviews" in delivered.text
+        assert "\n\nHow was it? A review helps" in delivered.text
 
     def test_staff_cancelling_apologises(self, admin_client, customer, catalog, inbox):
         order_id = place(customer, catalog)
