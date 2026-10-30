@@ -35,7 +35,17 @@ export function ProductCard({
           <Link to={href}>{name}</Link>
         </Heading>
         <p className={styles.description}>{localize(product.description)}</p>
-        <Stars rating={product.average_rating === null ? null : Number(product.average_rating)} />
+        <span className={styles.rating}>
+          <Stars rating={product.average_rating === null ? null : Number(product.average_rating)} />
+          {product.review_count > 0 && (
+            <span className={styles.reviewCount}>
+              <span aria-hidden="true">({product.review_count})</span>
+              <span className="visually-hidden">
+                {interpolate(t.reviews.count, { count: product.review_count })}
+              </span>
+            </span>
+          )}
+        </span>
         <div className={styles.footer}>
           <span className={styles.price}>{formatVnd(product.price)}</span>
           <Button

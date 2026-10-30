@@ -76,6 +76,27 @@ def test_admin_adds_dish_and_fulfils_an_order(server, new_browser):
     assert (seen["status"], seen["payment_status"]) == ("COMPLETED", "PAID")
     assert [e["to_status"] for e in seen["events"]] == ["PENDING", "CONFIRMED", "COMPLETED"]
 
+    # Delivered, so the customer may now review the dish, with a photo of it.
+    review = customer.post(
+        f"/api/products/{dish['slug']}/reviews", json={"rating": 2, "comment": "Hơi nguội"}
+    ).json()
+    assert review["verified_purchase"] is True
+    shot = customer.post(
+        f"/api/reviews/{review['id']}/photos", files={"photo": ("plate.webp", photo)}
+    ).json()
+    assert customer.get(shot["photos"][0]["thumbnail_url"]).status_code == 200
+    rated = customer.get(f"/api/products/{dish['slug']}").json()
+    assert (rated["average_rating"], rated["review_count"]) == ("2.00", 1)
+
+    # Staff answer it, then hide it: the dish is unrated again.
+    admin.put(
+        f"/api/admin/reviews/{review['id']}/reply", json={"reply": "Xin lỗi, lần sau sẽ nóng hơn."}
+    ).raise_for_status()
+    admin.post(f"/api/admin/reviews/{review['id']}/hide").raise_for_status()
+    rated = customer.get(f"/api/products/{dish['slug']}").json()
+    assert (rated["average_rating"], rated["review_count"]) == (None, 0)
+    assert customer.get(f"/api/products/{dish['slug']}/reviews").json()["total"] == 0
+
     after = admin.get("/api/admin/dashboard").json()
     assert after["completed_orders"] == before["completed_orders"] + 1
     assert after["completed_revenue"] == before["completed_revenue"] + 580_000

@@ -20,7 +20,7 @@
 - **No account discovery through sign-in or password reset:** wrong passwords and unknown emails get the same answer in the same time; reset requests always get the same reply; and a reset for an unknown email runs out of tries exactly like a real code.
 - **CSRF protection** on every state-changing request.
 - **Flood protection in nginx:** at most 20 API requests a second per address (bursts of 60), 64 connections, 64 KB request bodies (6 MB for photo uploads) and 10-second header and body timeouts; anything over is refused before it reaches Python. Dish photos are served by nginx directly. See [`loadtest/`](loadtest/README.md) for the load and attack tests and their results.
-- **Rate limits** per client address on the whole API (300 reads and 60 writes a minute), with tighter ones where abuse costs most: sign-in (10/min), sign-up (5/hour), password-reset and verification emails (3 per inbox or account every 15 min), code entry, orders, payments, bookings and reviews. Over the limit the API answers `429` with a `Retry-After` header.
+- **Rate limits** per client address on the whole API (300 reads and 60 writes a minute), with tighter ones where abuse costs most: sign-in (10/min), sign-up (5/hour), password-reset and verification emails (3 per inbox or account every 15 min), code entry, orders, payments, bookings, reviews and review photos. Over the limit the API answers `429` with a `Retry-After` header.
 - **Hardened responses:** a Content-Security-Policy, `nosniff`, no framing, a strict referrer policy and `no-store` on API answers; API docs are only served outside production, and production refuses to start without a random `SECRET_KEY` of at least 32 characters.
 - **Guest cart merge:** a cart built before signing in is kept in the browser and merged into the account on sign-in.
 
@@ -30,7 +30,9 @@
 - **Light photos:** every photo has a 640px WebP thumbnail (`thumbs/<path>.webp`), which menu cards, the cart, checkout and order lists load; only the dish page loads the full photo (at most 1200px). The first menu page went from about 2 MB of photos to about 540 KB. Uploads in JPEG, PNG or WebP are decoded with Pillow, turned upright, stripped of EXIF (including a phone's GPS location), capped at 40 megapixels against decompression bombs, and stored as WebP with their thumbnail. `python -m app.cli thumbnails` makes any missing thumbnails; the Docker image runs it on every start.
 - **Filtering, sorting and pagination** kept in the URL, so a filtered menu can be shared and reloaded.
 - **Search** matches dish names in both languages ("gỏi" or "spring rolls"), with or without accents and in any word order: "goi cuon", "GỎI CUỐN" and "tom goi" all find "Gỏi cuốn tôm". Each dish keeps an accent-free copy of its names, refreshed on every save, so it works the same on SQLite and PostgreSQL with no database extension.
-- **Reviews:** one 1-5 star review per customer per dish, averaged on the menu.
+- **Reviews from real customers:** only someone with a delivered order of a dish may review it, once, with 1-5 stars, a comment and up to 3 photos (added within an hour of posting, stored like dish photos: WebP, thumbnail, no EXIF). Reviews show a "Đã mua" badge, and delivered orders link each dish to its review form.
+- **Review page per dish:** the average, the count and a 5★ to 1★ breakdown (each bar filters the list), paging, a star filter and newest, highest or lowest first. A reply from the restaurant shows under its review.
+- **Fair ranking:** "highest rated" and the featured dish use a Bayesian average, as if every dish started with 5 reviews at 3.5★, so a single 5★ cannot beat fifty 4.8★; unrated dishes come last when sorting best-first. Menu cards show how many reviews a rating rests on.
 
 ### Ordering & Payment
 - **Checkout** with delivery details pre-filled from the account; each branch card warns about dishes it does not serve.
@@ -40,7 +42,7 @@
 - **Order again:** any past order's dishes go back into the cart at today's prices; dishes no longer served are skipped and named.
 - **Order history** with a status timeline that says who made each change (customer, restaurant or system); pending orders can be cancelled.
 - Prices are stored and shown in whole Vietnamese dong.
-- **Status emails** in Vietnamese with English below: when an order is placed, confirmed (or paid with MoMo), delivered or cancelled, including any note from the staff and a refund line for paid orders. They go out after the response, so a slow or failing mail server never delays or fails an order; a MoMo payment reported twice sends one email.
+- **Status emails** in Vietnamese with English below: when an order is placed, confirmed (or paid with MoMo), delivered (with a review link per dish) or cancelled, including any note from the staff and a refund line for paid orders. They go out after the response, so a slow or failing mail server never delays or fails an order; a MoMo payment reported twice sends one email.
 
 ### Table Booking
 - Book from today up to 3 days ahead, in half-hour seatings from 10:00 to 21:00, for up to 10 guests.
@@ -53,9 +55,10 @@
 - **Bookings:** filter by status and date; confirm, mark arrived or cancel.
 - **Dishes:** add and edit in both languages, set price, category and branches, upload a photo, hide and restore.
 - **Promo codes:** create, edit, switch off and on, with live use counts.
+- **Reviews:** filter by visibility and stars; hide a review (spam, abuse, personal details) and restore it, or reply publicly. A hidden review leaves the dish page and its average but stays on record.
 - **Users:** search by name (accents optional), email or phone; add, change role, verification and password, deactivate and restore (never your own account).
 - **Reports:** download the orders (optionally by status) or the daily revenue of any range up to a year as CSV, in Vietnamese or English, ready for Excel. Customer-typed cells that a spreadsheet would run as formulas are neutralised.
-- **Activity log:** every staff change (dishes, prices, photos, order and booking statuses, promo codes, accounts) and every report download, with who, when and each field's value before and after; passwords are never recorded. Entries are written in the same transaction as the change.
+- **Activity log:** every staff change (dishes, prices, photos, order and booking statuses, promo codes, review moderation and replies, accounts) and every report download, with who, when and each field's value before and after; passwords are never recorded. Entries are written in the same transaction as the change.
 
 ---
 

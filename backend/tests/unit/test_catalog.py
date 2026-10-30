@@ -28,6 +28,7 @@ def test_product_out_exposes_public_image_url_not_storage_path():
         description={"vi": "Phở bò tái", "en": "Beef noodle soup"},
         price=120_000,
         average_rating=None,
+        review_count=0,
         category=None,
         locations=[],
         image_url="main_dishes/pho_bo.webp",

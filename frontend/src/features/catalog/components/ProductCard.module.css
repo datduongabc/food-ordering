@@ -69,3 +69,15 @@
   font-weight: 800;
   color: var(--color-red);
 }
+
+.rating {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.reviewCount {
+  font-size: 13px;
+  color: var(--color-muted);
+}

@@ -4,7 +4,7 @@ import { http, HttpResponse } from 'msw/http'
 import { describe, expect, it } from 'vitest'
 import { admin, adminOrder, adminReservation, page } from '../support/adminFixtures'
 import { apiError, mockApi, mockLayout, recordCalls } from '../support/api'
-import { springRolls } from '../support/fixtures'
+import { review, springRolls } from '../support/fixtures'
 import { renderApp } from '../support/render'
 import { server } from '../support/server'
 
@@ -292,13 +292,15 @@ describe('admin overview', () => {
             ],
             latest_reviews: [
               {
-                id: 9,
-                rating: 2,
-                comment: 'Hơi nguội.',
-                created_at: '2026-10-29T10:00:00Z',
-                user_name: 'Tran Thi B',
+                ...review({
+                  id: 9,
+                  rating: 2,
+                  comment: 'Hơi nguội.',
+                  created_at: '2026-10-29T10:00:00Z',
+                }),
                 product_name: springRolls.name,
                 product_slug: springRolls.slug,
+                hidden_at: null,
               },
             ],
           }

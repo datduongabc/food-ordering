@@ -67,7 +67,7 @@ def test_dish_images_are_served(new_browser):
     assert len(image.content) > 1000
 
 
-def test_search_then_review_changes_ratings_and_featured_dish(new_browser):
+def test_search_then_only_buyers_may_review(new_browser):
     browser = new_browser()
     results = browser.get("/api/products/search", params={"q": "spring roll"}).json()
     assert {r["slug"] for r in results} == {"seafood-spring-rolls-mayo", "shrimp-pork-spring-rolls"}
@@ -84,16 +84,16 @@ def test_search_then_review_changes_ratings_and_featured_dish(new_browser):
         "/api/auth/login", json={"email": customer["email"], "password": customer["password"]}
     ).raise_for_status()
 
+    slug = "shrimp-pork-spring-rolls"
+    assert browser.get(f"/api/products/{slug}/reviews/eligibility").json() == {
+        "can_review": False,
+        "reason": "not_purchased",
+    }
     review = browser.post(
-        "/api/products/shrimp-pork-spring-rolls/reviews",
+        f"/api/products/{slug}/reviews",
         json={"rating": 5, "comment": "Fresh herbs, perfect peanut sauce."},
     )
-    assert review.status_code == 201
-
-    dish = browser.get("/api/products/shrimp-pork-spring-rolls").json()
-    assert dish["average_rating"] == "5.00"
-    reviews = browser.get("/api/products/shrimp-pork-spring-rolls/reviews").json()
-    assert reviews[0]["user_name"] == "Pham Van D"
-    top = browser.get("/api/reviews/top").json()
-    assert any(r["product_slug"] == "shrimp-pork-spring-rolls" for r in top)
-    assert browser.get("/api/products/featured").json()["average_rating"] == "5.00"
+    assert review.status_code == 403
+    assert review.json()["code"] == "review_needs_purchase"
+    summary = browser.get(f"/api/products/{slug}/reviews").json()["summary"]
+    assert len(summary["distribution"]) == 5

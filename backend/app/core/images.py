@@ -10,6 +10,8 @@ from pathlib import Path
 
 from PIL import Image, ImageOps, UnidentifiedImageError
 
+from app.core.errors import BadRequestError
+
 # Big enough for a 4:3 menu card or the dish page on a large screen.
 FULL_SIZE = 1200
 # Menu cards are 250-400 CSS pixels wide, cart and order lines far smaller. 640 stays sharp on
@@ -20,6 +22,7 @@ QUALITY = 80
 THUMBS_DIR = "thumbs"
 # A 5 MB upload can still decode to gigabytes of pixels; refuse anything past ~40 megapixels.
 MAX_PIXELS = 40_000_000
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 
 class InvalidImage(ValueError):
@@ -68,6 +71,39 @@ def process_upload(data: bytes) -> tuple[bytes, bytes]:
     """The photo and its thumbnail as WebP, whatever format and size came in."""
     image = _open(data)
     return _encode(image, FULL_SIZE), _encode(image, THUMB_SIZE)
+
+
+def image_extension(data: bytes) -> str | None:
+    """Identifies the format from the file's magic bytes; the client's filename is not trusted."""
+    if data.startswith(b"\xff\xd8\xff"):
+        return "jpg"
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    if len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "webp"
+    return None
+
+
+def accept_upload(data: bytes) -> tuple[bytes, bytes]:
+    """Checks an uploaded photo and re-encodes it, which also drops anything hidden in the
+    file and the photo's EXIF location. Raises the errors the SPA explains to the user."""
+    if not data:
+        raise BadRequestError("The uploaded file is empty.", code="empty_upload")
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise BadRequestError(
+            "Images must be 5 MB or smaller.", code="image_too_large", params={"max_mb": 5}
+        )
+    # The magic bytes keep Pillow to the three formats a photo arrives in.
+    if image_extension(data) is None:
+        raise BadRequestError(
+            "Only JPEG, PNG and WebP images are allowed.", code="image_type_not_allowed"
+        )
+    try:
+        return process_upload(data)
+    except InvalidImage as exc:
+        raise BadRequestError(
+            "Only JPEG, PNG and WebP images are allowed.", code="image_type_not_allowed"
+        ) from exc
 
 
 def ensure_thumbnails(products_dir: Path) -> int:

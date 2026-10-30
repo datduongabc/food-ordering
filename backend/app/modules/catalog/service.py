@@ -9,13 +9,22 @@ from app.core.sql import contains_words
 from app.modules.catalog.models import Category, Location, Product
 from app.modules.catalog.schemas import ProductOut, ProductPage, ProductSort
 
+# Bayesian average: every dish starts as if it had PRIOR_REVIEWS reviews at PRIOR_RATING, so
+# one 5-star review cannot outrank fifty 4.8s. Real reviews pull the score to the true average.
+PRIOR_REVIEWS = 5
+PRIOR_RATING = 3.5
+_score = (
+    PRIOR_REVIEWS * PRIOR_RATING + func.coalesce(Product.average_rating, 0) * Product.review_count
+) / (PRIOR_REVIEWS + Product.review_count)
+# Unrated dishes go last best-first and first worst-first, as if their rating were lowest.
+_unrated = Product.review_count == 0
+
 _ORDERINGS = {
     ProductSort.DEFAULT: (Product.id.asc(),),
     ProductSort.PRICE_ASC: (Product.price.asc(), Product.id.asc()),
     ProductSort.PRICE_DESC: (Product.price.desc(), Product.id.asc()),
-    # Explicit NULL placement: Postgres sorts NULL as largest, SQLite as smallest.
-    ProductSort.RATING_ASC: (Product.average_rating.asc().nulls_first(), Product.id.asc()),
-    ProductSort.RATING_DESC: (Product.average_rating.desc().nulls_last(), Product.id.asc()),
+    ProductSort.RATING_ASC: (_unrated.desc(), _score.asc(), Product.id.asc()),
+    ProductSort.RATING_DESC: (_unrated.asc(), _score.desc(), Product.id.asc()),
 }
 
 

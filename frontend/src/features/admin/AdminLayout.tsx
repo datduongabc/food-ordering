@@ -11,6 +11,7 @@ const SECTIONS = [
   { to: '/admin/products', key: 'products', end: false },
   { to: '/admin/users', key: 'users', end: false },
   { to: '/admin/promo-codes', key: 'promos', end: false },
+  { to: '/admin/reviews', key: 'reviews', end: false },
   { to: '/admin/reports', key: 'reports', end: false },
   { to: '/admin/audit', key: 'audit', end: false },
 ] as const

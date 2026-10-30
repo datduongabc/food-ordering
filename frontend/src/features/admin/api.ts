@@ -8,6 +8,7 @@ import {
   adminProductSchema,
   adminPromoSchema,
   adminReservationSchema,
+  adminReviewSchema,
   adminUserSchema,
   auditEntrySchema,
   type AuditGroup,
@@ -20,6 +21,7 @@ import {
   type ProductInput,
   type PromoInput,
   type ReservationStatus,
+  type ReviewVisibility,
   type UserInput,
 } from './schemas'
 
@@ -31,6 +33,12 @@ export interface OrderFilters {
 export interface ReservationFilters {
   status?: ReservationStatus
   date?: string
+  page: number
+}
+
+export interface ReviewFilters {
+  visibility?: ReviewVisibility
+  rating?: number
   page: number
 }
 
@@ -114,6 +122,18 @@ export const adminQueries = {
         }),
       placeholderData: keepPreviousData,
     }),
+  reviews: ({ visibility, rating, page }: ReviewFilters) =>
+    queryOptions({
+      queryKey: ['admin', 'reviews', { visibility, rating, page }],
+      queryFn: () =>
+        api.get('/admin/reviews', pageSchema(adminReviewSchema), {
+          visibility,
+          rating,
+          page,
+          page_size: ADMIN_PAGE_SIZE,
+        }),
+      placeholderData: keepPreviousData,
+    }),
   auditLog: ({ group, page }: { group?: AuditGroup; page: number }) =>
     queryOptions({
       queryKey: ['admin', 'audit', { group, page }],
@@ -144,7 +164,7 @@ export function exportUrl(
  */
 function useAdminMutation<TInput, TResult>(
   mutationFn: (input: TInput) => Promise<TResult>,
-  { catalog = false, session = false } = {},
+  { catalog = false, session = false, reviews = false } = {},
 ) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -152,6 +172,7 @@ function useAdminMutation<TInput, TResult>(
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin'] })
       if (catalog) await queryClient.invalidateQueries({ queryKey: ['products'] })
+      if (reviews) await queryClient.invalidateQueries({ queryKey: ['reviews'] })
       // An admin may edit their own account, which the header shows.
       if (session) await queryClient.invalidateQueries({ queryKey: ['auth', 'me'] })
     },
@@ -240,5 +261,25 @@ export function useSetPromoActive() {
       `/admin/promo-codes/${input.id}/${input.active ? 'enable' : 'disable'}`,
       adminPromoSchema,
     ),
+  )
+}
+
+export function useSetReviewHidden() {
+  return useAdminMutation(
+    (input: { id: number; hidden: boolean }) =>
+      api.post(
+        `/admin/reviews/${input.id}/${input.hidden ? 'hide' : 'restore'}`,
+        adminReviewSchema,
+      ),
+    // Hiding or restoring changes the dish's rating and its public review list.
+    { catalog: true, reviews: true },
+  )
+}
+
+export function useReplyToReview() {
+  return useAdminMutation(
+    (input: { id: number; reply: string }) =>
+      api.put(`/admin/reviews/${input.id}/reply`, adminReviewSchema, { reply: input.reply }),
+    { reviews: true },
   )
 }

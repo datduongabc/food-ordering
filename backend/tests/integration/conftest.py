@@ -143,6 +143,7 @@ def catalog(db) -> Catalog:
             image_url=f"{category.slug}/{slug}.webp",
             price=price,
             average_rating=Decimal(rating) if rating else None,
+            review_count=1 if rating else 0,
             locations=list(locations),
             deleted_at=utcnow() if deleted else None,
         )

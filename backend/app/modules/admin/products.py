@@ -17,7 +17,6 @@ from app.modules.admin.schemas import ProductCreate, ProductUpdate
 from app.modules.catalog.models import Category, Location, Product
 from app.modules.users.models import User
 
-MAX_IMAGE_BYTES = 5 * 1024 * 1024
 UPLOAD_DIR = "uploads"
 
 
@@ -29,17 +28,6 @@ def slugify(text: str) -> str:
         .decode()
     )
     return re.sub(r"[^a-z0-9]+", "-", ascii_text.lower()).strip("-")
-
-
-def image_extension(data: bytes) -> str | None:
-    """Identifies the format from the file's magic bytes; the client's filename is not trusted."""
-    if data.startswith(b"\xff\xd8\xff"):
-        return "jpg"
-    if data.startswith(b"\x89PNG\r\n\x1a\n"):
-        return "png"
-    if len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
-        return "webp"
-    return None
 
 
 def list_products(db: Session) -> Sequence[Product]:
@@ -152,23 +140,7 @@ def update_product(db: Session, admin: User, product_id: int, data: ProductUpdat
 
 def replace_image(db: Session, admin: User, product_id: int, data: bytes) -> Product:
     product = get_product(db, product_id)
-    if len(data) > MAX_IMAGE_BYTES:
-        raise BadRequestError(
-            "Images must be 5 MB or smaller.", code="image_too_large", params={"max_mb": 5}
-        )
-    # The magic bytes keep Pillow to the three formats a photo arrives in.
-    if image_extension(data) is None:
-        raise BadRequestError(
-            "Only JPEG, PNG and WebP images are allowed.", code="image_type_not_allowed"
-        )
-
-    try:
-        # Re-encoding also drops anything hidden in the file and the photo's EXIF location.
-        photo, thumb = images.process_upload(data)
-    except images.InvalidImage as exc:
-        raise BadRequestError(
-            "Only JPEG, PNG and WebP images are allowed.", code="image_type_not_allowed"
-        ) from exc
+    photo, thumb = images.accept_upload(data)
 
     products_dir = get_settings().media_dir / "products"
     # A fresh name per upload: never overwrites another dish's photo and busts browser caches.

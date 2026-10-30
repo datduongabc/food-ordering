@@ -4,7 +4,7 @@ import { http, HttpResponse } from 'msw/http'
 import { describe, expect, it } from 'vitest'
 import { guestCart } from '@/features/cart/guestCart'
 import { apiError, mockApi, mockLayout, recordCalls } from '../support/api'
-import { cartOf, customer, springRolls } from '../support/fixtures'
+import { cartOf, customer, reviewPage, springRolls } from '../support/fixtures'
 import { renderApp } from '../support/render'
 import { server } from '../support/server'
 
@@ -104,7 +104,11 @@ describe('sign in', () => {
     mockLayout()
     mockApi('get', '/cart', cartOf())
     mockApi('get', `/products/${springRolls.slug}`, springRolls)
-    mockApi('get', `/products/${springRolls.slug}/reviews`, [])
+    mockApi('get', `/products/${springRolls.slug}/reviews`, reviewPage([]))
+    mockApi('get', `/products/${springRolls.slug}/reviews/eligibility`, {
+      can_review: true,
+      reason: null,
+    })
     const calls = recordCalls(['post', '/auth/login', customer])
     const { router } = renderApp('/login?next=/menu/shrimp-spring-rolls%23reviews')
 
