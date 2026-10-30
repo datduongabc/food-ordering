@@ -1,11 +1,11 @@
 import math
 from collections.abc import Sequence
 
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import NotFoundError
-from app.core.sql import escape_like
+from app.core.sql import contains_words
 from app.modules.catalog.models import Category, Location, Product
 from app.modules.catalog.schemas import ProductOut, ProductPage, ProductSort
 
@@ -58,15 +58,9 @@ def get_featured_product(db: Session) -> Product | None:
 
 
 def search_products(db: Session, term: str, limit: int) -> Sequence[Product]:
-    pattern = f"%{escape_like(term.strip())}%"
     return db.scalars(
         _active_products()
-        .where(
-            or_(
-                Product.name_vi.ilike(pattern, escape="\\"),
-                Product.name_en.ilike(pattern, escape="\\"),
-            )
-        )
+        .where(contains_words(Product.search_text, term))
         .order_by(*_ORDERINGS[ProductSort.RATING_DESC])
         .limit(limit)
     ).all()

@@ -379,6 +379,18 @@ class TestUsers:
         assert [u["email"] for u in found["items"]] == [USER["email"]]
         assert admin_client.get("/api/admin/users", params={"q": "%"}).json()["total"] == 0
 
+    def test_search_ignores_accents_and_follows_edits(self, admin_client, customer, db):
+        user = db.scalar(select(User).where(User.email == USER["email"]))
+        user.name = "Nguyễn Thị Ánh"
+        db.commit()
+
+        def found(term):
+            page = admin_client.get("/api/admin/users", params={"q": term}).json()
+            return [u["email"] for u in page["items"]]
+
+        assert found("nguyen anh") == found("ÁNH") == found("0901234567") == [USER["email"]]
+        assert found("Nguyen Van A") == []
+
     def test_create_user(self, admin_client):
         response = admin_client.post(
             "/api/admin/users",

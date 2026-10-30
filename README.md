@@ -27,7 +27,7 @@
 ### Menu & Reviews
 - **Bilingual catalog:** every dish, category and branch has a Vietnamese and an English name; switching language is instant.
 - **Filtering, sorting and pagination** kept in the URL, so a filtered menu can be shared and reloaded.
-- **Search** matches dish names in both languages ("gỏi" or "spring rolls").
+- **Search** matches dish names in both languages ("gỏi" or "spring rolls"), with or without accents and in any word order: "goi cuon", "GỎI CUỐN" and "tom goi" all find "Gỏi cuốn tôm". Each dish keeps an accent-free copy of its names, refreshed on every save, so it works the same on SQLite and PostgreSQL with no database extension.
 - **Reviews:** one 1-5 star review per customer per dish, averaged on the menu.
 
 ### Ordering & Payment
@@ -48,7 +48,7 @@
 - **Orders:** filter by status; confirm, mark delivered or cancel, with a note for the customer.
 - **Bookings:** filter by status and date; confirm, mark arrived or cancel.
 - **Dishes:** add and edit in both languages, set price, category and branches, upload a photo, hide and restore.
-- **Users:** search, add, change role, verification and password, deactivate and restore (never your own account).
+- **Users:** search by name (accents optional), email or phone; add, change role, verification and password, deactivate and restore (never your own account).
 - **Reports:** download the orders (optionally by status) or the daily revenue of any range up to a year as CSV, in Vietnamese or English, ready for Excel. Customer-typed cells that a spreadsheet would run as formulas are neutralised.
 - **Activity log:** every staff change (dishes, prices, photos, order and booking statuses, accounts) and every report download, with who, when and each field's value before and after; passwords are never recorded. Entries are written in the same transaction as the change.
 
