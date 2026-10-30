@@ -26,6 +26,7 @@ RUN useradd --system --create-home app && mkdir media && chown -R app:app /app/m
 USER app
 
 EXPOSE 8000
-# Seeded photos are synced and migrations run on every start; both are no-ops once current.
+# Seeded photos are synced, missing thumbnails made and migrations run on every start; all
+# three are no-ops once current.
 # The app logs each request itself, with its id, so uvicorn's access log would only repeat it.
-CMD ["sh", "-c", "cp -rT --update=none seed-media media && alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*' --no-access-log"]
+CMD ["sh", "-c", "cp -rT --update=none seed-media media && python -m app.cli thumbnails && alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*' --no-access-log"]

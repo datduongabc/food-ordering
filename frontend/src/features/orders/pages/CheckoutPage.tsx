@@ -241,7 +241,7 @@ function CheckoutForm({
             <ul className={styles.lines}>
               {cart.items.map(({ product, quantity, subtotal }) => (
                 <li key={product.id} className={styles.lineItem}>
-                  <img src={product.image_url} alt="" className={styles.thumb} />
+                  <img src={product.thumbnail_url} alt="" className={styles.thumb} />
                   <span className={styles.lineName}>
                     {localize(product.name)} <span className={styles.qty}>× {quantity}</span>
                   </span>

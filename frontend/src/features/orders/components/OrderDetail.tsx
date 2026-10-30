@@ -84,7 +84,7 @@ export function OrderDetail({ order, ref }: { order: Order; ref?: Ref<HTMLElemen
       <ul className={styles.items}>
         {order.items.map((item) => (
           <li key={item.product_id} className={styles.item}>
-            <img src={item.image_url} alt="" className={styles.thumb} />
+            <img src={item.thumbnail_url} alt="" className={styles.thumb} />
             <span className={styles.itemName}>
               {localize(item.product_name)} <span className={styles.muted}>× {item.quantity}</span>
             </span>

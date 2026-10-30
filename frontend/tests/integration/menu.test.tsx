@@ -39,6 +39,8 @@ describe('menu page', () => {
     expect(within(card).getByRole('img', { name: 'Chưa có đánh giá' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Đánh giá 4.5 trên 5' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: 'Thực đơn' })).toBeInTheDocument()
+    // Cards load the small photo; the dish page shows the full one.
+    expect(card.querySelector('img')).toHaveAttribute('src', springRolls.thumbnail_url)
   })
 
   it('filters by category and sort through the URL', async () => {

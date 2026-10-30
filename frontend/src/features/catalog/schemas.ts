@@ -25,6 +25,8 @@ export const productSchema = z.object({
   category: categorySchema.nullable(),
   locations: z.array(locationSchema),
   image_url: z.string(),
+  // The same photo at most 640px wide, for lists and small previews.
+  thumbnail_url: z.string(),
 })
 
 export const productPageSchema = z.object({

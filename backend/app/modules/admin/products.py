@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core import images
 from app.core.config import get_settings
 from app.core.db import utcnow
 from app.core.errors import BadRequestError, ConflictError, NotFoundError
@@ -155,17 +156,26 @@ def replace_image(db: Session, admin: User, product_id: int, data: bytes) -> Pro
         raise BadRequestError(
             "Images must be 5 MB or smaller.", code="image_too_large", params={"max_mb": 5}
         )
-    extension = image_extension(data)
-    if extension is None:
+    # The magic bytes keep Pillow to the three formats a photo arrives in.
+    if image_extension(data) is None:
         raise BadRequestError(
             "Only JPEG, PNG and WebP images are allowed.", code="image_type_not_allowed"
         )
 
+    try:
+        # Re-encoding also drops anything hidden in the file and the photo's EXIF location.
+        photo, thumb = images.process_upload(data)
+    except images.InvalidImage as exc:
+        raise BadRequestError(
+            "Only JPEG, PNG and WebP images are allowed.", code="image_type_not_allowed"
+        ) from exc
+
     products_dir = get_settings().media_dir / "products"
-    (products_dir / UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
     # A fresh name per upload: never overwrites another dish's photo and busts browser caches.
-    relative = f"{UPLOAD_DIR}/{product.slug}-{secrets.token_hex(4)}.{extension}"
-    (products_dir / relative).write_bytes(data)
+    relative = f"{UPLOAD_DIR}/{product.slug}-{secrets.token_hex(4)}.webp"
+    for path, content in ((relative, photo), (images.thumbnail_path(relative), thumb)):
+        (products_dir / path).parent.mkdir(parents=True, exist_ok=True)
+        (products_dir / path).write_bytes(content)
 
     previous = product.image_url
     product.image_url = relative
@@ -182,6 +192,7 @@ def replace_image(db: Session, admin: User, product_id: int, data: bytes) -> Pro
     # Only earlier uploads are removed; seeded photos may be shared and are part of the repo.
     if previous.startswith(f"{UPLOAD_DIR}/"):
         (products_dir / previous).unlink(missing_ok=True)
+        (products_dir / images.thumbnail_path(previous)).unlink(missing_ok=True)
     db.refresh(product)
     return product
 

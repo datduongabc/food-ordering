@@ -16,13 +16,14 @@ from app.modules.reservations.models import Reservation, ReservationStatus
 from app.modules.users.models import User
 from tests.data import USER
 from tests.integration.conftest import ADMIN, register_and_login
+from tests.photos import opened, photo
 
 VIETNAM = timezone(timedelta(hours=7))
 NOW = datetime(2026, 10, 29, 12, 0, tzinfo=VIETNAM)
 
-PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
-JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 64
-WEBP = b"RIFF\x00\x00\x00\x00WEBPVP8 " + b"\x00" * 64
+PNG = photo("PNG", (1000, 750))
+JPEG = photo("JPEG", (1000, 750))
+WEBP = photo("WEBP", (1000, 750))
 
 
 def customer_id(db) -> int:
@@ -318,11 +319,9 @@ class TestProducts:
         )
         assert admin_client.get("/api/products/pho-bo").status_code == 200
 
-    @pytest.mark.parametrize(
-        ("content", "extension"), [(PNG, "png"), (JPEG, "jpg"), (WEBP, "webp")]
-    )
-    def test_image_upload_detects_real_format(
-        self, admin_client, catalog, media_dir, content, extension
+    @pytest.mark.parametrize("content", [PNG, JPEG, WEBP])
+    def test_every_upload_becomes_a_webp_photo_and_thumbnail(
+        self, admin_client, catalog, media_dir, content
     ):
         pho = catalog.products["pho-bo"]
 
@@ -332,10 +331,40 @@ class TestProducts:
         )
 
         assert response.status_code == 200
-        url = response.json()["image_url"]
-        assert url.startswith("/media/products/uploads/pho-bo-") and url.endswith(f".{extension}")
-        assert (media_dir / url.removeprefix("/media/")).read_bytes() == content
-        assert admin_client.get(url).content == content
+        body = response.json()
+        url, thumb = body["image_url"], body["thumbnail_url"]
+        assert url.startswith("/media/products/uploads/pho-bo-") and url.endswith(".webp")
+        assert thumb == url.replace("/products/uploads/", "/products/thumbs/uploads/")
+        saved = opened((media_dir / url.removeprefix("/media/")).read_bytes())
+        assert (saved.format, saved.size) == ("WEBP", (1000, 750))
+        small = opened((media_dir / thumb.removeprefix("/media/")).read_bytes())
+        assert (small.format, small.size) == ("WEBP", (640, 480))
+        assert admin_client.get(thumb).status_code == 200
+
+    def test_large_photos_are_scaled_down(self, admin_client, catalog, media_dir):
+        pho = catalog.products["pho-bo"]
+        url = admin_client.put(
+            f"/api/admin/products/{pho.id}/image",
+            files={"image": ("big.jpg", photo("JPEG", (4000, 3000)))},
+        ).json()["image_url"]
+        assert opened((media_dir / url.removeprefix("/media/")).read_bytes()).size == (1200, 900)
+
+    def test_phone_photos_are_turned_upright_and_lose_their_location(
+        self, admin_client, catalog, media_dir
+    ):
+        pho = catalog.products["pho-bo"]
+        # Orientation 6: the camera stored a portrait shot sideways.
+        content = photo("JPEG", (640, 480), orientation=6, gps=True)
+        assert opened(content).getexif()
+
+        url = admin_client.put(
+            f"/api/admin/products/{pho.id}/image", files={"image": ("phone.jpg", content)}
+        ).json()["image_url"]
+
+        saved = opened((media_dir / url.removeprefix("/media/")).read_bytes())
+        assert saved.size == (480, 640)
+        assert not saved.getexif()
+        assert "exif" not in saved.info
 
     def test_new_upload_replaces_previous_file(self, admin_client, catalog, media_dir):
         pho = catalog.products["pho-bo"]
@@ -349,6 +378,7 @@ class TestProducts:
 
         assert first != second
         assert not (media_dir / first.removeprefix("/media/")).exists()
+        assert not (media_dir / first.replace("/uploads/", "/thumbs/uploads/")[7:]).exists()
         assert (media_dir / second.removeprefix("/media/")).exists()
 
     @pytest.mark.parametrize(
@@ -356,6 +386,10 @@ class TestProducts:
         [
             (b"GIF89a" + b"\x00" * 64, "image_type_not_allowed"),
             (b"<?php echo 1; ?>", "image_type_not_allowed"),
+            # Right magic bytes, but not an image Pillow can decode.
+            (b"\x89PNG\r\n\x1a\n" + b"\x00" * 64, "image_type_not_allowed"),
+            # A tiny file that would decode to 48 megapixels.
+            (photo("PNG", (8000, 6000), mode="1"), "image_type_not_allowed"),
             (PNG + b"\x00" * (5 * 1024 * 1024), "image_too_large"),
             (b"", "empty_upload"),
         ],

@@ -10,6 +10,7 @@ from app.modules.users.models import User
 from tests.data import USER
 from tests.integration.conftest import ADMIN
 from tests.integration.test_admin_api import VIETNAM, customer_id, make_order
+from tests.photos import photo
 
 
 def entries(client, **filters) -> list[dict]:
@@ -78,7 +79,7 @@ class TestAuditLog:
         admin_client.post(f"/api/admin/products/{dish_id}/restore")
         admin_client.put(
             f"/api/admin/products/{dish_id}/image",
-            files={"image": ("pho.png", b"\x89PNG\r\n\x1a\n" + b"\x00" * 64, "image/png")},
+            files={"image": ("pho.png", photo(), "image/png")},
         )
 
         actions = [entry["action"] for entry in entries(admin_client, action="product")]

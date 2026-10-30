@@ -156,6 +156,7 @@ class TestProductDetail:
 
         assert response.status_code == 200
         assert response.json()["name"] == {"vi": "Phở bò", "en": "Pho Bo"}
+        assert response.json()["thumbnail_url"] == "/media/products/thumbs/main_dishes/pho-bo.webp"
 
     @pytest.mark.parametrize("slug", ["no-such-dish", "old-dish"])
     def test_missing_or_deleted_dish_is_404(self, client, catalog, slug):
