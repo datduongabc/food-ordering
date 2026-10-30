@@ -1,5 +1,6 @@
 from collections import defaultdict
-from datetime import datetime, time, timedelta
+from dataclasses import dataclass
+from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import Select, case, func, select
@@ -71,31 +72,48 @@ def summary(db: Session) -> DashboardSummary:
     )
 
 
-def revenue_trend(db: Session, days: int) -> RevenueTrend:
+@dataclass(frozen=True)
+class DayTotals:
+    date: date
+    orders: int  # placed that day and not cancelled
+    completed: int
+    revenue: int  # from the completed ones
+
+
+def daily_totals(db: Session, first_day: date, last_day: date) -> list[DayTotals]:
     """Orders placed and revenue from completed orders, per restaurant-local day.
 
     Grouping happens in Python because converting timestamps to a local calendar day is
-    dialect-specific SQL; a 90-day window of orders is small enough for this to be cheap.
+    dialect-specific SQL; a year of orders is small enough for this to be cheap.
     """
     tz = ZoneInfo(get_settings().restaurant_timezone)
-    start = _window_start(days)
+    start = datetime.combine(first_day, time.min, tzinfo=tz)
+    end = datetime.combine(last_day + timedelta(days=1), time.min, tzinfo=tz)
     rows = db.execute(
         select(Order.created_at, Order.status, Order.total_price).where(
-            Order.created_at >= start, Order.status != OrderStatus.CANCELLED
+            Order.created_at >= start, Order.created_at < end, Order.status != OrderStatus.CANCELLED
         )
     ).all()
 
     orders: dict = defaultdict(int)
+    completed: dict = defaultdict(int)
     revenue: dict = defaultdict(int)
     for created_at, status, total in rows:
         day = created_at.astimezone(tz).date()
         orders[day] += 1
         if status == OrderStatus.COMPLETED:
+            completed[day] += 1
             revenue[day] += total
 
+    days = (first_day + timedelta(days=offset) for offset in range((last_day - first_day).days + 1))
+    return [DayTotals(day, orders[day], completed[day], revenue[day]) for day in days]
+
+
+def revenue_trend(db: Session, days: int) -> RevenueTrend:
+    first_day = _window_start(days).date()
     series = [
-        RevenueDay(date=day, orders=orders[day], revenue=revenue[day])
-        for day in (start.date() + timedelta(days=offset) for offset in range(days))
+        RevenueDay(date=day.date, orders=day.orders, revenue=day.revenue)
+        for day in daily_totals(db, first_day, first_day + timedelta(days=days - 1))
     ]
     return RevenueTrend(
         days=series,

@@ -1,13 +1,14 @@
 """Staff handling of orders and reservations: browsing, filtering and moving them along."""
 
-import math
 from datetime import date
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.db import utcnow
 from app.core.errors import ConflictError, NotFoundError
+from app.modules.admin import audit
+from app.modules.admin.pagination import paginate
 from app.modules.admin.schemas import Page
 from app.modules.orders.models import Order, OrderStatus
 from app.modules.orders.service import transition
@@ -24,18 +25,6 @@ RESERVATION_TRANSITIONS: dict[ReservationStatus, frozenset[ReservationStatus]] =
     ReservationStatus.COMPLETED: frozenset(),
     ReservationStatus.CANCELLED: frozenset(),
 }
-
-
-def paginate[T](db: Session, query: Select[tuple[T]], page: int, page_size: int) -> Page[T]:
-    total = db.scalar(select(func.count()).select_from(query.order_by(None).subquery())) or 0
-    items = db.scalars(query.limit(page_size).offset((page - 1) * page_size)).all()
-    return Page(
-        items=list(items),
-        page=page,
-        page_size=page_size,
-        total=total,
-        total_pages=max(1, math.ceil(total / page_size)),
-    )
 
 
 def list_orders(db: Session, status: OrderStatus | None, page: int, page_size: int) -> Page[Order]:
@@ -59,7 +48,12 @@ def change_order_status(
     db: Session, admin: User, order_id: int, status: OrderStatus, note: str
 ) -> Order:
     order = get_order(db, order_id, for_update=True)
+    before = order.status
     transition(order, status, admin, note)
+    changes: dict = {"status": [before, status]}
+    if note:
+        changes["note"] = [None, note]
+    audit.record(db, admin, "order.status", "order", order.id, f"#{order.id}", changes)
     db.commit()
     return order
 
@@ -83,7 +77,7 @@ def list_reservations(
 
 
 def change_reservation_status(
-    db: Session, reservation_id: int, status: ReservationStatus
+    db: Session, admin: User, reservation_id: int, status: ReservationStatus
 ) -> Reservation:
     reservation = db.scalar(
         select(Reservation).where(Reservation.id == reservation_id).with_for_update(of=Reservation)
@@ -97,6 +91,15 @@ def change_reservation_status(
             code="invalid_status_transition",
             params={"from": reservation.status, "to": status},
         )
+    audit.record(
+        db,
+        admin,
+        "reservation.status",
+        "reservation",
+        reservation.id,
+        f"#{reservation.id} {reservation.customer_name}",
+        {"status": [reservation.status, status]},
+    )
     reservation.status = status
     if status == ReservationStatus.CANCELLED:
         reservation.cancelled_at = utcnow()

@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import AliasPath, BaseModel, ConfigDict, Field, StringConstraints
 
@@ -205,3 +205,21 @@ class UserUpdate(BaseModel):
     email_verified: bool | None = None
     # Lets staff set a new password for a customer who cannot receive email.
     password: Password | None = None
+
+
+# --- Audit log -------------------------------------------------------------------------
+
+
+class AuditLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    actor_id: int | None
+    actor_name: str
+    action: str
+    target_type: str
+    target_id: int | None
+    target_label: str
+    # {field: [before, after]}; before is null for creations and exports.
+    changes: dict[str, list[Any]]
+    created_at: datetime

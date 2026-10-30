@@ -197,6 +197,13 @@ def shopper(client, catalog):
     return client
 
 
+@pytest.fixture
+def customer(second_client, catalog):
+    """A signed-in customer in a separate browser from the admin."""
+    register_and_login(second_client, USER)
+    return second_client
+
+
 ADMIN = {
     "name": "Quan Ly",
     "email": "admin@dateno.vn",
