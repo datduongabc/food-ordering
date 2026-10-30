@@ -12,6 +12,9 @@ from app.modules.catalog.schemas import (
     ProductSort,
 )
 
+# Far past the last page of any list; larger numbers would overflow the SQL offset.
+MAX_PAGE = 10_000
+
 router = APIRouter(tags=["catalog"])
 
 
@@ -28,7 +31,7 @@ def list_locations(db: DbSession):
 @router.get("/products", response_model=ProductPage)
 def list_products(
     db: DbSession,
-    page: Annotated[int, Query(ge=1)] = 1,
+    page: Annotated[int, Query(ge=1, le=MAX_PAGE)] = 1,
     page_size: Annotated[int, Query(ge=1, le=48)] = 12,
     sort: ProductSort = ProductSort.DEFAULT,
     category: Annotated[str | None, Query(max_length=255, description="Category slug")] = None,

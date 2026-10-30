@@ -32,7 +32,8 @@ from app.modules.reservations.models import ReservationStatus
 # The dependency on the router guards every route, so a new endpoint cannot forget it.
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
-PageNo = Annotated[int, Query(ge=1)]
+# Far past the last page of any list; larger numbers would overflow the SQL offset.
+PageNo = Annotated[int, Query(ge=1, le=10_000)]
 PageSize = Annotated[int, Query(ge=1, le=100)]
 Days = Annotated[int, Query(ge=1, le=90)]
 Limit = Annotated[int, Query(ge=1, le=20)]
