@@ -7,8 +7,10 @@ from pydantic import AliasPath, BaseModel, ConfigDict, Field, StringConstraints,
 from app.core.config import get_settings
 from app.core.localized import LocalizedText
 from app.modules.auth.schemas import Name, Phone
+from app.modules.cart.schemas import CartOut
 from app.modules.catalog.schemas import LocationOut
 from app.modules.orders.models import EventActor, OrderStatus, PaymentMethod, PaymentStatus
+from app.modules.promotions.schemas import CodeIn
 
 Note = Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)]
 
@@ -23,6 +25,7 @@ class CheckoutIn(BaseModel):
         str, StringConstraints(strip_whitespace=True, min_length=5, max_length=500)
     ]
     delivery_note: Note = ""
+    promo_code: CodeIn | None = None
 
 
 class OrderEventOut(BaseModel):
@@ -64,6 +67,9 @@ class OrderOut(BaseModel):
     status: OrderStatus
     payment_method: PaymentMethod
     payment_status: PaymentStatus
+    subtotal_price: int
+    discount_amount: int
+    promo_code: str | None
     total_price: int
     created_at: datetime
     location: LocationOut | None
@@ -83,6 +89,13 @@ class OrderOut(BaseModel):
     @property
     def can_pay(self) -> bool:
         return self.status == OrderStatus.PENDING and self.payment_status != PaymentStatus.PAID
+
+
+class ReorderOut(BaseModel):
+    cart: CartOut
+    # Lines put back in the cart, and the dishes left out because they are off the menu.
+    added: int
+    skipped: list[LocalizedText]
 
 
 class SandboxResult(StrEnum):

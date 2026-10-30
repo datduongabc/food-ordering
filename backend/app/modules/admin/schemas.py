@@ -2,13 +2,22 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Any
 
-from pydantic import AliasPath, BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import (
+    AliasPath,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    model_validator,
+)
 
 from app.core.localized import LocalizedDescription, LocalizedName, LocalizedText
 from app.modules.auth.schemas import Name, NormalizedEmail, Password, Phone
 from app.modules.catalog.schemas import ProductOut
 from app.modules.orders.models import OrderStatus
 from app.modules.orders.schemas import Note, OrderEventOut, OrderOut
+from app.modules.promotions.models import DiscountKind
 from app.modules.reservations.models import ReservationStatus
 from app.modules.reservations.schemas import ReservationOut
 from app.modules.users.models import Role
@@ -205,6 +214,61 @@ class UserUpdate(BaseModel):
     email_verified: bool | None = None
     # Lets staff set a new password for a customer who cannot receive email.
     password: Password | None = None
+
+
+# --- Promo codes -----------------------------------------------------------------------
+
+# Upper-cased before the pattern runs, so staff may type "giam20".
+PromoCodeText = Annotated[
+    str,
+    BeforeValidator(lambda value: value.strip().upper() if isinstance(value, str) else value),
+    StringConstraints(min_length=3, max_length=32, pattern=r"^[A-Z0-9_-]+$"),
+]
+Money = Annotated[int, Field(ge=1_000, le=100_000_000)]
+
+
+class PromoCodeIn(BaseModel):
+    code: PromoCodeText
+    kind: DiscountKind
+    value: Annotated[int, Field(ge=1, le=100_000_000)]
+    max_discount: Money | None = None
+    min_subtotal: Annotated[int, Field(ge=0, le=100_000_000)] = 0
+    starts_on: date | None = None
+    ends_on: date | None = None
+    usage_limit: Annotated[int, Field(ge=1, le=1_000_000)] | None = None
+    per_customer_limit: Annotated[int, Field(ge=1, le=1_000)] | None = 1
+
+    @model_validator(mode="after")
+    def consistent(self) -> "PromoCodeIn":
+        if self.kind == DiscountKind.PERCENT and self.value > 100:
+            raise ValueError("A percentage discount is at most 100.")
+        if self.kind == DiscountKind.AMOUNT:
+            if self.value < 1_000:
+                raise ValueError("An amount off is at least 1,000 VND.")
+            # Only a percentage needs a cap; a fixed amount is its own.
+            self.max_discount = None
+        if self.starts_on and self.ends_on and self.ends_on < self.starts_on:
+            raise ValueError("The last day comes before the first.")
+        return self
+
+
+class AdminPromoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    code: str
+    kind: DiscountKind
+    value: int
+    max_discount: int | None
+    min_subtotal: int
+    starts_on: date | None
+    ends_on: date | None
+    usage_limit: int | None
+    per_customer_limit: int | None
+    created_at: datetime
+    disabled_at: datetime | None
+    # Orders using it now, not counting cancelled ones.
+    uses: int
 
 
 # --- Audit log -------------------------------------------------------------------------

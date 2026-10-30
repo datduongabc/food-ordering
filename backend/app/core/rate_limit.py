@@ -49,6 +49,7 @@ REVIEWS = Limit("review", 10, 3600)
 ORDERS = Limit("order", 10, 600)
 PAYMENTS = Limit("payment", 20, 600)
 BOOKINGS = Limit("booking", 5, 3600)
+PROMO_CHECKS = Limit("promo-check", 20, 600)
 
 
 class RateLimiter:

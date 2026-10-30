@@ -44,6 +44,8 @@ ORDER_HEADERS = {
         "Hình thức thanh toán",
         "Tình trạng thanh toán",
         "Mã giao dịch MoMo",
+        "Giảm giá (VND)",
+        "Mã giảm giá",
     ],
     "en": [
         "Order",
@@ -60,6 +62,8 @@ ORDER_HEADERS = {
         "Payment method",
         "Payment status",
         "MoMo transaction",
+        "Discount (VND)",
+        "Promo code",
     ],
 }
 REVENUE_HEADERS = {
@@ -183,6 +187,8 @@ def orders_csv(
                 labels[order.payment_method],
                 labels[order.payment_status],
                 order.momo_trans_id or "",
+                order.discount_amount,
+                order.promo_code or "",
             ]
         )
     _audit(db, admin, "orders", first_day, last_day, len(orders), status=status)
