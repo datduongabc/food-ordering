@@ -1,0 +1,4 @@
+services:
+  backend:
+    environment:
+      RATE_LIMITS_ENABLED: "false"

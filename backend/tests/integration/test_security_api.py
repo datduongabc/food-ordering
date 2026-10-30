@@ -128,3 +128,14 @@ class TestProduction:
     def test_accepts_a_long_random_secret(self):
         settings = Settings(app_env="production", secret_key="x" * 32)
         assert settings.secret_key == "x" * 32
+
+
+class TestOutOfRangeValues:
+    def test_huge_page_numbers_are_refused_not_crashing(self, client):
+        response = client.get("/api/products", params={"page": 10**20})
+        assert response.status_code == 422
+
+    def test_ids_past_the_integer_range_are_a_bad_request(self, logged_in_client):
+        response = logged_in_client.get(f"/api/orders/{2**63}")
+        assert response.status_code == 400
+        assert response.json()["code"] == "value_out_of_range"

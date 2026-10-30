@@ -1,5 +1,20 @@
 # Serves the SPA and proxies the API on the same origin, so session and CSRF cookies stay
 # first-party, as with the Vite dev server. The nginx image fills in ${TRUSTED_PROXY} at start.
+
+upstream backend {
+    server backend:8000;
+    # Reuse connections to the backend. Opening one per request runs out of local ports
+    # (each lingers in TIME_WAIT for a minute) at a few thousand requests a second, and then
+    # every visitor gets a 502: a load test did exactly that from a single address.
+    keepalive 64;
+}
+
+# Flood control per client address, ahead of the backend's own finer limits: requests over
+# it are refused here and never cost the backend a thing. Sized well above what one person
+# browsing needs (a page makes a handful of API calls at once).
+limit_req_zone $binary_remote_addr zone=api:10m rate=20r/s;
+limit_conn_zone $binary_remote_addr zone=per_client:10m;
+
 server {
     listen 80;
     root /usr/share/nginx/html;
@@ -10,31 +25,51 @@ server {
     set_real_ip_from ${TRUSTED_PROXY};
     real_ip_header X-Forwarded-For;
 
-    # Dish photos are capped at 5 MB by the API.
-    client_max_body_size 6m;
+    # API requests are small JSON; parsing megabytes of it is an easy way to load the
+    # backend. The photo upload below is the exception.
+    client_max_body_size 64k;
+    # Slow senders are dropped instead of holding a connection open for minutes.
+    client_header_timeout 10s;
+    client_body_timeout 10s;
+    send_timeout 10s;
+    limit_conn per_client 64;
+    limit_conn_status 429;
 
     include /etc/nginx/security-headers.conf;
 
     location /api/ {
-        proxy_pass http://backend:8000;
-        proxy_set_header Host $host;
-        # Overwrite, never append: the API rate-limits by this address, and a client-supplied
-        # X-Forwarded-For would let anyone pick a fresh one per request.
-        proxy_set_header X-Forwarded-For $remote_addr;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        # The backend logs under this id and returns it as X-Request-ID.
-        proxy_set_header X-Request-ID $request_id;
-        # The API sends its own copies of these; keep one set, not two.
-        proxy_hide_header X-Content-Type-Options;
-        proxy_hide_header X-Frame-Options;
-        proxy_hide_header Referrer-Policy;
+        include /etc/nginx/api-proxy.conf;
     }
 
+    # The one endpoint that takes more than a small JSON body: a dish photo of up to 5 MB.
+    location ~ ^/api/admin/products/[0-9]+/image$ {
+        client_max_body_size 6m;
+        include /etc/nginx/api-proxy.conf;
+    }
+
+    # The same body the API sends when it limits a client, so the app shows the same message.
+    location @rate_limited {
+        default_type application/json;
+        add_header Retry-After 1 always;
+        add_header Cache-Control no-store always;
+        include /etc/nginx/security-headers.conf;
+        return 429 '{"detail":"Too many requests. Please try again in 1 second(s).","code":"rate_limited","params":{"seconds":1}}';
+    }
+
+    location @too_large {
+        default_type application/json;
+        add_header Cache-Control no-store always;
+        include /etc/nginx/security-headers.conf;
+        return 413 '{"detail":"The request is too large.","code":"request_too_large","params":{}}';
+    }
+
+    # Dish photos straight from the shared volume: no Python per image. Uploads get a fresh
+    # name each time, so a week of caching never shows a stale photo.
     location /media/ {
-        proxy_pass http://backend:8000;
-        proxy_hide_header X-Content-Type-Options;
-        proxy_hide_header X-Frame-Options;
-        proxy_hide_header Referrer-Policy;
+        alias /srv/media/;
+        expires 7d;
+        include /etc/nginx/security-headers.conf;
+        try_files $uri =404;
     }
 
     # Vite fingerprints these file names, so they can be cached for good.

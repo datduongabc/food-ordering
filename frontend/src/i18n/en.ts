@@ -548,6 +548,8 @@ export const en: Dictionary = {
     auth_required: 'Please sign in to continue.',
     admin_required: 'Only administrators can do this.',
     invalid_credentials: 'Email or password is incorrect.',
+    request_too_large: 'The request is too large.',
+    value_out_of_range: 'A value in the request is out of range.',
     rate_limited: "You're going a little fast. Please try again in {seconds}.",
     email_taken: 'This email is already registered.',
     phone_taken: 'This phone number is already registered.',

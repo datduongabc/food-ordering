@@ -19,6 +19,7 @@
 - **Brute-force protection:** 5 failed sign-ins for one email from one address block that pair for 15 minutes. Unknown emails are blocked the same way, and no account is ever locked, so neither the block nor the error reveals whether an account exists, and nobody can lock someone else out.
 - **No account discovery through sign-in or password reset:** wrong passwords and unknown emails get the same answer in the same time; reset requests always get the same reply; and a reset for an unknown email runs out of tries exactly like a real code.
 - **CSRF protection** on every state-changing request.
+- **Flood protection in nginx:** at most 20 API requests a second per address (bursts of 60), 64 connections, 64 KB request bodies (6 MB for photo uploads) and 10-second header and body timeouts; anything over is refused before it reaches Python. Dish photos are served by nginx directly. See [`loadtest/`](loadtest/README.md) for the load and attack tests and their results.
 - **Rate limits** per client address on the whole API (300 reads and 60 writes a minute), with tighter ones where abuse costs most: sign-in (10/min), sign-up (5/hour), password-reset and verification emails (3 per inbox or account every 15 min), code entry, orders, payments, bookings and reviews. Over the limit the API answers `429` with a `Retry-After` header.
 - **Hardened responses:** a Content-Security-Policy, `nosniff`, no framing, a strict referrer policy and `no-store` on API answers; API docs are only served outside production, and production refuses to start without a random `SECRET_KEY` of at least 32 characters.
 - **Guest cart merge:** a cart built before signing in is kept in the browser and merged into the account on sign-in.
@@ -248,10 +249,11 @@ restaurant_project/
 │   │   ├── i18n/              # Vietnamese and English dictionaries
 │   │   └── lib/               # API client, formatting
 │   ├── tests/                 # unit/, integration/, e2e/
-│   ├── default.conf.template  # nginx: production server and API proxy
+│   ├── default.conf.template  # nginx: production server, API proxy and flood limits
 │   └── Dockerfile
 ├── .github/workflows/         # backend.yml, frontend.yml, ci.yml (Docker)
 ├── deploy/                    # Caddyfile (HTTPS) and backup.sh
+├── loadtest/                  # k6 load and attack tests, with results
 ├── docker-compose.yml         # PostgreSQL + backend + web + backups
 ├── docker-compose.prod.yml    # Adds Caddy for HTTPS and closes the other ports
 └── .env.example

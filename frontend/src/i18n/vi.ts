@@ -548,6 +548,8 @@ export const vi = {
     auth_required: 'Vui lòng đăng nhập để tiếp tục.',
     admin_required: 'Chỉ quản trị viên mới có quyền thực hiện thao tác này.',
     invalid_credentials: 'Email hoặc mật khẩu không đúng.',
+    request_too_large: 'Dữ liệu gửi lên quá lớn.',
+    value_out_of_range: 'Giá trị gửi lên nằm ngoài phạm vi cho phép.',
     rate_limited: 'Quý khách thao tác quá nhanh. Vui lòng thử lại sau {seconds}.',
     email_taken: 'Email này đã được đăng ký.',
     phone_taken: 'Số điện thoại này đã được đăng ký.',

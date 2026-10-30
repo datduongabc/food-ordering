@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import DataError
 
 VALIDATION_ERROR = "validation_error"
 
@@ -72,6 +73,18 @@ def register_error_handlers(app: FastAPI) -> None:
             content=jsonable_encoder(error_body(exc.detail, exc.code, exc.params)),
             headers=exc.headers,
         )
+
+    async def handle_out_of_range(_: Request, exc: Exception) -> JSONResponse:
+        # A value the database cannot hold, such as an id past the integer range: the
+        # request is wrong, not the server. Postgres reports it as a DataError; SQLite's
+        # driver raises OverflowError before the query runs.
+        return JSONResponse(
+            status_code=400,
+            content=error_body("A value in the request is out of range.", "value_out_of_range"),
+        )
+
+    app.add_exception_handler(DataError, handle_out_of_range)
+    app.add_exception_handler(OverflowError, handle_out_of_range)
 
     @app.exception_handler(RequestValidationError)
     async def handle_validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
