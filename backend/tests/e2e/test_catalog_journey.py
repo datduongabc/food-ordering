@@ -32,8 +32,12 @@ def test_browse_menu_seeded_by_migrations(new_browser):
     assert {"peking-roast-duck", "beef-steak-red-wine", "thai-seafood-hotpot"} <= set(mains)
     assert "caesar-salad" not in mains
 
+    assert {"wagyu-beef-pho", "hanoi-bun-cha", "tamarind-crab"} <= set(mains)
+    assert len(all_slugs(browser, category="desserts")) == 10
+    assert "egg-coffee" in all_slugs(browser, category="drinks")
+
     cheapest = browser.get("/api/products", params={"sort": "price_asc"}).json()["items"][0]
-    assert cheapest["name"] == {"vi": "Bánh mì bơ tỏi", "en": "Garlic Butter Bread"}
+    assert cheapest["name"] == {"vi": "Nước mía tắc", "en": "Sugarcane Juice with Kumquat"}
     assert [loc["name"]["vi"] for loc in cheapest["locations"]] == [
         "DaTeNO - Quận 1",
         "DaTeNO - Quận 7",

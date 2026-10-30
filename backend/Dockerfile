@@ -17,13 +17,15 @@ RUN uv sync --locked --no-dev --no-install-project
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY app ./app
-# Seeded dish photos; compose mounts a volume here so uploads survive rebuilds.
-COPY media ./media
+# Seeded dish photos. Compose mounts a volume at /app/media so uploads survive rebuilds; a
+# volume is filled from the image only when first created, so each start copies across any
+# seeded photo it lacks (from a newer menu migration), never overwriting what is there.
+COPY media ./seed-media
 
-RUN useradd --system --create-home app && chown -R app:app /app/media
+RUN useradd --system --create-home app && mkdir media && chown -R app:app /app/media
 USER app
 
 EXPOSE 8000
-# Migrations run on every start; they are no-ops once the database is current. The app logs
-# each request itself, with its id, so uvicorn's access log would only repeat it.
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*' --no-access-log"]
+# Seeded photos are synced and migrations run on every start; both are no-ops once current.
+# The app logs each request itself, with its id, so uvicorn's access log would only repeat it.
+CMD ["sh", "-c", "cp -rT --update=none seed-media media && alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*' --no-access-log"]
