@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { ADMIN } from './support/accounts.ts'
-import { signUpHere } from './support/session.ts'
+import { openUserMenu, signUpHere } from './support/session.ts'
 
 const PHOTO = resolve(import.meta.dirname, '../../../backend/media/products/placeholder.webp')
 
@@ -129,5 +129,7 @@ test('customers cannot open the admin pages', async ({ page }) => {
   await signUpHere(page, 'Đỗ Minh Quân')
   await page.goto('/admin')
   await expect(page.getByText('Trang dành cho quản trị viên')).toBeVisible()
+  await openUserMenu(page)
+  await expect(page.getByRole('link', { name: 'Tài khoản', exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Quản trị' })).toHaveCount(0)
 })

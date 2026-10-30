@@ -31,6 +31,7 @@ export const en: Dictionary = {
     signIn: 'Sign in',
     account: 'Account',
     admin: 'Admin',
+    userMenu: 'Your account',
     cart: 'Cart, {count} items',
   },
   footer: {

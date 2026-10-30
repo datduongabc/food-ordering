@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { openMenu } from './support/session.ts'
 
 test.describe('browsing the seeded menu', () => {
   test('home page leads to the menu and a dish', async ({ page }) => {
@@ -64,6 +65,8 @@ test.describe('browsing the seeded menu', () => {
   test('remembers English across pages and reloads', async ({ page }) => {
     await page.goto('/menu')
     await expect(page.getByRole('heading', { name: 'Gỏi cuốn tôm thịt' })).toBeVisible()
+    // On phones the language switch sits in the menu.
+    await openMenu(page)
     await page.getByRole('button', { name: 'EN' }).click()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Our menu')
     // Dish names come from the API in both languages and switch with the interface.

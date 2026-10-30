@@ -10,10 +10,13 @@ import { server } from '../support/server'
 
 describe('admin pages', () => {
   it('turn customers away and hide the admin link from them', async () => {
+    const user = userEvent.setup()
     mockLayout({ signedIn: customer })
     renderApp('/admin')
 
     expect(await screen.findByText('Trang dành cho quản trị viên')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Tài khoản của bạn' }))
+    expect(screen.getByRole('link', { name: 'Tài khoản' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Quản trị' })).not.toBeInTheDocument()
   })
 
@@ -60,6 +63,7 @@ describe('admin pages', () => {
     renderApp('/admin')
 
     expect(await screen.findByText('Đơn chờ xác nhận')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Tài khoản của bạn' }))
     expect(screen.getByRole('link', { name: 'Quản trị' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByText('Từ 4 đơn hoàn thành')).toBeInTheDocument()
     expect(screen.getByText('Trên tổng 9 đơn')).toBeInTheDocument()

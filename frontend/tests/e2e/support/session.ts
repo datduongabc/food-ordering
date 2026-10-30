@@ -7,6 +7,11 @@ export async function openMenu(page: Page) {
   if (await toggle.isVisible()) await toggle.click()
 }
 
+/** Opens the account dropdown, where sign-in, the account page and sign-out live. */
+export async function openUserMenu(page: Page) {
+  await page.getByRole('button', { name: 'Tài khoản của bạn' }).click()
+}
+
 /** Creates a verified customer from the sign-up page the browser is on, through the real UI. */
 export async function signUpHere(page: Page, name = 'Trần Thị Bích') {
   const email = uniqueEmail('shopper')

@@ -1,9 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
 import { emailedCode, uniqueEmail, uniquePhone } from './support/email.ts'
-import { openMenu } from './support/session.ts'
+import { openUserMenu } from './support/session.ts'
 
 async function signOut(page: Page) {
-  await openMenu(page)
+  await openUserMenu(page)
   await page.getByRole('button', { name: 'Đăng xuất' }).click()
   await expect(page.getByText('Đã đăng xuất.')).toBeVisible()
 }
@@ -81,8 +81,8 @@ test('wrong passwords are explained and a forgotten one can be reset', async ({ 
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Mật khẩu').fill('mat-khau-moi-2')
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
-  // Navigating closes the phone menu, so only open it once the redirect has happened.
+  // Navigating closes the dropdown, so only open it once the redirect has happened.
   await expect(page).toHaveURL(/\/$/)
-  await openMenu(page)
+  await openUserMenu(page)
   await expect(page.getByRole('link', { name: 'Tài khoản' })).toBeVisible()
 })

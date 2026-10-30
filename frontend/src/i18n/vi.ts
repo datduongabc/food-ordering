@@ -30,6 +30,7 @@ export const vi = {
     signIn: 'Đăng nhập',
     account: 'Tài khoản',
     admin: 'Quản trị',
+    userMenu: 'Tài khoản của bạn',
     cart: 'Giỏ hàng, {count} món',
   },
   footer: {
