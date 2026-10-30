@@ -1,11 +1,23 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import BigInteger, Column, ForeignKey, Integer, Numeric, String, Table, Text, func
+from sqlalchemy import (
+    BigInteger,
+    Column,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Table,
+    Text,
+    event,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base, UTCDateTime
 from app.core.localized import LocalizedColumns
+from app.core.text import fold
 
 product_availabilities = Table(
     "product_availabilities",
@@ -58,6 +70,8 @@ class Product(Base):
     # Denormalised from reviews so menu sorting by rating needs no aggregate join.
     average_rating: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
     slug: Mapped[str] = mapped_column(String(255), unique=True)
+    # Both names through fold(), kept current on every save, so search needs no accents.
+    search_text: Mapped[str] = mapped_column(Text, server_default="")
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), server_default=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
 
@@ -69,3 +83,9 @@ class Product(Base):
 
     name = LocalizedColumns("name")
     description = LocalizedColumns("description")
+
+
+@event.listens_for(Product, "before_insert")
+@event.listens_for(Product, "before_update")
+def _refresh_search_text(_mapper, _connection, product: Product) -> None:
+    product.search_text = fold(f"{product.name_vi} {product.name_en}")

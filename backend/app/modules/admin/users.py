@@ -1,14 +1,14 @@
 from collections.abc import Callable
 from typing import Any
 
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.db import utcnow
 from app.core.errors import BadRequestError, ConflictError, NotFoundError
 from app.core.security import hash_password
-from app.core.sql import escape_like
+from app.core.sql import contains_words
 from app.modules.admin import audit
 from app.modules.admin.pagination import paginate
 from app.modules.admin.schemas import Page, UserCreate, UserUpdate
@@ -23,14 +23,7 @@ def list_users(
     if not include_deactivated:
         query = query.where(User.deleted_at.is_(None))
     if search:
-        pattern = f"%{escape_like(search.strip())}%"
-        query = query.where(
-            or_(
-                User.name.ilike(pattern, escape="\\"),
-                User.email.ilike(pattern, escape="\\"),
-                User.phone.ilike(pattern, escape="\\"),
-            )
-        )
+        query = query.where(contains_words(User.search_text, search))
     return paginate(db, query, page, page_size)
 
 

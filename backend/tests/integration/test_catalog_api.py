@@ -115,6 +115,26 @@ class TestSearch:
     def test_search_matches_either_language(self, client, catalog, term):
         assert slugs(client.get("/api/products/search", params={"q": term})) == ["pho-bo"]
 
+    @pytest.mark.parametrize(
+        "term", ["goi cuon", "GỎI CUỐN", "gổi cuốn", "tom goi", "  cuon   tom "]
+    )
+    def test_ignores_accents_and_word_order(self, client, catalog, term):
+        assert slugs(client.get("/api/products/search", params={"q": term})) == ["spring-rolls"]
+
+    def test_every_word_must_match(self, client, catalog):
+        assert slugs(client.get("/api/products/search", params={"q": "bo tet"})) == ["beef-steak"]
+        assert client.get("/api/products/search", params={"q": "pho steak"}).json() == []
+
+    def test_a_renamed_dish_is_found_by_its_new_name(self, client, catalog, db):
+        dish = catalog.products["garlic-bread"]
+        dish.name = {"vi": "Bánh mì đặc biệt", "en": "House Bread"}
+        db.commit()
+
+        assert slugs(client.get("/api/products/search", params={"q": "dac biet"})) == [
+            "garlic-bread"
+        ]
+        assert client.get("/api/products/search", params={"q": "garlic"}).json() == []
+
     def test_orders_best_rated_first_with_unrated_last(self, client, catalog):
         response = client.get("/api/products/search", params={"q": "b"})
         assert slugs(response) == ["beef-steak", "pho-bo", "garlic-bread"]
