@@ -103,7 +103,7 @@ export function CartPage() {
           </div>
         </section>
 
-        <OrderSummary title={t.cart.summary} total={cart.total_price}>
+        <OrderSummary title={t.cart.summary} subtotal={cart.total_price}>
           <ButtonLink to="/checkout" size="lg" block>
             {t.cart.checkout}
           </ButtonLink>

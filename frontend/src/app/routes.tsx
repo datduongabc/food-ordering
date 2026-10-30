@@ -77,6 +77,8 @@ export const routes: RouteObject[] = [
             'products/:id': () =>
               import('@/features/admin/pages/ProductEditPage').then((m) => m.ProductEditPage),
             users: () => import('@/features/admin/pages/UsersPage').then((m) => m.AdminUsersPage),
+            'promo-codes': () =>
+              import('@/features/admin/pages/PromosPage').then((m) => m.AdminPromosPage),
           }),
         ],
       },

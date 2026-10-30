@@ -47,3 +47,8 @@
 .total dd {
   color: var(--color-red);
 }
+
+.discount {
+  color: var(--color-green);
+  font-weight: 700;
+}

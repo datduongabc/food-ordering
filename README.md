@@ -34,6 +34,8 @@
 - **Checkout** with delivery details pre-filled from the account; each branch card warns about dishes it does not serve.
 - **Cash on delivery or MoMo.** With MoMo keys set, customers pay on MoMo's own page; the result comes back both server to server (IPN) and through the customer's return, each checked against MoMo's HMAC signature and the order total, and applied only once. Without keys, local mode offers a **sandbox** that simulates approval or decline, and production offers cash only.
 - **Change of mind:** a pending cash order can be paid with MoMo, and an unpaid MoMo order can go back to cash.
+- **Promo codes** at checkout: a percentage (optionally capped) or a fixed amount off the dishes, checked against the cart before the order is placed. Codes can require a minimum order, run between two dates and be limited in total and per customer; a cancelled order gives its use back, and the code's row is locked at checkout so two last orders cannot both take its final use. The order keeps its subtotal, discount and code, and MoMo charges the discounted total.
+- **Order again:** any past order's dishes go back into the cart at today's prices; dishes no longer served are skipped and named.
 - **Order history** with a status timeline that says who made each change (customer, restaurant or system); pending orders can be cancelled.
 - Prices are stored and shown in whole Vietnamese dong.
 - **Status emails** in Vietnamese with English below: when an order is placed, confirmed (or paid with MoMo), delivered or cancelled, including any note from the staff and a refund line for paid orders. They go out after the response, so a slow or failing mail server never delays or fails an order; a MoMo payment reported twice sends one email.
@@ -48,9 +50,10 @@
 - **Orders:** filter by status; confirm, mark delivered or cancel, with a note for the customer.
 - **Bookings:** filter by status and date; confirm, mark arrived or cancel.
 - **Dishes:** add and edit in both languages, set price, category and branches, upload a photo, hide and restore.
+- **Promo codes:** create, edit, switch off and on, with live use counts.
 - **Users:** search by name (accents optional), email or phone; add, change role, verification and password, deactivate and restore (never your own account).
 - **Reports:** download the orders (optionally by status) or the daily revenue of any range up to a year as CSV, in Vietnamese or English, ready for Excel. Customer-typed cells that a spreadsheet would run as formulas are neutralised.
-- **Activity log:** every staff change (dishes, prices, photos, order and booking statuses, accounts) and every report download, with who, when and each field's value before and after; passwords are never recorded. Entries are written in the same transaction as the change.
+- **Activity log:** every staff change (dishes, prices, photos, order and booking statuses, promo codes, accounts) and every report download, with who, when and each field's value before and after; passwords are never recorded. Entries are written in the same transaction as the change.
 
 ---
 
@@ -236,7 +239,7 @@ restaurant_project/
 │   │   │                      # headers, logging & Sentry, email
 │   │   ├── modules/           # auth, catalog, cart, orders (incl. MoMo and its sandbox),
 │   │   │                      # reservations, feedback, users, admin,
-│   │   │                      # notifications (order and booking emails)
+│   │   │                      # notifications (order and booking emails), promotions
 │   │   ├── cli.py             # create-admin command
 │   │   └── main.py            # FastAPI application
 │   ├── alembic/versions/      # Schema migrations and seed data (menu, local admin)

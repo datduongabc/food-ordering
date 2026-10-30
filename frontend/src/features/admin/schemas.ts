@@ -140,9 +140,41 @@ export interface UserInput {
   password?: string
 }
 
+// --- Promo codes ---
+
+export const DISCOUNT_KINDS = ['PERCENT', 'AMOUNT'] as const
+
+export const adminPromoSchema = z.object({
+  id: z.number(),
+  code: z.string(),
+  kind: z.enum(DISCOUNT_KINDS),
+  value: z.number().int(),
+  max_discount: z.number().int().nullable(),
+  min_subtotal: z.number().int(),
+  starts_on: z.string().nullable(),
+  ends_on: z.string().nullable(),
+  usage_limit: z.number().int().nullable(),
+  per_customer_limit: z.number().int().nullable(),
+  created_at: z.string(),
+  disabled_at: z.string().nullable(),
+  uses: z.number().int(),
+})
+
+export interface PromoInput {
+  code: string
+  kind: DiscountKind
+  value: number
+  max_discount: number | null
+  min_subtotal: number
+  starts_on: string | null
+  ends_on: string | null
+  usage_limit: number | null
+  per_customer_limit: number | null
+}
+
 // --- Audit log ---
 
-export const AUDIT_GROUPS = ['product', 'order', 'reservation', 'user', 'export'] as const
+export const AUDIT_GROUPS = ['product', 'order', 'reservation', 'user', 'promo', 'export'] as const
 
 export const auditEntrySchema = z.object({
   id: z.number(),
@@ -167,4 +199,6 @@ export type ReservationStatus = (typeof RESERVATION_STATUSES)[number]
 export type AdminUser = z.infer<typeof adminUserSchema>
 export type Role = (typeof ROLES)[number]
 export type AuditEntry = z.infer<typeof auditEntrySchema>
+export type AdminPromo = z.infer<typeof adminPromoSchema>
+export type DiscountKind = (typeof DISCOUNT_KINDS)[number]
 export type AuditGroup = (typeof AUDIT_GROUPS)[number]

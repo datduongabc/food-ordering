@@ -6,6 +6,7 @@ import {
   ADMIN_PAGE_SIZE,
   adminOrderSchema,
   adminProductSchema,
+  adminPromoSchema,
   adminReservationSchema,
   adminUserSchema,
   auditEntrySchema,
@@ -17,6 +18,7 @@ import {
   revenueTrendSchema,
   topDishesSchema,
   type ProductInput,
+  type PromoInput,
   type ReservationStatus,
   type UserInput,
 } from './schemas'
@@ -94,6 +96,11 @@ export const adminQueries = {
           page_size: ADMIN_PAGE_SIZE,
         }),
       placeholderData: keepPreviousData,
+    }),
+  promos: () =>
+    queryOptions({
+      queryKey: ['admin', 'promos'],
+      queryFn: () => api.get('/admin/promo-codes', z.array(adminPromoSchema)),
     }),
   users: ({ q, includeDeactivated, page }: UserFilters) =>
     queryOptions({
@@ -215,6 +222,23 @@ export function useSetUserActive() {
     api.post(
       `/admin/users/${input.id}/${input.active ? 'restore' : 'deactivate'}`,
       adminUserSchema,
+    ),
+  )
+}
+
+export function useSavePromo() {
+  return useAdminMutation((input: { id?: number; values: PromoInput }) =>
+    input.id === undefined
+      ? api.post('/admin/promo-codes', adminPromoSchema, input.values)
+      : api.put(`/admin/promo-codes/${input.id}`, adminPromoSchema, input.values),
+  )
+}
+
+export function useSetPromoActive() {
+  return useAdminMutation((input: { id: number; active: boolean }) =>
+    api.post(
+      `/admin/promo-codes/${input.id}/${input.active ? 'enable' : 'disable'}`,
+      adminPromoSchema,
     ),
   )
 }

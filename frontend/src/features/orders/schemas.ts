@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { cartSchema } from '@/features/cart/schemas'
 import { locationSchema } from '@/features/catalog/schemas'
 import { localizedTextSchema } from '@/lib/localized'
 
@@ -33,6 +34,9 @@ export const orderSchema = z.object({
   status: orderStatusSchema,
   payment_method: paymentMethodSchema,
   payment_status: paymentStatusSchema,
+  subtotal_price: z.number().int(),
+  discount_amount: z.number().int(),
+  promo_code: z.string().nullable(),
   total_price: z.number().int(),
   created_at: z.string(),
   location: locationSchema.nullable(),
@@ -55,7 +59,23 @@ export const momoPaymentSchema = z.object({
   pay_url: z.string().nullable().optional(),
 })
 
+export const promoQuoteSchema = z.object({
+  code: z.string(),
+  kind: z.enum(['PERCENT', 'AMOUNT']),
+  value: z.number().int(),
+  subtotal: z.number().int(),
+  discount: z.number().int(),
+  total: z.number().int(),
+})
+
+export const reorderSchema = z.object({
+  cart: cartSchema,
+  added: z.number().int(),
+  skipped: z.array(localizedTextSchema),
+})
+
 export type Order = z.infer<typeof orderSchema>
+export type PromoQuote = z.infer<typeof promoQuoteSchema>
 export type OrderEvent = z.infer<typeof orderEventSchema>
 export type OrderStatus = z.infer<typeof orderStatusSchema>
 export type PaymentMethod = z.infer<typeof paymentMethodSchema>
@@ -69,4 +89,5 @@ export interface CheckoutInput {
   delivery_phone: string
   delivery_address: string
   delivery_note: string
+  promo_code?: string
 }
