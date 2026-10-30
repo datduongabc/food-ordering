@@ -19,6 +19,14 @@ function run(args: string[], env: NodeJS.ProcessEnv) {
   }
 }
 
+const RESET_SCHEMA = `
+import os
+from sqlalchemy import create_engine, text
+with create_engine(os.environ["DATABASE_URL"]).begin() as conn:
+    conn.execute(text("DROP SCHEMA public CASCADE"))
+    conn.execute(text("CREATE SCHEMA public"))
+`
+
 async function waitForHealth(url: string, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
@@ -51,7 +59,9 @@ export default async function globalSetup() {
     DATABASE_URL: process.env.E2E_DATABASE_URL ?? `sqlite:///${join(workDir, 'e2e.db')}`,
     MEDIA_DIR: mediaDir,
   }
-  if (process.env.E2E_DATABASE_URL) run(['alembic', 'downgrade', 'base'], env)
+  // A reused Postgres database still holds the last run's orders, which a migration
+  // downgrade rightly refuses to delete; start from an empty schema instead.
+  if (process.env.E2E_DATABASE_URL) run(['python', '-c', RESET_SCHEMA], env)
   run(['alembic', 'upgrade', 'head'], env)
   const logPath = join(workDir, 'backend.log')
   const log = openSync(logPath, 'a')

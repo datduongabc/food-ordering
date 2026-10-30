@@ -374,6 +374,7 @@ categories = sa.table(
     sa.column("slug"),
     sa.column("name_vi"),
     sa.column("name_en"),
+    sa.column("deleted_at"),
 )
 products = sa.table(
     "products",
@@ -387,7 +388,9 @@ products = sa.table(
     sa.column("price", sa.BigInteger),
     sa.column("slug"),
     sa.column("search_text"),
+    sa.column("deleted_at"),
 )
+order_items = sa.table("order_items", sa.column("product_id", sa.Integer))
 locations = sa.table("locations", sa.column("id", sa.Integer))
 product_availabilities = sa.table(
     "product_availabilities",
@@ -404,9 +407,25 @@ def fold(text: str) -> str:
 
 
 def upgrade() -> None:
-    op.bulk_insert(categories, CATEGORIES)
-
     conn = op.get_bind()
+    slugs = [p[1] for p in PRODUCTS]
+    category_slugs = [c["slug"] for c in CATEGORIES]
+    # A downgrade keeps (hidden) the dishes already ordered and their categories; running
+    # this again shows them again and adds only what is missing.
+    op.execute(
+        categories.update().where(categories.c.slug.in_(category_slugs)).values(deleted_at=None)
+    )
+    op.execute(products.update().where(products.c.slug.in_(slugs)).values(deleted_at=None))
+    kept_categories = set(
+        conn.execute(
+            sa.select(categories.c.slug).where(categories.c.slug.in_(category_slugs))
+        ).scalars()
+    )
+    kept_products = set(
+        conn.execute(sa.select(products.c.slug).where(products.c.slug.in_(slugs))).scalars()
+    )
+
+    op.bulk_insert(categories, [c for c in CATEGORIES if c["slug"] not in kept_categories])
     category_ids = dict(conn.execute(sa.select(categories.c.slug, categories.c.id)).all())
     op.bulk_insert(
         products,
@@ -425,12 +444,17 @@ def upgrade() -> None:
             for category, slug, image, name_vi, name_en, description_vi, description_en, price in (
                 PRODUCTS
             )
+            if slug not in kept_products
         ],
     )
 
-    # Every branch serves the new dishes, like the original menu.
+    # Every branch serves the new dishes, like the original menu; kept dishes kept theirs.
     new_ids = (
-        conn.execute(sa.select(products.c.id).where(products.c.slug.in_([p[1] for p in PRODUCTS])))
+        conn.execute(
+            sa.select(products.c.id).where(
+                products.c.slug.in_([slug for slug in slugs if slug not in kept_products])
+            )
+        )
         .scalars()
         .all()
     )
@@ -443,9 +467,30 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     slugs = [p[1] for p in PRODUCTS]
-    new_ids = sa.select(products.c.id).where(products.c.slug.in_(slugs)).scalar_subquery()
+    category_slugs = [c["slug"] for c in CATEGORIES]
+    ours = products.c.slug.in_(slugs)
+    # Dishes already ordered stay, hidden, so past orders keep their lines: order items
+    # refuse to lose their dish. The rest, with their branches, carts and reviews, go.
+    ordered = products.c.id.in_(sa.select(order_items.c.product_id))
     op.execute(
-        product_availabilities.delete().where(product_availabilities.c.product_id.in_(new_ids))
+        products.update()
+        .where(ours, ordered, products.c.deleted_at.is_(None))
+        .values(deleted_at=sa.func.now())
     )
-    op.execute(products.delete().where(products.c.slug.in_(slugs)))
-    op.execute(categories.delete().where(categories.c.slug.in_([c["slug"] for c in CATEGORIES])))
+    unordered = sa.select(products.c.id).where(ours, ~ordered).scalar_subquery()
+    op.execute(
+        product_availabilities.delete().where(product_availabilities.c.product_id.in_(unordered))
+    )
+    op.execute(products.delete().where(ours, ~ordered))
+
+    # A category still holding a kept dish is hidden too; an empty one is removed.
+    in_use = categories.c.id.in_(
+        sa.select(products.c.category_id).where(products.c.category_id.is_not(None))
+    )
+    ours = categories.c.slug.in_(category_slugs)
+    op.execute(
+        categories.update()
+        .where(ours, in_use, categories.c.deleted_at.is_(None))
+        .values(deleted_at=sa.func.now())
+    )
+    op.execute(categories.delete().where(ours, ~in_use))
