@@ -64,6 +64,9 @@ services:
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-8000}:80"
+    volumes:
+      # nginx serves dish photos itself; the backend writes them.
+      - media:/srv/media:ro
     depends_on:
       backend:
         condition: service_healthy

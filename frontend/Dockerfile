@@ -13,5 +13,5 @@ FROM nginx:1.29-alpine
 # Only an HTTPS proxy in front (docker-compose.prod.yml) may report client addresses.
 ENV TRUSTED_PROXY=127.0.0.1
 COPY default.conf.template /etc/nginx/templates/default.conf.template
-COPY security-headers.conf /etc/nginx/security-headers.conf
+COPY security-headers.conf api-proxy.conf /etc/nginx/
 COPY --from=build /app/dist /usr/share/nginx/html
