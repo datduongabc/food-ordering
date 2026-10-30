@@ -1,0 +1,25 @@
+.intro {
+  margin-bottom: 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 20px;
+}
+
+.grid a,
+.grid .off {
+  align-self: flex-start;
+}
+
+.off {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  margin-bottom: 16px;
+  color: var(--color-red);
+  font-weight: 600;
+}

@@ -63,6 +63,9 @@ export const routes: RouteObject[] = [
           ...lazyPages({
             orders: () =>
               import('@/features/admin/pages/OrdersPage').then((m) => m.AdminOrdersPage),
+            reports: () =>
+              import('@/features/admin/pages/ReportsPage').then((m) => m.AdminReportsPage),
+            audit: () => import('@/features/admin/pages/AuditPage').then((m) => m.AdminAuditPage),
             reservations: () =>
               import('@/features/admin/pages/ReservationsPage').then(
                 (m) => m.AdminReservationsPage,

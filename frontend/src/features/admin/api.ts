@@ -8,6 +8,8 @@ import {
   adminProductSchema,
   adminReservationSchema,
   adminUserSchema,
+  auditEntrySchema,
+  type AuditGroup,
   dashboardSchema,
   pageSchema,
   paymentStatsSchema,
@@ -105,6 +107,28 @@ export const adminQueries = {
         }),
       placeholderData: keepPreviousData,
     }),
+  auditLog: ({ group, page }: { group?: AuditGroup; page: number }) =>
+    queryOptions({
+      queryKey: ['admin', 'audit', { group, page }],
+      queryFn: () =>
+        api.get('/admin/audit-log', pageSchema(auditEntrySchema), {
+          action: group,
+          page,
+          page_size: ADMIN_PAGE_SIZE,
+        }),
+      placeholderData: keepPreviousData,
+    }),
+}
+
+/** A CSV download is a plain link: the browser sends the session cookie and saves the file. */
+export function exportUrl(
+  report: 'orders' | 'revenue',
+  query: Record<string, string | undefined>,
+): string {
+  const search = new URLSearchParams(
+    Object.entries(query).filter((entry): entry is [string, string] => Boolean(entry[1])),
+  )
+  return `/api/admin/exports/${report}.csv?${search}`
 }
 
 /**

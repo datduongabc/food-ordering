@@ -1,0 +1,28 @@
+.changes {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.changes div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.changes dt {
+  font-weight: 700;
+}
+
+.changes dd {
+  margin: 0;
+}
+
+.changes dt::after {
+  content: ':';
+}
+
+.changes del {
+  color: var(--color-muted);
+}

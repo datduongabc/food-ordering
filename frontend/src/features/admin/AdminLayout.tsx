@@ -10,6 +10,8 @@ const SECTIONS = [
   { to: '/admin/reservations', key: 'reservations', end: false },
   { to: '/admin/products', key: 'products', end: false },
   { to: '/admin/users', key: 'users', end: false },
+  { to: '/admin/reports', key: 'reports', end: false },
+  { to: '/admin/audit', key: 'audit', end: false },
 ] as const
 
 /** Every admin page: signed-in admins only, with the section tabs above the page. */
