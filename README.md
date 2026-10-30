@@ -46,6 +46,8 @@
 - **Bookings:** filter by status and date; confirm, mark arrived or cancel.
 - **Dishes:** add and edit in both languages, set price, category and branches, upload a photo, hide and restore.
 - **Users:** search, add, change role, verification and password, deactivate and restore (never your own account).
+- **Reports:** download the orders (optionally by status) or the daily revenue of any range up to a year as CSV, in Vietnamese or English, ready for Excel. Customer-typed cells that a spreadsheet would run as formulas are neutralised.
+- **Activity log:** every staff change (dishes, prices, photos, order and booking statuses, accounts) and every report download, with who, when and each field's value before and after; passwords are never recorded. Entries are written in the same transaction as the change.
 
 ---
 
@@ -156,6 +158,7 @@ All settings live in `.env`; see [`.env.example`](.env.example).
 - **Small timing differences remain.** A reset request for a real account writes a code to the database and one for an unknown email does not; the difference is a few milliseconds, well inside normal network jitter, but it is not zero.
 - **Client addresses come from the proxy.** The bundled nginx overwrites `X-Forwarded-For`; behind another proxy or load balancer, make sure it does too, or visitors share one address (or can pick their own).
 - **Late MoMo charges need a manual refund.** If MoMo charges an attempt the customer already abandoned (a retry or a switch to cash) or an order cancelled meanwhile, the backend logs an error instead of changing the order; refund it from the MoMo portal. There is no automatic reconciliation with MoMo's query API, so a payment whose IPN and return were both lost stays unpaid until checked by hand.
+- **The activity log is not tamper-proof.** It is an ordinary table: anyone with database access can edit it, and it is kept forever. It records actions taken through the admin console, not changes made directly in the database or by `create-admin`.
 - **HSTS and the Secure cookie flag need the production setup.** Plain `docker compose up` serves HTTP only; use `docker-compose.prod.yml` for anything public.
 
 ---

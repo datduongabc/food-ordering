@@ -1,15 +1,6 @@
 import type { ComponentProps } from 'react'
 import { Link, type LinkProps } from 'react-router'
-import styles from './Button.module.css'
-
-type Variant = 'primary' | 'dark' | 'outline' | 'danger' | 'momo' | 'green'
-type Size = 'md' | 'lg'
-
-function classes(variant: Variant, size: Size, block: boolean, extra?: string) {
-  return [styles.button, styles[variant], styles[size], block && styles.block, extra]
-    .filter(Boolean)
-    .join(' ')
-}
+import { buttonClasses, type Size, type Variant } from './buttonClasses'
 
 interface StyleProps {
   variant?: Variant
@@ -25,7 +16,9 @@ export function Button({
   type = 'button',
   ...props
 }: ComponentProps<'button'> & StyleProps) {
-  return <button type={type} className={classes(variant, size, block, className)} {...props} />
+  return (
+    <button type={type} className={buttonClasses(variant, size, block, className)} {...props} />
+  )
 }
 
 export function ButtonLink({
@@ -35,5 +28,5 @@ export function ButtonLink({
   className,
   ...props
 }: LinkProps & StyleProps) {
-  return <Link className={classes(variant, size, block, className)} {...props} />
+  return <Link className={buttonClasses(variant, size, block, className)} {...props} />
 }

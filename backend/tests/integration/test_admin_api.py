@@ -56,13 +56,6 @@ def make_order(
     return order
 
 
-@pytest.fixture
-def customer(second_client, catalog):
-    """A signed-in customer in a separate browser from the admin."""
-    register_and_login(second_client, USER)
-    return second_client
-
-
 class TestAccess:
     ENDPOINTS = [
         ("get", "/api/admin/dashboard"),
@@ -74,6 +67,9 @@ class TestAccess:
         ("get", "/api/admin/reservations"),
         ("get", "/api/admin/users"),
         ("post", "/api/admin/users/1/deactivate"),
+        ("get", "/api/admin/audit-log"),
+        ("get", "/api/admin/exports/orders.csv?from=2026-10-01&to=2026-10-30"),
+        ("get", "/api/admin/exports/revenue.csv?from=2026-10-01&to=2026-10-30"),
     ]
 
     @pytest.mark.parametrize(("method", "path"), ENDPOINTS)

@@ -1,7 +1,8 @@
 import re
 import secrets
 import unicodedata
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -10,8 +11,10 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.db import utcnow
 from app.core.errors import BadRequestError, ConflictError, NotFoundError
+from app.modules.admin import audit
 from app.modules.admin.schemas import ProductCreate, ProductUpdate
 from app.modules.catalog.models import Category, Location, Product
+from app.modules.users.models import User
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 UPLOAD_DIR = "uploads"
@@ -64,8 +67,25 @@ def _locations(db: Session, location_ids: list[int]) -> list[Location]:
     return list(locations)
 
 
-def _commit_unique_slug(db: Session, slug: str) -> None:
+def _snapshot(product: Product) -> dict[str, Any]:
+    """The fields staff can edit, as the audit log records them."""
+    return {
+        "name": product.name,
+        "slug": product.slug,
+        "description": product.description,
+        "price": product.price,
+        "category_id": product.category.id,
+        "location_ids": sorted(location.id for location in product.locations),
+    }
+
+
+def _commit_unique_slug(
+    db: Session, slug: str, before_commit: Callable[[], None] = lambda: None
+) -> None:
     try:
+        # Flushing first gives a new dish its id for the audit entry, inside the same transaction.
+        db.flush()
+        before_commit()
         db.commit()
     except IntegrityError as exc:
         db.rollback()
@@ -74,7 +94,7 @@ def _commit_unique_slug(db: Session, slug: str) -> None:
         ) from exc
 
 
-def create_product(db: Session, data: ProductCreate) -> Product:
+def create_product(db: Session, admin: User, data: ProductCreate) -> Product:
     slug = data.slug or slugify(data.name.en)
     if not slug:
         raise BadRequestError("Please provide a URL slug for this dish name.", code="slug_required")
@@ -90,13 +110,26 @@ def create_product(db: Session, data: ProductCreate) -> Product:
         image_url="placeholder.webp",
     )
     db.add(product)
-    _commit_unique_slug(db, slug)
+    _commit_unique_slug(
+        db,
+        slug,
+        lambda: audit.record(
+            db,
+            admin,
+            "product.create",
+            "product",
+            product.id,
+            product.name["vi"],
+            audit.created(_snapshot(product)),
+        ),
+    )
     db.refresh(product)
     return product
 
 
-def update_product(db: Session, product_id: int, data: ProductUpdate) -> Product:
+def update_product(db: Session, admin: User, product_id: int, data: ProductUpdate) -> Product:
     product = get_product(db, product_id)
+    before = _snapshot(product)
     changes = data.model_dump(exclude_unset=True)
     if "category_id" in changes:
         product.category = _category(db, changes.pop("category_id"))
@@ -104,12 +137,19 @@ def update_product(db: Session, product_id: int, data: ProductUpdate) -> Product
         product.locations = _locations(db, changes.pop("location_ids"))
     for field, value in changes.items():
         setattr(product, field, value)
-    _commit_unique_slug(db, product.slug)
+
+    def log_changes() -> None:
+        if changed := audit.diff(before, _snapshot(product)):
+            audit.record(
+                db, admin, "product.update", "product", product.id, product.name["vi"], changed
+            )
+
+    _commit_unique_slug(db, product.slug, log_changes)
     db.refresh(product)
     return product
 
 
-def replace_image(db: Session, product_id: int, data: bytes) -> Product:
+def replace_image(db: Session, admin: User, product_id: int, data: bytes) -> Product:
     product = get_product(db, product_id)
     if len(data) > MAX_IMAGE_BYTES:
         raise BadRequestError(
@@ -129,6 +169,15 @@ def replace_image(db: Session, product_id: int, data: bytes) -> Product:
 
     previous = product.image_url
     product.image_url = relative
+    audit.record(
+        db,
+        admin,
+        "product.image",
+        "product",
+        product.id,
+        product.name["vi"],
+        {"image_url": [previous, relative]},
+    )
     db.commit()
     # Only earlier uploads are removed; seeded photos may be shared and are part of the repo.
     if previous.startswith(f"{UPLOAD_DIR}/"):
@@ -137,16 +186,19 @@ def replace_image(db: Session, product_id: int, data: bytes) -> Product:
     return product
 
 
-def hide_product(db: Session, product_id: int) -> Product:
+def hide_product(db: Session, admin: User, product_id: int) -> Product:
     product = get_product(db, product_id)
     if product.deleted_at is None:
         product.deleted_at = utcnow()
+        audit.record(db, admin, "product.hide", "product", product.id, product.name["vi"])
         db.commit()
     return product
 
 
-def restore_product(db: Session, product_id: int) -> Product:
+def restore_product(db: Session, admin: User, product_id: int) -> Product:
     product = get_product(db, product_id)
-    product.deleted_at = None
-    db.commit()
+    if product.deleted_at is not None:
+        product.deleted_at = None
+        audit.record(db, admin, "product.restore", "product", product.id, product.name["vi"])
+        db.commit()
     return product

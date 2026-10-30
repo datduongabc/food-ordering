@@ -140,6 +140,23 @@ export interface UserInput {
   password?: string
 }
 
+// --- Audit log ---
+
+export const AUDIT_GROUPS = ['product', 'order', 'reservation', 'user', 'export'] as const
+
+export const auditEntrySchema = z.object({
+  id: z.number(),
+  actor_id: z.number().nullable(),
+  actor_name: z.string(),
+  action: z.string(),
+  target_type: z.string(),
+  target_id: z.number().nullable(),
+  target_label: z.string(),
+  // {field: [before, after]}; before is null for creations and exports.
+  changes: z.record(z.string(), z.tuple([z.unknown(), z.unknown()])),
+  created_at: z.string(),
+})
+
 export type Dashboard = z.infer<typeof dashboardSchema>
 export type RevenueTrend = z.infer<typeof revenueTrendSchema>
 export type DishSales = z.infer<typeof dishSalesSchema>
@@ -149,3 +166,5 @@ export type AdminReservation = z.infer<typeof adminReservationSchema>
 export type ReservationStatus = (typeof RESERVATION_STATUSES)[number]
 export type AdminUser = z.infer<typeof adminUserSchema>
 export type Role = (typeof ROLES)[number]
+export type AuditEntry = z.infer<typeof auditEntrySchema>
+export type AuditGroup = (typeof AUDIT_GROUPS)[number]

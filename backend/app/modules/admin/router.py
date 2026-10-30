@@ -1,17 +1,18 @@
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, UploadFile
+from fastapi import APIRouter, Depends, Query, Response, UploadFile
 
 from app.core.deps import AdminUser, DbSession, require_admin
 from app.core.errors import BadRequestError
-from app.modules.admin import operations, products, stats, users
+from app.modules.admin import audit, exports, operations, products, stats, users
 from app.modules.admin.products import MAX_IMAGE_BYTES
 from app.modules.admin.schemas import (
     AdminOrderOut,
     AdminProductOut,
     AdminReservationOut,
     AdminUserOut,
+    AuditLogOut,
     DashboardSummary,
     OrderStatusIn,
     Page,
@@ -74,32 +75,32 @@ def list_products(db: DbSession):
 
 
 @router.post("/products", response_model=AdminProductOut, status_code=201)
-def create_product(data: ProductCreate, db: DbSession):
-    return products.create_product(db, data)
+def create_product(data: ProductCreate, db: DbSession, admin: AdminUser):
+    return products.create_product(db, admin, data)
 
 
 @router.patch("/products/{product_id}", response_model=AdminProductOut)
-def update_product(product_id: int, data: ProductUpdate, db: DbSession):
-    return products.update_product(db, product_id, data)
+def update_product(product_id: int, data: ProductUpdate, db: DbSession, admin: AdminUser):
+    return products.update_product(db, admin, product_id, data)
 
 
 @router.put("/products/{product_id}/image", response_model=AdminProductOut)
-async def replace_image(product_id: int, image: UploadFile, db: DbSession):
+async def replace_image(product_id: int, image: UploadFile, db: DbSession, admin: AdminUser):
     # Read one byte past the limit so oversized files are rejected without loading them fully.
     data = await image.read(MAX_IMAGE_BYTES + 1)
     if not data:
         raise BadRequestError("The uploaded file is empty.", code="empty_upload")
-    return products.replace_image(db, product_id, data)
+    return products.replace_image(db, admin, product_id, data)
 
 
 @router.post("/products/{product_id}/hide", response_model=AdminProductOut)
-def hide_product(product_id: int, db: DbSession):
-    return products.hide_product(db, product_id)
+def hide_product(product_id: int, db: DbSession, admin: AdminUser):
+    return products.hide_product(db, admin, product_id)
 
 
 @router.post("/products/{product_id}/restore", response_model=AdminProductOut)
-def restore_product(product_id: int, db: DbSession):
-    return products.restore_product(db, product_id)
+def restore_product(product_id: int, db: DbSession, admin: AdminUser):
+    return products.restore_product(db, admin, product_id)
 
 
 # --- Orders ---
@@ -137,8 +138,10 @@ def list_reservations(
 
 
 @router.post("/reservations/{reservation_id}/status", response_model=AdminReservationOut)
-def change_reservation_status(reservation_id: int, data: ReservationStatusIn, db: DbSession):
-    return operations.change_reservation_status(db, reservation_id, data.status)
+def change_reservation_status(
+    reservation_id: int, data: ReservationStatusIn, db: DbSession, admin: AdminUser
+):
+    return operations.change_reservation_status(db, admin, reservation_id, data.status)
 
 
 # --- Users ---
@@ -156,8 +159,8 @@ def list_users(
 
 
 @router.post("/users", response_model=AdminUserOut, status_code=201)
-def create_user(data: UserCreate, db: DbSession):
-    return users.create_user(db, data)
+def create_user(data: UserCreate, db: DbSession, admin: AdminUser):
+    return users.create_user(db, admin, data)
 
 
 @router.patch("/users/{user_id}", response_model=AdminUserOut)
@@ -171,5 +174,53 @@ def deactivate_user(user_id: int, db: DbSession, admin: AdminUser):
 
 
 @router.post("/users/{user_id}/restore", response_model=AdminUserOut)
-def restore_user(user_id: int, db: DbSession):
-    return users.restore_user(db, user_id)
+def restore_user(user_id: int, db: DbSession, admin: AdminUser):
+    return users.restore_user(db, admin, user_id)
+
+
+# --- Reports ---
+
+From = Annotated[date, Query(alias="from")]
+To = Annotated[date, Query(alias="to")]
+
+
+def _download(file: exports.CsvFile) -> Response:
+    return Response(
+        file.content,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{file.filename}"'},
+    )
+
+
+@router.get("/exports/orders.csv", response_class=Response)
+def export_orders(
+    db: DbSession,
+    admin: AdminUser,
+    first_day: From,
+    last_day: To,
+    status: OrderStatus | None = None,
+    lang: exports.Lang = "vi",
+):
+    return _download(exports.orders_csv(db, admin, first_day, last_day, status, lang))
+
+
+@router.get("/exports/revenue.csv", response_class=Response)
+def export_revenue(
+    db: DbSession, admin: AdminUser, first_day: From, last_day: To, lang: exports.Lang = "vi"
+):
+    return _download(exports.revenue_csv(db, admin, first_day, last_day, lang))
+
+
+# --- Audit log ---
+
+
+@router.get("/audit-log", response_model=Page[AuditLogOut])
+def audit_log(
+    db: DbSession,
+    action: Annotated[str | None, Query(max_length=50)] = None,
+    target_type: Annotated[str | None, Query(max_length=30)] = None,
+    target_id: int | None = None,
+    page: PageNo = 1,
+    page_size: PageSize = 20,
+):
+    return audit.list_entries(db, action, target_type, target_id, page, page_size)
