@@ -1,9 +1,10 @@
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Response, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response, UploadFile
 
 from app.core.deps import AdminUser, DbSession, require_admin
+from app.core.email import Mailer, notify
 from app.core.errors import BadRequestError
 from app.modules.admin import audit, exports, operations, products, stats, users
 from app.modules.admin.products import MAX_IMAGE_BYTES
@@ -26,8 +27,10 @@ from app.modules.admin.schemas import (
     UserCreate,
     UserUpdate,
 )
+from app.modules.notifications import emails
 from app.modules.orders.models import OrderStatus
 from app.modules.reservations.models import ReservationStatus
+from app.modules.users.models import User
 
 # The dependency on the router guards every route, so a new endpoint cannot forget it.
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -120,8 +123,17 @@ def get_order(order_id: int, db: DbSession):
 
 
 @router.post("/orders/{order_id}/status", response_model=AdminOrderOut)
-def change_order_status(order_id: int, data: OrderStatusIn, db: DbSession, admin: AdminUser):
-    return operations.change_order_status(db, admin, order_id, data.status, data.note)
+def change_order_status(
+    order_id: int,
+    data: OrderStatusIn,
+    db: DbSession,
+    admin: AdminUser,
+    background: BackgroundTasks,
+    mailer: Mailer,
+):
+    order = operations.change_order_status(db, admin, order_id, data.status, data.note)
+    notify(background, mailer, emails.order_status_changed(order))
+    return order
 
 
 # --- Reservations ---
@@ -140,9 +152,22 @@ def list_reservations(
 
 @router.post("/reservations/{reservation_id}/status", response_model=AdminReservationOut)
 def change_reservation_status(
-    reservation_id: int, data: ReservationStatusIn, db: DbSession, admin: AdminUser
+    reservation_id: int,
+    data: ReservationStatusIn,
+    db: DbSession,
+    admin: AdminUser,
+    background: BackgroundTasks,
+    mailer: Mailer,
 ):
-    return operations.change_reservation_status(db, admin, reservation_id, data.status)
+    reservation = operations.change_reservation_status(db, admin, reservation_id, data.status)
+    customer = db.get(User, reservation.user_id) if reservation.user_id else None
+    if customer is not None:
+        notify(
+            background,
+            mailer,
+            emails.reservation_status_changed(reservation, customer.email, by_customer=False),
+        )
+    return reservation
 
 
 # --- Users ---

@@ -6,6 +6,7 @@ for development without MoMo keys, and cannot be reached outside local developme
 
 import logging
 import secrets
+from dataclasses import dataclass
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -123,9 +124,16 @@ def complete_sandbox_payment(db: Session, user: User, data: SandboxCompleteIn) -
     return get_order(db, user, order.id)
 
 
-def apply_momo_result(db: Session, result: MomoResult) -> Order | None:
-    """Records a verified MoMo result. Safe to call twice: the IPN and the customer's return
-    both deliver it. Returns None when no open attempt has that id."""
+@dataclass(frozen=True)
+class MomoOutcome:
+    order: Order | None  # None when no open attempt has that id
+    # Whether this call recorded the result; the IPN and the customer's return both deliver
+    # it, and only the first should tell the customer.
+    changed: bool = False
+
+
+def apply_momo_result(db: Session, result: MomoResult) -> MomoOutcome:
+    """Records a verified MoMo result. Safe to call twice."""
     order = db.scalar(
         select(Order).where(Order.momo_order_id == result.order_id).with_for_update(of=Order)
     )
@@ -133,9 +141,9 @@ def apply_momo_result(db: Session, result: MomoResult) -> Order | None:
         if result.succeeded:
             # The attempt was replaced (a retry or a switch to cash) yet MoMo still charged.
             logger.error("MoMo charged retired attempt %s; refund it", result.order_id)
-        return None
+        return MomoOutcome(None)
     if order.payment_status == PaymentStatus.PAID or result.pending:
-        return order
+        return MomoOutcome(order)
     if result.amount != order.total_price:
         logger.error(
             "MoMo amount %s for order #%s does not match its total %s",
@@ -143,11 +151,11 @@ def apply_momo_result(db: Session, result: MomoResult) -> Order | None:
             order.id,
             order.total_price,
         )
-        return order
+        return MomoOutcome(order)
     if order.status != OrderStatus.PENDING:
         if result.succeeded:
             logger.error("MoMo charged order #%s, which is %s; refund it", order.id, order.status)
-        return order
+        return MomoOutcome(order)
 
     if result.succeeded:
         order.payment_status = PaymentStatus.PAID
@@ -156,4 +164,4 @@ def apply_momo_result(db: Session, result: MomoResult) -> Order | None:
     else:
         order.payment_status = PaymentStatus.FAILED
     db.commit()
-    return order
+    return MomoOutcome(order, changed=True)
