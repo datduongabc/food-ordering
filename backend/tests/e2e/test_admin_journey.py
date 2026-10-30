@@ -38,7 +38,9 @@ def test_admin_adds_dish_and_fulfils_an_order(server, new_browser):
     dish = admin.put(
         f"/api/admin/products/{dish['id']}/image", files={"image": ("bun-cha.webp", photo)}
     ).json()
-    assert admin.get(dish["image_url"]).content == photo
+    # Stored re-encoded as WebP, with a thumbnail beside it.
+    assert admin.get(dish["image_url"]).content.startswith(b"RIFF")
+    assert admin.get(dish["thumbnail_url"]).status_code == 200
     assert (server.media_dir / dish["image_url"].removeprefix("/media/")).exists()
 
     # A customer orders it for delivery from the only branch that makes it.

@@ -58,7 +58,7 @@ export function CartPage() {
             return (
               <article key={product.id} className={styles.line}>
                 <Link to={`/menu/${product.slug}`} tabIndex={-1} aria-hidden="true">
-                  <img src={product.image_url} alt="" className={styles.image} />
+                  <img src={product.thumbnail_url} alt="" className={styles.image} />
                 </Link>
                 <div className={styles.info}>
                   <h2 className={styles.name}>

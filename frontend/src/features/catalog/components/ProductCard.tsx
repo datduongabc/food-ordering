@@ -25,7 +25,7 @@ export function ProductCard({
   return (
     <article className={styles.card}>
       <Link to={href} tabIndex={-1} aria-hidden="true">
-        <img src={product.image_url} alt="" loading="lazy" className={styles.image} />
+        <img src={product.thumbnail_url} alt="" loading="lazy" className={styles.image} />
       </Link>
       <div className={styles.body}>
         {product.category && (

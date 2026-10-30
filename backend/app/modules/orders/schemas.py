@@ -5,6 +5,7 @@ from typing import Annotated, Literal
 from pydantic import AliasPath, BaseModel, ConfigDict, Field, StringConstraints, computed_field
 
 from app.core.config import get_settings
+from app.core.images import thumbnail_path
 from app.core.localized import LocalizedText
 from app.modules.auth.schemas import Name, Phone
 from app.modules.cart.schemas import CartOut
@@ -53,6 +54,11 @@ class OrderItemOut(BaseModel):
     @property
     def image_url(self) -> str:
         return f"{get_settings().media_url}/products/{self.image_path}"
+
+    @computed_field
+    @property
+    def thumbnail_url(self) -> str:
+        return f"{get_settings().media_url}/products/{thumbnail_path(self.image_path)}"
 
     @computed_field
     @property

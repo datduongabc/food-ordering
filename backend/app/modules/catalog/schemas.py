@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from app.core.config import get_settings
+from app.core.images import thumbnail_path
 from app.core.localized import LocalizedText
 
 
@@ -58,6 +59,11 @@ class ProductOut(BaseModel):
     @property
     def image_url(self) -> str:
         return f"{get_settings().media_url}/products/{self.image_path}"
+
+    @computed_field
+    @property
+    def thumbnail_url(self) -> str:
+        return f"{get_settings().media_url}/products/{thumbnail_path(self.image_path)}"
 
 
 class ProductPage(BaseModel):

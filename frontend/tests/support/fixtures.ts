@@ -36,6 +36,7 @@ export function product(overrides: Partial<Product> = {}): Product {
     category: starters,
     locations: [district1],
     image_url: `/media/products/dish-${id}.webp`,
+    thumbnail_url: `/media/products/thumbs/dish-${id}.webp`,
     ...overrides,
   }
 }
@@ -118,6 +119,7 @@ export function order(overrides: Partial<Order> = {}): Order {
         product_name: springRolls.name,
         product_slug: springRolls.slug,
         image_url: springRolls.image_url,
+        thumbnail_url: springRolls.thumbnail_url,
         price_at_purchase: springRolls.price,
         quantity: 2,
         subtotal: springRolls.price * 2,

@@ -1,4 +1,5 @@
 """Admin tasks: `uv run python -m app.cli create-admin --email ... --name ... --phone ...`
+and `uv run python -m app.cli thumbnails`.
 
 The password is prompted for, or read from stdin when piped (e.g. in deploy scripts).
 """
@@ -9,7 +10,9 @@ import sys
 
 from sqlalchemy import or_, select
 
+from app.core.config import get_settings
 from app.core.db import SessionLocal, utcnow
+from app.core.images import ensure_thumbnails
 from app.core.security import hash_password
 from app.modules.users.models import Role, User
 
@@ -39,7 +42,15 @@ def main(argv: list[str] | None = None) -> None:
     admin.add_argument("--email", required=True)
     admin.add_argument("--name", required=True)
     admin.add_argument("--phone", required=True)
+    commands.add_parser(
+        "thumbnails", help="Make the missing thumbnails for dish photos (safe to repeat)"
+    )
     args = parser.parse_args(argv)
+
+    if args.command == "thumbnails":
+        made = ensure_thumbnails(get_settings().media_dir / "products")
+        print(f"Made {made} thumbnail(s)")
+        return
 
     # Prompted (or piped in by scripts) rather than passed as a flag, so the password never
     # lands in shell history or the process list.

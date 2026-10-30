@@ -24,6 +24,8 @@ export const orderItemSchema = z.object({
   product_name: localizedTextSchema,
   product_slug: z.string(),
   image_url: z.string(),
+  // The same photo at most 640px wide, for lists and small previews.
+  thumbnail_url: z.string(),
   price_at_purchase: z.number().int(),
   quantity: z.number().int(),
   subtotal: z.number().int(),

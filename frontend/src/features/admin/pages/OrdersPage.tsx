@@ -209,7 +209,7 @@ function AdminOrderDetail({ order, ref }: { order: AdminOrder; ref?: Ref<HTMLEle
       <ul className={detail.items}>
         {order.items.map((item) => (
           <li key={item.product_id} className={detail.item}>
-            <img src={item.image_url} alt="" className={detail.thumb} />
+            <img src={item.thumbnail_url} alt="" className={detail.thumb} />
             <span className={detail.itemName}>
               {localize(item.product_name)} <span className={detail.muted}>× {item.quantity}</span>
             </span>

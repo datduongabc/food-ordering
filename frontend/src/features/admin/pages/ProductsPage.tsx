@@ -117,7 +117,7 @@ function ProductRow({ product }: { product: AdminProduct }) {
     <tr data-inactive={hidden}>
       <td data-label={labels.dish}>
         <div className={styles.dish}>
-          <img src={product.image_url} alt="" className={styles.thumb} />
+          <img src={product.thumbnail_url} alt="" className={styles.thumb} />
           <div className={shared.cellStack}>
             <strong>{name}</strong>
             <span className={shared.muted}>/{product.slug}</span>
