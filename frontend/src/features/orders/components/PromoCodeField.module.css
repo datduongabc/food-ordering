@@ -1,0 +1,28 @@
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.row > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.apply {
+  /* Lines the button up with the input, below the field's label. */
+  margin-top: 27px;
+}
+
+.applied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  background: var(--color-green-soft);
+  color: var(--color-green-dark);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}

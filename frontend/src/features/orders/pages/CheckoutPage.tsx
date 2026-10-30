@@ -24,7 +24,8 @@ import { useI18n } from '@/i18n/context'
 import { useLocalize } from '@/i18n/useLocalize'
 import { formatVnd, interpolate } from '@/lib/format'
 import { usePlaceOrder } from '../api'
-import { PAYMENT_METHODS } from '../schemas'
+import { PromoCodeField } from '../components/PromoCodeField'
+import { PAYMENT_METHODS, type PromoQuote } from '../schemas'
 import styles from './CheckoutPage.module.css'
 
 export function CheckoutPage() {
@@ -75,6 +76,7 @@ function CheckoutForm({
   const toast = useToast()
   const placeOrder = usePlaceOrder()
   const [formError, setFormError] = useState<string>()
+  const [promo, setPromo] = useState<PromoQuote>()
 
   const schema = useMemo(() => {
     const rules = authRules(t)
@@ -126,7 +128,7 @@ function CheckoutForm({
         onSubmit={form.handleSubmit(async (values) => {
           setFormError(undefined)
           try {
-            const order = await placeOrder.mutateAsync(values)
+            const order = await placeOrder.mutateAsync({ ...values, promo_code: promo?.code })
             if (order.payment_method === 'MOMO') {
               navigate(`/orders/${order.id}/pay`, { replace: true })
             } else {
@@ -233,7 +235,8 @@ function CheckoutForm({
 
         <OrderSummary
           title={t.checkout.summary}
-          total={cart.total_price}
+          subtotal={cart.total_price}
+          discount={promo && { code: promo.code, amount: promo.discount }}
           lines={
             <ul className={styles.lines}>
               {cart.items.map(({ product, quantity, subtotal }) => (
@@ -248,6 +251,7 @@ function CheckoutForm({
             </ul>
           }
         >
+          <PromoCodeField applied={promo} onChange={setPromo} />
           <FormError message={formError} />
           <Button
             type="submit"

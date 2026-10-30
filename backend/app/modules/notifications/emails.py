@@ -59,6 +59,13 @@ def _order_summary(order: Order, lang: str) -> list[str]:
     for item in order.items:
         subtotal = vnd(item.price_at_purchase * item.quantity)
         lines.append(f"  {item.quantity} x {item.product.name[lang]}: {subtotal}")
+    if order.discount_amount:
+        subtotal = "Tạm tính" if lang == "vi" else "Subtotal"
+        discount = "Giảm giá" if lang == "vi" else "Discount"
+        lines += [
+            f"{subtotal}: {vnd(order.subtotal_price)}",
+            f"{discount} ({order.promo_code}): -{vnd(order.discount_amount)}",
+        ]
     total = "Tổng cộng" if lang == "vi" else "Total"
     payment = "Thanh toán" if lang == "vi" else "Payment"
     deliver = "Giao tới" if lang == "vi" else "Deliver to"

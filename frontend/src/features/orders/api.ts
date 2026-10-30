@@ -2,7 +2,14 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 import { z } from 'zod'
 import { api } from '@/lib/api/client'
 import { EMPTY_CART, ACCOUNT_CART_KEY } from '@/features/cart/useCart'
-import { momoPaymentSchema, orderSchema, type CheckoutInput, type Order } from './schemas'
+import {
+  momoPaymentSchema,
+  orderSchema,
+  promoQuoteSchema,
+  reorderSchema,
+  type CheckoutInput,
+  type Order,
+} from './schemas'
 
 export const orderQueries = {
   list: () =>
@@ -96,5 +103,20 @@ export function useCompleteSandboxPayment() {
     mutationFn: (input: { momo_order_id: string; result: 'approved' | 'declined' }) =>
       api.post('/payments/momo/sandbox/complete', orderSchema, input),
     onSuccess: store,
+  })
+}
+
+/** Prices the signed-in cart with a promo code; checkout applies it again for real. */
+export function useCheckPromo() {
+  return useMutation({
+    mutationFn: (code: string) => api.post('/promo-codes/check', promoQuoteSchema, { code }),
+  })
+}
+
+export function useReorder() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (orderId: number) => api.post(`/orders/${orderId}/reorder`, reorderSchema),
+    onSuccess: (result) => queryClient.setQueryData(ACCOUNT_CART_KEY, result.cart),
   })
 }

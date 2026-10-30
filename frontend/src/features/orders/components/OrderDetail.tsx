@@ -1,4 +1,5 @@
 import { useState, type Ref } from 'react'
+import { useNavigate } from 'react-router'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/toastContext'
@@ -7,9 +8,10 @@ import { useI18n } from '@/i18n/context'
 import { useErrorMessage } from '@/i18n/errors'
 import { useLocalize } from '@/i18n/useLocalize'
 import { formatDateTime, formatVnd, interpolate } from '@/lib/format'
-import { useCancelOrder, useSwitchToCod } from '../api'
+import { useCancelOrder, useReorder, useSwitchToCod } from '../api'
 import type { Order, OrderEvent } from '../schemas'
 import { ORDER_TONE, PAYMENT_TONE } from '../status'
+import { OrderTotals } from './OrderTotals'
 import styles from './OrderDetail.module.css'
 
 /** The customer-facing wording of one status change; staff names stay internal. */
@@ -34,6 +36,8 @@ export function OrderDetail({ order, ref }: { order: Order; ref?: Ref<HTMLElemen
   const errorMessage = useErrorMessage()
   const cancel = useCancelOrder()
   const switchToCod = useSwitchToCod()
+  const reorder = useReorder()
+  const navigate = useNavigate()
   const [confirming, setConfirming] = useState(false)
   const titleId = `order-${order.id}-title`
 
@@ -88,10 +92,7 @@ export function OrderDetail({ order, ref }: { order: Order; ref?: Ref<HTMLElemen
           </li>
         ))}
       </ul>
-      <div className={styles.total}>
-        <strong>{t.account.total}</strong>
-        <strong className={styles.totalValue}>{formatVnd(order.total_price)}</strong>
-      </div>
+      <OrderTotals order={order} />
 
       <div className={styles.timeline}>
         <h3 className={styles.timelineTitle}>{t.account.timeline}</h3>
@@ -147,36 +148,61 @@ export function OrderDetail({ order, ref }: { order: Order; ref?: Ref<HTMLElemen
           </div>
         </div>
       ) : (
-        (order.can_pay || order.can_cancel) && (
-          <div className={styles.actions}>
-            {order.can_pay && (
-              <ButtonLink to={`/orders/${order.id}/pay`} variant="momo">
-                {/* A cash order can still be paid online; starting the payment switches it. */}
-                {order.payment_method === 'COD' ? t.account.switchToMomo : t.account.payNow}
-              </ButtonLink>
-            )}
-            {/* Way back for a MoMo payment that was declined or abandoned. */}
-            {order.can_pay && order.payment_method === 'MOMO' && (
-              <Button
-                variant="outline"
-                disabled={switchToCod.isPending}
-                onClick={() =>
-                  switchToCod.mutate(order.id, {
-                    onSuccess: () => toast(interpolate(t.account.switchedToCod, { id: order.id })),
-                    onError: (error) => toast(errorMessage(error)),
-                  })
-                }
-              >
-                {t.account.switchToCod}
-              </Button>
-            )}
-            {order.can_cancel && (
-              <Button variant="danger" onClick={() => setConfirming(true)}>
-                {t.account.cancelOrder}
-              </Button>
-            )}
-          </div>
-        )
+        <div className={styles.actions}>
+          {order.can_pay && (
+            <ButtonLink to={`/orders/${order.id}/pay`} variant="momo">
+              {/* A cash order can still be paid online; starting the payment switches it. */}
+              {order.payment_method === 'COD' ? t.account.switchToMomo : t.account.payNow}
+            </ButtonLink>
+          )}
+          {/* Way back for a MoMo payment that was declined or abandoned. */}
+          {order.can_pay && order.payment_method === 'MOMO' && (
+            <Button
+              variant="outline"
+              disabled={switchToCod.isPending}
+              onClick={() =>
+                switchToCod.mutate(order.id, {
+                  onSuccess: () => toast(interpolate(t.account.switchedToCod, { id: order.id })),
+                  onError: (error) => toast(errorMessage(error)),
+                })
+              }
+            >
+              {t.account.switchToCod}
+            </Button>
+          )}
+          {order.can_cancel && (
+            <Button variant="danger" onClick={() => setConfirming(true)}>
+              {t.account.cancelOrder}
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            disabled={reorder.isPending}
+            onClick={() =>
+              reorder.mutate(order.id, {
+                onSuccess: ({ added, skipped }) => {
+                  const gone = skipped.map((name) => localize(name)).join(', ')
+                  if (added === 0) {
+                    toast(t.account.reorderNothing)
+                    return
+                  }
+                  toast(
+                    [
+                      interpolate(t.account.reordered, { count: added }),
+                      gone && interpolate(t.account.reorderSkipped, { dishes: gone }),
+                    ]
+                      .filter(Boolean)
+                      .join(' '),
+                  )
+                  navigate('/cart')
+                },
+                onError: (error) => toast(errorMessage(error)),
+              })
+            }
+          >
+            {t.account.reorder}
+          </Button>
+        </div>
       )}
       {order.status === 'CONFIRMED' && <p className={styles.muted}>{t.account.lockedNote}</p>}
     </section>

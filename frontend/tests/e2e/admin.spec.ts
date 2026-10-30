@@ -133,3 +133,39 @@ test('customers cannot open the admin pages', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Tài khoản', exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Quản trị' })).toHaveCount(0)
 })
+
+test('staff create a promo code, a customer pays less with it and orders the same again', async ({
+  page,
+}) => {
+  const code = `E2E${Date.now().toString(36).toUpperCase()}`
+  await signInAsAdmin(page)
+  await page.goto('/admin/promo-codes')
+  await page.getByRole('button', { name: '+ Thêm mã' }).click()
+  await page.getByLabel('Mã', { exact: true }).fill(code.toLowerCase())
+  await page.getByLabel('Phần trăm giảm').fill('10')
+  await page.getByRole('button', { name: 'Lưu thay đổi' }).click()
+  await expect(page.getByText(`Đã tạo mã ${code}.`)).toBeVisible()
+
+  await page.context().clearCookies()
+  await page.goto('/login')
+  await signUpHere(page, 'Phan Thị Mai')
+  await page.goto('/menu')
+  await page
+    .locator('article')
+    .first()
+    .getByRole('button', { name: /^Thêm .* vào giỏ hàng$/ })
+    .click()
+  await expect(page.getByRole('link', { name: 'Giỏ hàng, 1 món' })).toBeVisible()
+  await page.goto('/checkout')
+  await page.getByLabel('Địa chỉ giao hàng').fill('3 Lê Lợi, Quận 1')
+  await page.getByLabel('Mã giảm giá').fill(code)
+  await page.getByRole('button', { name: 'Áp dụng' }).click()
+  await expect(page.getByText(`Đã áp dụng mã ${code}`)).toBeVisible()
+  await page.getByRole('button', { name: 'Xác nhận đặt hàng' }).click()
+
+  const detail = page.getByRole('region', { name: /^Đơn hàng #\d+$/ })
+  await expect(detail.getByText(`Giảm giá (${code})`)).toBeVisible()
+  await detail.getByRole('button', { name: 'Đặt lại' }).click()
+  await expect(page).toHaveURL(/\/cart$/)
+  await expect(page.getByRole('link', { name: 'Giỏ hàng, 1 món' })).toBeVisible()
+})

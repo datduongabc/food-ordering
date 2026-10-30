@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/toastContext'
 import { Pagination } from '@/features/catalog/components/Pagination'
 import detail from '@/features/orders/components/OrderDetail.module.css'
 import list from '@/features/orders/components/OrdersPanel.module.css'
+import { OrderTotals } from '@/features/orders/components/OrderTotals'
 import { ORDER_STATUSES, type OrderStatus } from '@/features/orders/schemas'
 import { ORDER_TONE, PAYMENT_TONE } from '@/features/orders/status'
 import type { Dictionary } from '@/i18n/dictionary'
@@ -216,10 +217,7 @@ function AdminOrderDetail({ order, ref }: { order: AdminOrder; ref?: Ref<HTMLEle
           </li>
         ))}
       </ul>
-      <div className={detail.total}>
-        <strong>{t.account.total}</strong>
-        <strong className={detail.totalValue}>{formatVnd(order.total_price)}</strong>
-      </div>
+      <OrderTotals order={order} />
 
       <div className={detail.timeline}>
         <h3 className={detail.timelineTitle}>{t.account.timeline}</h3>

@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { ApiError } from '@/lib/api/client'
-import { formatVnd, interpolate } from '@/lib/format'
+import { formatDate, formatVnd, interpolate } from '@/lib/format'
 import { isLocalizedText } from '@/lib/localized'
 import { useI18n } from './context'
 import type { Dictionary, Lang } from './dictionary'
@@ -14,6 +14,9 @@ function displayParam(key: string, value: unknown, t: Dictionary, lang: Lang): s
     return t.orderStatus[value] ?? value
   }
   if (key.endsWith('_vnd') && typeof value === 'number') return formatVnd(value)
+  if (key === 'date' && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return formatDate(value, lang)
+  }
   // Waits run up to an hour; past a minute, rounding up to whole minutes reads better.
   if (key === 'seconds' && typeof value === 'number') {
     return value < 60

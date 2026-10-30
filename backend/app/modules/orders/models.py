@@ -48,7 +48,15 @@ class Order(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
+    # Dishes at their snapshot prices, what a promo code took off, and what is owed.
+    subtotal_price: Mapped[int] = mapped_column(BigInteger, default=0)
+    discount_amount: Mapped[int] = mapped_column(BigInteger, default=0)
     total_price: Mapped[int] = mapped_column(BigInteger, default=0)
+    promo_code_id: Mapped[int | None] = mapped_column(
+        ForeignKey("promo_codes.id", ondelete="SET NULL"), index=True
+    )
+    # The code as typed at checkout, kept even if staff later rename or delete it.
+    promo_code: Mapped[str | None] = mapped_column(String(32))
     status: Mapped[OrderStatus] = mapped_column(
         Enum(OrderStatus, name="order_status", native_enum=False, length=20),
         default=OrderStatus.PENDING,

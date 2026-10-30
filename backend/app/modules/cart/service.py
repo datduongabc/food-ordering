@@ -70,7 +70,7 @@ def preview_guest_cart(db: Session, lines: list[CartItemIn]) -> CartOut:
     return _build_cart((product, quantities[product.id]) for product in products)
 
 
-def _add_quantity(db: Session, user: User, product_id: int, quantity: int) -> None:
+def add_quantity(db: Session, user: User, product_id: int, quantity: int) -> None:
     item = db.scalar(
         select(CartItem).where(CartItem.user_id == user.id, CartItem.product_id == product_id)
     )
@@ -82,13 +82,13 @@ def _add_quantity(db: Session, user: User, product_id: int, quantity: int) -> No
 
 def add_item(db: Session, user: User, product_id: int, quantity: int) -> CartOut:
     _active_product(db, product_id)
-    _add_quantity(db, user, product_id, quantity)
+    add_quantity(db, user, product_id, quantity)
     try:
         db.commit()
     except IntegrityError:
         # A concurrent add (e.g. a double click) inserted the row first; increment it instead.
         db.rollback()
-        _add_quantity(db, user, product_id, quantity)
+        add_quantity(db, user, product_id, quantity)
         db.commit()
     return get_cart(db, user)
 
@@ -121,6 +121,6 @@ def merge_guest_cart(db: Session, user: User, lines: list[CartItemIn]) -> CartOu
     """Adds a guest cart into the account cart after sign-in; dishes no longer sold are skipped."""
     preview = preview_guest_cart(db, lines)
     for line in preview.items:
-        _add_quantity(db, user, line.product.id, line.quantity)
+        add_quantity(db, user, line.product.id, line.quantity)
     db.commit()
     return get_cart(db, user)

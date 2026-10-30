@@ -10,7 +10,13 @@ from app.modules.notifications import emails
 from app.modules.orders import payments, service
 from app.modules.orders.models import PaymentStatus
 from app.modules.orders.momo import MomoGateway, MomoResult, get_momo_gateway
-from app.modules.orders.schemas import CheckoutIn, MomoPaymentOut, OrderOut, SandboxCompleteIn
+from app.modules.orders.schemas import (
+    CheckoutIn,
+    MomoPaymentOut,
+    OrderOut,
+    ReorderOut,
+    SandboxCompleteIn,
+)
 
 router = APIRouter(tags=["orders"])
 
@@ -58,6 +64,11 @@ def cancel_order(
     order = service.cancel_order(db, user, order_id)
     notify(background, mailer, emails.order_status_changed(order))
     return order
+
+
+@router.post("/orders/{order_id}/reorder", response_model=ReorderOut)
+def reorder(order_id: int, db: DbSession, user: CurrentUser):
+    return service.reorder(db, user, order_id)
 
 
 PAYMENT_LIMIT = [rate_limit(PAYMENTS, per="user")]

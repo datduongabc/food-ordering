@@ -97,11 +97,33 @@
   min-width: 0;
 }
 
+.totals {
+  margin: 0;
+  padding-top: 14px;
+  border-top: 2px dashed var(--color-border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.totals dd {
+  margin: 0;
+}
+
+.subRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.discount {
+  color: var(--color-green);
+  font-weight: 700;
+}
+
 .total {
   display: flex;
   justify-content: space-between;
-  padding-top: 14px;
-  border-top: 2px dashed var(--color-border-strong);
   font-size: 20px;
 }
 

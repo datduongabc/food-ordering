@@ -50,7 +50,9 @@ def make_order(
         items=[OrderItem(product=p, price_at_purchase=p.price, quantity=q) for p, q in lines],
         events=[OrderEvent(from_status=None, to_status=OrderStatus.PENDING)],
     )
-    order.total_price = sum(i.price_at_purchase * i.quantity for i in order.items)
+    order.subtotal_price = order.total_price = sum(
+        i.price_at_purchase * i.quantity for i in order.items
+    )
     db.add(order)
     db.commit()
     return order

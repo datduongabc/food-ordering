@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import BadRequestError, ConflictError, NotFoundError
 from app.modules.cart.models import CartItem
-from app.modules.cart.service import user_cart_items
+from app.modules.cart.service import add_quantity, get_cart, user_cart_items
 from app.modules.catalog.models import Location
 from app.modules.orders.models import (
     ORDER_TRANSITIONS,
@@ -16,7 +16,8 @@ from app.modules.orders.models import (
     PaymentMethod,
     PaymentStatus,
 )
-from app.modules.orders.schemas import CheckoutIn
+from app.modules.orders.schemas import CheckoutIn, ReorderOut
+from app.modules.promotions import service as promotions
 from app.modules.users.models import User
 
 
@@ -86,7 +87,14 @@ def place_order(db: Session, user: User, data: CheckoutIn) -> Order:
             for line in cart
         ],
     )
-    order.total_price = sum(item.price_at_purchase * item.quantity for item in order.items)
+    order.subtotal_price = sum(item.price_at_purchase * item.quantity for item in order.items)
+    order.discount_amount = 0
+    if data.promo_code:
+        quote = promotions.quote(db, user, data.promo_code, order.subtotal_price, for_update=True)
+        order.promo_code_id = quote.promo.id
+        order.promo_code = quote.promo.code
+        order.discount_amount = quote.discount
+    order.total_price = order.subtotal_price - order.discount_amount
     db.add(order)
     db.execute(delete(CartItem).where(CartItem.user_id == user.id))
     db.commit()
@@ -124,3 +132,18 @@ def cancel_order(db: Session, user: User, order_id: int) -> Order:
     transition(order, OrderStatus.CANCELLED, user)
     db.commit()
     return order
+
+
+def reorder(db: Session, user: User, order_id: int) -> ReorderOut:
+    """Puts a past order's dishes back in the cart, at today's prices, on top of what is there."""
+    order = get_order(db, user, order_id)
+    added = 0
+    skipped = []
+    for item in order.items:
+        if item.product.deleted_at is not None:
+            skipped.append(item.product.name)
+            continue
+        add_quantity(db, user, item.product_id, item.quantity)
+        added += 1
+    db.commit()
+    return ReorderOut(cart=get_cart(db, user), added=added, skipped=skipped)

@@ -6,11 +6,12 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response, Upload
 from app.core.deps import AdminUser, DbSession, require_admin
 from app.core.email import Mailer, notify
 from app.core.errors import BadRequestError
-from app.modules.admin import audit, exports, operations, products, stats, users
+from app.modules.admin import audit, exports, operations, products, promotions, stats, users
 from app.modules.admin.products import MAX_IMAGE_BYTES
 from app.modules.admin.schemas import (
     AdminOrderOut,
     AdminProductOut,
+    AdminPromoOut,
     AdminReservationOut,
     AdminUserOut,
     AuditLogOut,
@@ -20,6 +21,7 @@ from app.modules.admin.schemas import (
     PaymentStats,
     ProductCreate,
     ProductUpdate,
+    PromoCodeIn,
     RatingStats,
     ReservationStatusIn,
     RevenueTrend,
@@ -202,6 +204,34 @@ def deactivate_user(user_id: int, db: DbSession, admin: AdminUser):
 @router.post("/users/{user_id}/restore", response_model=AdminUserOut)
 def restore_user(user_id: int, db: DbSession, admin: AdminUser):
     return users.restore_user(db, admin, user_id)
+
+
+# --- Promo codes ---
+
+
+@router.get("/promo-codes", response_model=list[AdminPromoOut])
+def list_promo_codes(db: DbSession):
+    return promotions.list_promos(db)
+
+
+@router.post("/promo-codes", response_model=AdminPromoOut, status_code=201)
+def create_promo_code(data: PromoCodeIn, db: DbSession, admin: AdminUser):
+    return promotions.create_promo(db, admin, data)
+
+
+@router.put("/promo-codes/{promo_id}", response_model=AdminPromoOut)
+def update_promo_code(promo_id: int, data: PromoCodeIn, db: DbSession, admin: AdminUser):
+    return promotions.update_promo(db, admin, promo_id, data)
+
+
+@router.post("/promo-codes/{promo_id}/disable", response_model=AdminPromoOut)
+def disable_promo_code(promo_id: int, db: DbSession, admin: AdminUser):
+    return promotions.disable_promo(db, admin, promo_id)
+
+
+@router.post("/promo-codes/{promo_id}/enable", response_model=AdminPromoOut)
+def enable_promo_code(promo_id: int, db: DbSession, admin: AdminUser):
+    return promotions.enable_promo(db, admin, promo_id)
 
 
 # --- Reports ---
