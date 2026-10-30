@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import type { RouteObject } from 'react-router'
 import { SiteLayout } from '@/components/layout/SiteLayout'
 import { HomePage } from '@/features/home/HomePage'
+import { ErrorPage } from '@/pages/ErrorPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
 function lazyPages(pages: Record<string, () => Promise<ComponentType>>): RouteObject[] {
@@ -15,6 +16,7 @@ function lazyPages(pages: Record<string, () => Promise<ComponentType>>): RouteOb
 export const routes: RouteObject[] = [
   {
     element: <SiteLayout />,
+    errorElement: <ErrorPage />,
     children: [
       { index: true, element: <HomePage /> },
       {
@@ -42,6 +44,8 @@ export const routes: RouteObject[] = [
         checkout: () => import('@/features/orders/pages/CheckoutPage').then((m) => m.CheckoutPage),
         'orders/:id/pay': () =>
           import('@/features/orders/pages/PaymentPage').then((m) => m.PaymentPage),
+        'payment/momo/return': () =>
+          import('@/features/orders/pages/MomoReturnPage').then((m) => m.MomoReturnPage),
         account: () => import('@/features/account/AccountPage').then((m) => m.AccountPage),
       }),
       {

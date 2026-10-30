@@ -191,6 +191,12 @@ def register_and_login(client: TestClient, user: dict) -> None:
     assert login.status_code == 200, login.text
 
 
+@pytest.fixture
+def shopper(client, catalog):
+    register_and_login(client, USER)
+    return client
+
+
 ADMIN = {
     "name": "Quan Ly",
     "email": "admin@dateno.vn",

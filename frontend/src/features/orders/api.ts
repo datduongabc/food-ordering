@@ -34,6 +34,20 @@ export const orderQueries = {
       retry: false,
       refetchOnWindowFocus: false,
     }),
+  /** Hands the result MoMo put on the return URL to the API, which checks its signature. */
+  momoReturn: (params: Record<string, string>) =>
+    queryOptions({
+      queryKey: ['orders', 'momo-return', params],
+      queryFn: async ({ client }) => {
+        const order = await api.post('/payments/momo/return', orderSchema, params)
+        client.setQueryData(['orders', 'detail', order.id], order)
+        await client.invalidateQueries({ queryKey: ['orders', 'list'] })
+        return order
+      },
+      staleTime: Infinity,
+      retry: false,
+      refetchOnWindowFocus: false,
+    }),
 }
 
 /** Keeps the list and the detail view in step after any change to one order. */

@@ -9,12 +9,6 @@ from tests.integration.conftest import register_and_login
 OTHER_USER = {**USER, "email": "other@example.com", "phone": "0922222222"}
 
 
-@pytest.fixture
-def shopper(client, catalog):
-    register_and_login(client, USER)
-    return client
-
-
 def fill_cart(client, catalog, **quantities):
     for slug, quantity in quantities.items():
         product_id = catalog.products[slug.replace("_", "-")].id

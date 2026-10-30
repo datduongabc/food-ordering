@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import AliasPath, BaseModel, ConfigDict, Field, StringConstraints, computed_field
 
@@ -94,8 +94,9 @@ class MomoPaymentOut(BaseModel):
     order_id: int
     momo_order_id: str
     amount: int
-    # Only the sandbox exists today; a live MoMo integration would return its payUrl here.
-    mode: str = "sandbox"
+    # "gateway": send the customer to pay_url. "sandbox": show the local approval screen.
+    mode: Literal["gateway", "sandbox"]
+    pay_url: str | None = None
 
 
 class SandboxCompleteIn(BaseModel):

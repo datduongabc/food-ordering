@@ -28,3 +28,6 @@ __pycache__/
 # Coverage reports
 coverage/
 .coverage
+
+# Database and photo backups written by the backup service.
+/backups/

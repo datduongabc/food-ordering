@@ -24,5 +24,6 @@ RUN useradd --system --create-home app && chown -R app:app /app/media
 USER app
 
 EXPOSE 8000
-# Migrations run on every start; they are no-ops once the database is current.
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*'"]
+# Migrations run on every start; they are no-ops once the database is current. The app logs
+# each request itself, with its id, so uvicorn's access log would only repeat it.
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*' --no-access-log"]

@@ -1,9 +1,14 @@
 # Serves the SPA and proxies the API on the same origin, so session and CSRF cookies stay
-# first-party, as with the Vite dev server.
+# first-party, as with the Vite dev server. The nginx image fills in ${TRUSTED_PROXY} at start.
 server {
     listen 80;
     root /usr/share/nginx/html;
     server_tokens off;
+
+    # Behind the HTTPS proxy, the client address is the one that proxy reports. Any other
+    # sender's X-Forwarded-For is ignored, so it cannot be used to dodge rate limits.
+    set_real_ip_from ${TRUSTED_PROXY};
+    real_ip_header X-Forwarded-For;
 
     # Dish photos are capped at 5 MB by the API.
     client_max_body_size 6m;
@@ -17,6 +22,8 @@ server {
         # X-Forwarded-For would let anyone pick a fresh one per request.
         proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # The backend logs under this id and returns it as X-Request-ID.
+        proxy_set_header X-Request-ID $request_id;
         # The API sends its own copies of these; keep one set, not two.
         proxy_hide_header X-Content-Type-Options;
         proxy_hide_header X-Frame-Options;

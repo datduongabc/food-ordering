@@ -215,6 +215,13 @@ export const vi = {
     retry: 'Thử lại',
     later: 'Thanh toán sau',
     unavailableTitle: 'Không thể thanh toán đơn hàng này',
+    redirecting: 'Đang chuyển tới trang thanh toán MoMo…',
+    openMomo: 'Mở trang thanh toán MoMo',
+    checking: 'Đang xác nhận kết quả thanh toán…',
+    pendingTitle: 'MoMo đang xử lý giao dịch',
+    pendingBody:
+      'Kết quả sẽ được cập nhật vào đơn hàng sau ít phút. Quý khách chưa cần thanh toán lại.',
+    returnErrorTitle: 'Không xác nhận được kết quả thanh toán',
   },
   account: {
     hello: 'Xin chào, {name}',
@@ -456,6 +463,11 @@ export const vi = {
     commentRequired: 'Vui lòng nhập nhận xét.',
     tooLong: 'Tối đa {max} ký tự.',
   },
+  errorPage: {
+    title: 'Đã có lỗi xảy ra',
+    body: 'Trang này gặp sự cố khi hiển thị. Chúng tôi đã ghi nhận lỗi; quý khách vui lòng tải lại trang.',
+    reload: 'Tải lại trang',
+  },
   notFound: {
     title: 'Không tìm thấy trang',
     body: 'Trang quý khách tìm không tồn tại hoặc đã được di chuyển.',
@@ -487,6 +499,10 @@ export const vi = {
     order_not_found: 'Không tìm thấy đơn hàng.',
     order_not_cancellable: 'Chỉ có thể hủy đơn đang chờ xác nhận. Vui lòng gọi cho nhà hàng.',
     invalid_status_transition: 'Không thể chuyển trạng thái từ “{from}” sang “{to}”.',
+    momo_unreachable:
+      'Chưa kết nối được tới MoMo. Vui lòng thử lại sau ít phút hoặc thanh toán khi nhận hàng.',
+    invalid_momo_result:
+      'Không xác minh được kết quả thanh toán này. Vui lòng kiểm tra lại trong đơn hàng.',
     momo_unavailable: 'Thanh toán MoMo tạm thời chưa khả dụng. Vui lòng thanh toán khi nhận hàng.',
     order_already_paid: 'Đơn hàng #{order_id} đã được thanh toán.',
     order_not_payable:

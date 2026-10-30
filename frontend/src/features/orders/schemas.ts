@@ -50,7 +50,9 @@ export const momoPaymentSchema = z.object({
   order_id: z.number(),
   momo_order_id: z.string(),
   amount: z.number().int(),
-  mode: z.string(),
+  // "gateway": send the customer to pay_url. "sandbox": show the local approval screen.
+  mode: z.enum(['gateway', 'sandbox']),
+  pay_url: z.string().nullable().optional(),
 })
 
 export type Order = z.infer<typeof orderSchema>

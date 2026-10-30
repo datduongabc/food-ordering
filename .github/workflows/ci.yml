@@ -18,7 +18,11 @@ jobs:
       - name: Validate Docker Compose Configuration
         env:
           SECRET_KEY: ci-placeholder-secret-key
-        run: docker compose config -q
+        run: |
+          docker compose config -q
+          DOMAIN=example.com ACME_EMAIL=ops@example.com \
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml config -q
+          sh -n deploy/backup.sh
 
       - name: Build Docker Compose Images
         env:

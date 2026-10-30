@@ -46,6 +46,22 @@ class Settings(BaseSettings):
     # Failed sign-ins and reset codes are always counted.
     rate_limits_enabled: bool = True
 
+    # Where customers reach the site; MoMo sends them back here and posts results to it.
+    public_url: str = "http://localhost:8000"
+
+    # Live MoMo payments once all three are set; locally without them, a built-in sandbox.
+    momo_partner_code: str = ""
+    momo_access_key: str = ""
+    momo_secret_key: str = ""
+    # MoMo's test environment; https://payment.momo.vn takes real money.
+    momo_endpoint: str = "https://test-payment.momo.vn"
+
+    # "json" writes one object per line, for log collectors; "text" is easier to read by eye.
+    log_format: Literal["text", "json"] = "text"
+    # Errors go to Sentry when set; the share of requests also traced for performance.
+    sentry_dsn: str = ""
+    sentry_traces_sample_rate: float = 0.0
+
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
     smtp_username: str = ""
@@ -67,6 +83,10 @@ class Settings(BaseSettings):
     @property
     def is_local(self) -> bool:
         return self.app_env in ("local", "test")
+
+    @property
+    def momo_configured(self) -> bool:
+        return bool(self.momo_partner_code and self.momo_access_key and self.momo_secret_key)
 
     @property
     def smtp_configured(self) -> bool:
