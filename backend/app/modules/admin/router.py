@@ -172,7 +172,7 @@ def change_reservation_status(
 ):
     reservation = operations.change_reservation_status(db, admin, reservation_id, data.status)
     customer = db.get(User, reservation.user_id) if reservation.user_id else None
-    if customer is not None:
+    if customer is not None and customer.is_email_verified:
         notify(
             background,
             mailer,

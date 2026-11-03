@@ -1,7 +1,15 @@
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, StringConstraints
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    StringConstraints,
+    model_validator,
+)
 
 from app.modules.users.models import Role
 
@@ -42,7 +50,17 @@ class ChangePasswordIn(BaseModel):
 
 
 class VerifyEmailIn(BaseModel):
-    code: OtpCodeStr
+    code: OtpCodeStr | None = None
+    token: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=10, max_length=512)]
+        | None
+    ) = None
+
+    @model_validator(mode="after")
+    def _require_code_or_token(self) -> "VerifyEmailIn":
+        if not self.code and not self.token:
+            raise ValueError("Provide either a verification code or a verification token.")
+        return self
 
 
 class UserOut(BaseModel):

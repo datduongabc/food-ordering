@@ -3,6 +3,7 @@ import os
 # Must run before any `app` import: settings and the engine are created at import time.
 os.environ["APP_ENV"] = "test"
 os.environ["DATABASE_URL"] = "sqlite://"
+os.environ["REDIS_URL"] = ""
 os.environ["SECRET_KEY"] = "test-secret"
 os.environ["SMTP_USERNAME"] = ""
 os.environ["SMTP_PASSWORD"] = ""

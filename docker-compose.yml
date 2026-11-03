@@ -1,10 +1,18 @@
-# DaTeNO: Postgres, the FastAPI backend and the React app behind nginx.
+# DaTeNO: Postgres, Redis, the FastAPI backend and the React app behind nginx.
 # Settings come from .env next to this file (see .env.example).
 services:
   db:
     image: postgres:16-alpine
     container_name: dateno_postgres_db
     restart: unless-stopped
+    command:
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - work_mem=8MB
     environment:
       POSTGRES_DB: ${DB_NAME:-dateno}
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -19,6 +27,29 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    container_name: dateno_redis
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - volatile-ttl
+      - --save
+      - "60"
+      - "1"
+      - --loglevel
+      - warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   backend:
     build: ./backend
     container_name: dateno_backend
@@ -30,6 +61,10 @@ services:
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       # Set DATABASE_URL yourself when the password needs URL-encoding.
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-dateno}}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-20}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-20}
       MEDIA_DIR: /app/media
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8000}
       MOMO_PARTNER_CODE: ${MOMO_PARTNER_CODE:-}
@@ -43,11 +78,16 @@ services:
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USERNAME: ${SMTP_USERNAME:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      SMTP_USE_SSL: ${SMTP_USE_SSL:-false}
+      SMTP_MAX_RETRIES: ${SMTP_MAX_RETRIES:-3}
       MAIL_FROM: ${MAIL_FROM:-}
     volumes:
       - media:/app/media
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
@@ -92,5 +132,6 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
   # Seeded and uploaded dish photos.
   media:

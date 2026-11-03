@@ -84,11 +84,23 @@ export function useRequestVerification() {
   return useMutation({ mutationFn: () => api.post('/auth/email/verification', acceptedSchema) })
 }
 
+export type VerifyEmailInput = string | { code?: string; token?: string }
+
 export function useVerifyEmail() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (code: string) => api.post('/auth/email/verify', userSchema, { code }),
-    onSuccess: (user) => queryClient.setQueryData(authQueries.me().queryKey, user),
+    mutationFn: (input: VerifyEmailInput) =>
+      api.post(
+        '/auth/email/verify',
+        userSchema,
+        typeof input === 'string' ? { code: input } : input,
+      ),
+    onSuccess: (user) => {
+      const current = queryClient.getQueryData<User | null>(authQueries.me().queryKey)
+      if (current && current.id === user.id) {
+        queryClient.setQueryData(authQueries.me().queryKey, user)
+      }
+    },
   })
 }
 

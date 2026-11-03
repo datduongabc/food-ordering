@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
@@ -26,9 +26,11 @@ export function VerifyEmailPage() {
   const errorMessage = useErrorMessage()
   const [params] = useSearchParams()
   const next = safeNext(params.get('next'))
+  const token = params.get('token')?.trim() || undefined
   const verify = useVerifyEmail()
   const resend = useRequestVerification()
   const [formError, setFormError] = useState<string>()
+  const attemptedToken = useRef<string | undefined>(undefined)
 
   const schema = useMemo(() => z.object({ code: authRules(t).code }), [t])
   const form = useForm({ resolver: zodResolver(schema), defaultValues: { code: '' } })
@@ -37,8 +39,64 @@ export function VerifyEmailPage() {
     too_many_code_attempts: 'code',
   })
 
+  useEffect(() => {
+    if (!token || user === undefined || attemptedToken.current === token) return
+    attemptedToken.current = token
+    setFormError(undefined)
+    verify.mutate(
+      { token },
+      {
+        onSuccess: () => {
+          toast(t.auth.verified)
+          if (user) {
+            navigate(next, { replace: true })
+          }
+        },
+        onError: (error) => {
+          setFormError(errorMessage(error))
+        },
+      },
+    )
+  }, [token, user, verify, toast, t.auth.verified, navigate, next, errorMessage])
+
   if (user === undefined) return <Loading />
-  if (user === null) return <Navigate to="/login?next=/verify-email" replace />
+
+  if (token && (verify.isIdle || verify.isPending)) {
+    return <Loading />
+  }
+
+  if (token && verify.isSuccess && user === null) {
+    return (
+      <AuthLayout>
+        <div className={styles.done}>
+          <span aria-hidden="true" className={styles.doneIcon}>
+            ✓
+          </span>
+          <h1 className={styles.title}>{t.auth.verified}</h1>
+          <ButtonLink to="/login" size="lg">
+            {t.auth.loginNow}
+          </ButtonLink>
+        </div>
+      </AuthLayout>
+    )
+  }
+
+  if (user === null) {
+    if (token && formError) {
+      return (
+        <AuthLayout>
+          <div className={styles.form}>
+            <h1 className={styles.title}>{t.auth.verifyTitle}</h1>
+            <FormError message={formError} />
+            <ButtonLink to="/login?next=/verify-email" size="lg" block>
+              {t.auth.loginNow}
+            </ButtonLink>
+          </div>
+        </AuthLayout>
+      )
+    }
+    return <Navigate to="/login?next=/verify-email" replace />
+  }
 
   if (user.is_email_verified && verify.isIdle) {
     return (

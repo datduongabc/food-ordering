@@ -135,6 +135,16 @@ class TestOrderEmails:
         fill_cart(shopper, catalog, pho_bo=1)
         assert checkout(shopper).status_code == 201
 
+    def test_unverified_account_can_order_and_book_without_receiving_emails(
+        self, client, catalog, inbox
+    ):
+        from tests.integration.conftest import register_and_login
+
+        register_and_login(client, USER, verify=False)
+        place(client, catalog)
+        assert book(client, catalog).status_code == 201
+        assert inbox.sent == []
+
 
 class TestMomoGatewayEmails:
     @pytest.fixture(autouse=True)

@@ -93,6 +93,19 @@ class TestChecking:
         assert check(client, "GIAM20").status_code == 401
         assert check(customer, "GIAM20").json()["code"] == "cart_empty"
 
+    def test_requires_verified_email_to_use_promo_code(self, admin_client, client, catalog):
+        new_promo(admin_client)
+        register_and_login(client, OTHER_USER, verify=False)
+        fill_cart(client, catalog, pho_bo=1)
+
+        response = check(client, "GIAM20")
+        assert response.status_code == 403
+        assert response.json()["code"] == "email_not_verified"
+
+        order_resp = checkout(client, promo_code="GIAM20")
+        assert order_resp.status_code == 403
+        assert order_resp.json()["code"] == "email_not_verified"
+
 
 class TestCheckout:
     def test_the_order_keeps_subtotal_discount_and_code_and_momo_charges_the_rest(

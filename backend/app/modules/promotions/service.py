@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.db import utcnow
-from app.core.errors import BadRequestError
+from app.core.errors import BadRequestError, ForbiddenError
 from app.modules.orders.models import Order, OrderStatus
 from app.modules.promotions.models import DiscountKind, PromoCode
 from app.modules.users.models import User
@@ -59,6 +59,11 @@ def quote(db: Session, user: User, code: str, subtotal: int, *, for_update: bool
 
     At checkout the code's row is locked, so two last orders cannot both take its final use.
     """
+    if not user.is_email_verified:
+        raise ForbiddenError(
+            "Please verify your email before using a promo code.",
+            code="email_not_verified",
+        )
     normalized = normalize_code(code)
     query = select(PromoCode).where(PromoCode.code == normalized)
     if for_update:

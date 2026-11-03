@@ -33,8 +33,8 @@ def create_reservation(
     mailer: Mailer,
 ):
     reservation = service.create_reservation(db, user, data)
-    # Guests leave only a phone number; the restaurant calls them instead.
-    if user is not None:
+    # Guests leave only a phone number, and unverified addresses never receive booking mail.
+    if user is not None and user.is_email_verified:
         notify(background, mailer, emails.reservation_received(reservation, user.email))
     return reservation
 
@@ -53,9 +53,10 @@ def cancel_my_reservation(
     mailer: Mailer,
 ):
     reservation = service.cancel_my_reservation(db, user, reservation_id)
-    notify(
-        background,
-        mailer,
-        emails.reservation_status_changed(reservation, user.email, by_customer=True),
-    )
+    if user.is_email_verified:
+        notify(
+            background,
+            mailer,
+            emails.reservation_status_changed(reservation, user.email, by_customer=True),
+        )
     return reservation

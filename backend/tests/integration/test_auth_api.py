@@ -274,3 +274,23 @@ class TestEmailVerification:
         wrong = "000000" if outbox.last_code() != "000000" else "111111"
         response = logged_in_client.post("/api/auth/email/verify", json={"code": wrong})
         assert response.status_code == 400
+
+    def test_verifies_with_emailed_url_token_even_from_another_device(
+        self, logged_in_client, second_client, outbox
+    ):
+        import re
+
+        assert logged_in_client.post("/api/auth/email/verification").status_code == 202
+        match = re.search(r"/verify-email\?token=([^\s]+)", outbox.sent[-1].text)
+        assert match is not None
+        token = match.group(1)
+
+        response = second_client.post("/api/auth/email/verify", json={"token": token})
+        assert response.status_code == 200
+        assert response.json()["is_email_verified"] is True
+        assert logged_in_client.get("/api/auth/me").json()["is_email_verified"] is True
+
+    def test_rejects_tampered_verification_token(self, client):
+        response = client.post("/api/auth/email/verify", json={"token": "tampered.token12345"})
+        assert response.status_code == 400
+        assert response.json()["code"] == "invalid_code"

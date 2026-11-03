@@ -15,15 +15,17 @@ from app.core.errors import (
     UnauthorizedError,
 )
 from app.core.security import (
+    create_email_verification_token,
     hash_otp_code,
     hash_password,
     hash_token,
     new_otp_code,
     new_session_token,
+    verify_email_verification_token,
     verify_password,
 )
 from app.modules.auth.models import OtpCode, OtpPurpose, UserSession
-from app.modules.auth.phantom import PhantomResetCodes
+from app.modules.auth.phantom import PhantomResetCodes, RedisPhantomResetCodes
 from app.modules.auth.schemas import RegisterIn
 from app.modules.users.models import User
 
@@ -152,16 +154,29 @@ def consume_otp(db: Session, user: User, purpose: OtpPurpose, code: str) -> None
 
 def otp_email(user: User, purpose: OtpPurpose, code: str) -> Email:
     settings = get_settings()
-    subject, intro = {
-        OtpPurpose.PASSWORD_RESET: (
-            "Reset your DaTeNO password",
-            "Use this code to reset your password:",
-        ),
-        OtpPurpose.EMAIL_VERIFICATION: (
-            "Verify your DaTeNO email",
-            "Use this code to verify your email address:",
-        ),
-    }[purpose]
+    if purpose == OtpPurpose.EMAIL_VERIFICATION:
+        token = create_email_verification_token(user.id, user.email, code)
+        verify_url = f"{settings.public_url.rstrip('/')}/verify-email?token={token}"
+        subject = "Xác thực email DaTeNO / Verify your DaTeNO email"
+        text = (
+            f"Chào {user.name},\n\n"
+            "Sử dụng mã xác thực dưới đây hoặc nhấp vào đường dẫn để xác thực tài khoản:\n\n"
+            f"    {code}\n\n"
+            f"Xác thực nhanh bằng đường dẫn:\n    {verify_url}\n\n"
+            f"Mã và đường dẫn có hiệu lực trong {settings.otp_ttl_minutes} phút.\n\n"
+            "Nhà hàng DaTeNO\n\n"
+            "----------------------------------------\nEnglish version\n\n"
+            f"Hi {user.name},\n\n"
+            "Use this code or click the link below to verify your email address:\n\n"
+            f"    {code}\n\n"
+            f"Verify with one click:\n    {verify_url}\n\n"
+            f"The code and link expire in {settings.otp_ttl_minutes} minutes. "
+            "If you did not request this, you can ignore this email.\n\nDaTeNO Restaurant"
+        )
+        return Email(to=user.email, subject=subject, text=text)
+
+    subject = "Reset your DaTeNO password"
+    intro = "Use this code to reset your password:"
     text = (
         f"Hi {user.name},\n\n{intro}\n\n    {code}\n\n"
         f"The code expires in {settings.otp_ttl_minutes} minutes. "
@@ -170,7 +185,9 @@ def otp_email(user: User, purpose: OtpPurpose, code: str) -> Email:
     return Email(to=user.email, subject=subject, text=text)
 
 
-def start_password_reset(db: Session, email: str, phantoms: PhantomResetCodes) -> Email | None:
+def start_password_reset(
+    db: Session, email: str, phantoms: PhantomResetCodes | RedisPhantomResetCodes
+) -> Email | None:
     """Returns the email to send, or None for unknown accounts (the caller responds identically)."""
     user = get_active_user_by_email(db, email)
     if user is None:
@@ -181,8 +198,12 @@ def start_password_reset(db: Session, email: str, phantoms: PhantomResetCodes) -
 
 
 def reset_password(
-    db: Session, email: str, code: str, new_password: str, phantoms: PhantomResetCodes
-) -> None:
+    db: Session,
+    email: str,
+    code: str,
+    new_password: str,
+    phantoms: PhantomResetCodes | RedisPhantomResetCodes,
+) -> User:
     user = get_active_user_by_email(db, email)
     if user is None:
         if not phantoms.record_guess(email):
@@ -190,9 +211,12 @@ def reset_password(
         raise BadRequestError(INVALID_CODE, code="invalid_code")
     consume_otp(db, user, OtpPurpose.PASSWORD_RESET, code)
     user.password_hash = hash_password(new_password)
+    if user.email_verified_at is None:
+        user.email_verified_at = utcnow()
     # Whoever triggered the reset may be locking out an attacker, so every session goes.
     revoke_all_sessions(db, user.id)
     db.commit()
+    return user
 
 
 def change_password(
@@ -214,6 +238,22 @@ def start_email_verification(db: Session, user: User) -> Email:
 
 
 def verify_email(db: Session, user: User, code: str) -> User:
+    if user.is_email_verified:
+        return user
+    consume_otp(db, user, OtpPurpose.EMAIL_VERIFICATION, code)
+    user.email_verified_at = utcnow()
+    db.commit()
+    return user
+
+
+def verify_email_by_token(db: Session, token: str) -> User:
+    parsed = verify_email_verification_token(token)
+    if parsed is None:
+        raise BadRequestError(INVALID_CODE, code="invalid_code")
+    user_id, email, code = parsed
+    user = db.get(User, user_id)
+    if user is None or user.deleted_at is not None or user.email != email:
+        raise BadRequestError(INVALID_CODE, code="invalid_code")
     if user.is_email_verified:
         return user
     consume_otp(db, user, OtpPurpose.EMAIL_VERIFICATION, code)

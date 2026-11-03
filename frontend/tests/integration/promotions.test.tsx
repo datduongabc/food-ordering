@@ -72,6 +72,21 @@ describe('promo codes at checkout', () => {
     expect(screen.queryByText('Giảm giá (GIAM20)')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Mã giảm giá')).toHaveValue('')
   })
+
+  it('requires a verified email before applying a promo code', async () => {
+    const user = userEvent.setup()
+    mockLayout({ signedIn: { ...customer, is_email_verified: false } })
+    mockApi('get', '/cart', cartOf([springRolls, 2]))
+    mockApi('post', '/promo-codes/check', apiError('email_not_verified'), 403)
+    renderApp('/checkout')
+
+    await user.type(await screen.findByLabelText('Mã giảm giá'), 'GIAM20')
+    await user.click(screen.getByRole('button', { name: 'Áp dụng' }))
+
+    expect(
+      await screen.findByText('Vui lòng xác thực email trước khi sử dụng mã giảm giá.'),
+    ).toBeInTheDocument()
+  })
 })
 
 describe('past orders', () => {

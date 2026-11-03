@@ -208,6 +208,18 @@ describe('email verification', () => {
     const { router } = renderApp('/verify-email')
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
   })
+
+  it('verifies automatically when opened from the email verification link', async () => {
+    mockLayout({ signedIn: { ...customer, is_email_verified: false } })
+    const calls = recordCalls(['post', '/auth/email/verify', customer])
+    mockMenu()
+    const { router } = renderApp('/verify-email?token=signed.token.12345&next=/menu')
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Thực đơn' }))
+    expect(router.state.location.pathname).toBe('/menu')
+    expect(calls[0]?.body).toEqual({ token: 'signed.token.12345' })
+    expect(screen.getByText('Email đã được xác thực.')).toBeInTheDocument()
+  })
 })
 
 describe('password reset', () => {

@@ -11,6 +11,7 @@ from app.core.config import get_settings
 from app.core.email import Email
 from app.modules.orders.models import Order, OrderStatus, PaymentMethod, PaymentStatus
 from app.modules.reservations.models import Reservation, ReservationStatus
+from app.modules.users.models import User
 
 DIVIDER = "\n\n----------------------------------------\nEnglish version\n\n"
 SIGNATURE = {"vi": "Nhà hàng DaTeNO", "en": "DaTeNO Restaurant"}
@@ -94,7 +95,9 @@ def _review_links(order: Order, lang: str) -> list[str]:
     ]
 
 
-def order_placed(order: Order) -> Email:
+def order_placed(order: Order) -> Email | None:
+    if not order.user.is_email_verified:
+        return None
     n = order.id
     link = _link(f"/account?order={n}")
     momo = order.payment_method == PaymentMethod.MOMO
@@ -128,6 +131,8 @@ def order_placed(order: Order) -> Email:
 
 def order_status_changed(order: Order) -> Email | None:
     """The latest status change, as told to the customer; None when it needs no email."""
+    if not order.user.is_email_verified:
+        return None
     event = order.events[-1]
     n = order.id
     link = _link(f"/account?order={n}")
@@ -262,4 +267,32 @@ def reservation_status_changed(
         subject,
         [f"Chào {name},", "", *vi, *_booking_summary(reservation, "vi")],
         [f"Hello {name},", "", *en, *_booking_summary(reservation, "en")],
+    )
+
+
+# --- Account security -----------------------------------------------------------------
+
+
+def password_changed(user: User) -> Email | None:
+    """Security notice sent after a password change or reset once the email is verified."""
+    if not user.is_email_verified:
+        return None
+    reset_url = _link("/forgot-password")
+    return _bilingual(
+        user.email,
+        ("DaTeNO: Mật khẩu đã được cập nhật", "Your DaTeNO password was changed"),
+        [
+            f"Chào {user.name},",
+            "",
+            "Mật khẩu tài khoản DaTeNO của quý khách vừa được thay đổi "
+            "và các phiên đăng nhập khác đã được đăng xuất.",
+            f"Nếu quý khách không thực hiện, vui lòng đặt lại mật khẩu ngay: {reset_url}",
+        ],
+        [
+            f"Hello {user.name},",
+            "",
+            "Your DaTeNO password was just changed and any other signed-in "
+            "sessions were signed out.",
+            f"If this was not you, please reset your password right away: {reset_url}",
+        ],
     )

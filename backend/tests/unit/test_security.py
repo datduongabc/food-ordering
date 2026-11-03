@@ -1,11 +1,13 @@
 import bcrypt
 
 from app.core.security import (
+    create_email_verification_token,
     hash_otp_code,
     hash_password,
     hash_token,
     new_otp_code,
     new_session_token,
+    verify_email_verification_token,
     verify_password,
 )
 
@@ -46,3 +48,13 @@ def test_session_tokens_are_unique_and_hash_to_fixed_length():
 
     assert first != second
     assert len(hash_token(first)) == 64
+
+
+def test_email_verification_token_roundtrip_and_tamper_detection():
+    token = create_email_verification_token(7, "lan@example.com", "654321")
+
+    assert verify_email_verification_token(token) == (7, "lan@example.com", "654321")
+    payload, _, sig = token.partition(".")
+    assert verify_email_verification_token(f"{payload}.{'0' * len(sig)}") is None
+    assert verify_email_verification_token(f"tampered.{sig}") is None
+    assert verify_email_verification_token("no-dot-at-all") is None

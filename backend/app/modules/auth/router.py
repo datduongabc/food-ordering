@@ -1,8 +1,8 @@
 from fastapi import APIRouter, BackgroundTasks, Request, Response, status
 
 from app.core.config import get_settings
-from app.core.deps import CurrentSession, CurrentUser, DbSession
-from app.core.email import Mailer, send_safely
+from app.core.deps import CurrentSession, CurrentUser, DbSession, OptionalUser
+from app.core.email import Mailer, notify, send_safely
 from app.core.errors import UnauthorizedError
 from app.core.rate_limit import (
     CODE_ENTRY,
@@ -27,6 +27,7 @@ from app.modules.auth.schemas import (
     UserOut,
     VerifyEmailIn,
 )
+from app.modules.notifications import emails
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -116,19 +117,33 @@ def forgot_password(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[rate_limit(CODE_ENTRY)],
 )
-def reset_password(data: ResetPasswordIn, db: DbSession, request: Request, response: Response):
+def reset_password(
+    data: ResetPasswordIn,
+    db: DbSession,
+    request: Request,
+    response: Response,
+    background: BackgroundTasks,
+    mailer: Mailer,
+):
     phantoms = request.app.state.phantom_reset_codes
-    service.reset_password(db, data.email, data.code, data.new_password, phantoms)
+    user = service.reset_password(db, data.email, data.code, data.new_password, phantoms)
     _clear_session_cookie(response)
+    notify(background, mailer, emails.password_changed(user))
 
 
 @router.post("/password/change", status_code=status.HTTP_204_NO_CONTENT)
 def change_password(
-    data: ChangePasswordIn, db: DbSession, user: CurrentUser, user_session: CurrentSession
+    data: ChangePasswordIn,
+    db: DbSession,
+    user: CurrentUser,
+    user_session: CurrentSession,
+    background: BackgroundTasks,
+    mailer: Mailer,
 ):
     if user_session is None:
         raise UnauthorizedError("Please sign in to continue.", code="auth_required")
     service.change_password(db, user, user_session, data.current_password, data.new_password)
+    notify(background, mailer, emails.password_changed(user))
 
 
 @router.post(
@@ -144,5 +159,9 @@ def send_email_verification(
 
 
 @router.post("/email/verify", response_model=UserOut, dependencies=[rate_limit(CODE_ENTRY)])
-def verify_email(data: VerifyEmailIn, db: DbSession, user: CurrentUser):
+def verify_email(data: VerifyEmailIn, db: DbSession, user: OptionalUser):
+    if data.token:
+        return service.verify_email_by_token(db, data.token)
+    if user is None or data.code is None:
+        raise UnauthorizedError("Please sign in to continue.", code="auth_required")
     return service.verify_email(db, user, data.code)

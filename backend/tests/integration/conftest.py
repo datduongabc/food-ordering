@@ -184,12 +184,18 @@ def catalog(db) -> Catalog:
     return Catalog(starters, mains, district1, district7, products)
 
 
-def register_and_login(client: TestClient, user: dict) -> None:
+def register_and_login(client: TestClient, user: dict, *, verify: bool = True) -> None:
     assert client.post("/api/auth/register", json=user).status_code == 201
     login = client.post(
         "/api/auth/login", json={"email": user["email"], "password": user["password"]}
     )
     assert login.status_code == 200, login.text
+    if verify:
+        outbox = client.app.dependency_overrides[get_email_sender]()
+        assert client.post("/api/auth/email/verification").status_code == 202
+        code = outbox.last_code()
+        outbox.sent.pop()
+        assert client.post("/api/auth/email/verify", json={"code": code}).status_code == 200
 
 
 @pytest.fixture

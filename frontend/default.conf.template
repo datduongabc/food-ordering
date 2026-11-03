@@ -6,7 +6,7 @@ upstream backend {
     # Reuse connections to the backend. Opening one per request runs out of local ports
     # (each lingers in TIME_WAIT for a minute) at a few thousand requests a second, and then
     # every visitor gets a 502: a load test did exactly that from a single address.
-    keepalive 64;
+    keepalive 128;
 }
 
 # Flood control per client address, ahead of the backend's own finer limits: requests over

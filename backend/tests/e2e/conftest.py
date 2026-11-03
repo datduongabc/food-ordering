@@ -129,6 +129,7 @@ def _run_server(workdir: Path, database_url: str) -> Iterator[Server]:
         **os.environ,
         "APP_ENV": "local",
         "DATABASE_URL": database_url,
+        "REDIS_URL": "",
         "MEDIA_DIR": str(media_dir),
         "SECRET_KEY": "e2e-secret",
         # Journeys sign up many accounts from one address; limits have their own tests.

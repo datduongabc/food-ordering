@@ -680,6 +680,7 @@ export const vi = {
     too_many_code_attempts: 'Nhập sai mã quá nhiều lần. Vui lòng yêu cầu mã mới.',
     wrong_current_password: 'Mật khẩu hiện tại không đúng.',
     email_already_verified: 'Email của quý khách đã được xác thực.',
+    email_not_verified: 'Vui lòng xác thực email trước khi sử dụng mã giảm giá.',
     dish_not_found: 'Món ăn không tồn tại hoặc đã ngừng phục vụ.',
     not_in_cart: 'Món này không có trong giỏ hàng.',
     already_reviewed: 'Quý khách đã đánh giá món này.',

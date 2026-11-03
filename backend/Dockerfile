@@ -29,4 +29,4 @@ EXPOSE 8000
 # Seeded photos are synced, missing thumbnails made and migrations run on every start; all
 # three are no-ops once current.
 # The app logs each request itself, with its id, so uvicorn's access log would only repeat it.
-CMD ["sh", "-c", "cp -rT --update=none seed-media media && python -m app.cli thumbnails && alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*' --no-access-log"]
+CMD ["sh", "-c", "cp -rT --update=none seed-media media && python -m app.cli thumbnails && alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${WEB_CONCURRENCY:-4} --proxy-headers --forwarded-allow-ips '*' --no-access-log"]

@@ -680,6 +680,7 @@ export const en: Dictionary = {
     too_many_code_attempts: 'Too many incorrect codes. Please request a new one.',
     wrong_current_password: 'Your current password is incorrect.',
     email_already_verified: 'Your email is already verified.',
+    email_not_verified: 'Please verify your email before using a promo code.',
     dish_not_found: 'This dish does not exist or is no longer served.',
     not_in_cart: 'This dish is not in your cart.',
     already_reviewed: 'You have already reviewed this dish.',

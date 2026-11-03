@@ -1,11 +1,13 @@
 """Per-client request limits.
 
-Counters live in this process's memory, which suits the single uvicorn worker the app runs
-as. Several workers or replicas would each count on their own; move the store to Redis
-before scaling out.
+Counters live in Redis when `REDIS_URL` is configured so several uvicorn workers or replicas
+share one sliding window and brute-force state; otherwise they fall back to in-process memory
+for local development and unit tests.
 """
 
+import logging
 import math
+import secrets
 import threading
 import time
 from collections import deque
@@ -14,13 +16,17 @@ from dataclasses import dataclass
 from typing import Annotated, Literal
 
 from fastapi import Depends, Request
+from redis import Redis
+from redis.exceptions import RedisError
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.core.deps import get_optional_user
 from app.core.errors import TooManyRequestsError, error_body
 from app.modules.users.models import User
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -109,6 +115,114 @@ class RateLimiter:
         return len(self._hits)
 
 
+_SLIDING_WINDOW_LUA = """
+local key = KEYS[1]
+local now_ms = tonumber(ARGV[1])
+local window_ms = tonumber(ARGV[2])
+local max_requests = tonumber(ARGV[3])
+local record_hit = tonumber(ARGV[4])
+local member = ARGV[5]
+
+redis.call('ZREMRANGEBYSCORE', key, '-inf', now_ms - window_ms)
+local count = redis.call('ZCARD', key)
+if count >= max_requests then
+    local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
+    local oldest_ms = tonumber(oldest[2])
+    local wait_ms = (oldest_ms + window_ms) - now_ms
+    local wait_s = math.ceil(wait_ms / 1000.0)
+    if wait_s < 1 then
+        wait_s = 1
+    end
+    return wait_s
+end
+if record_hit == 1 then
+    redis.call('ZADD', key, now_ms, member)
+    redis.call('PEXPIRE', key, window_ms)
+end
+return 0
+"""
+
+
+class RedisRateLimiter:
+    """Shared sliding-window counters backed by Redis ZSETs and an atomic Lua script.
+
+    Falls back to an in-memory `RateLimiter` if Redis is temporarily unreachable, so a brief
+    broker blip does not take down the API.
+    """
+
+    def __init__(
+        self,
+        redis_client: Redis,
+        *,
+        prefix: str = "dateno",
+        clock: Callable[[], float] = time.time,
+        fallback: RateLimiter | None = None,
+    ):
+        self._redis = redis_client
+        self._prefix = prefix
+        self._clock = clock
+        self._fallback = fallback or RateLimiter()
+
+    def _redis_key(self, limit: Limit, key: str) -> str:
+        return f"{self._prefix}:rl:{limit.name}:{key}"
+
+    def _eval(self, limit: Limit, key: str, *, record_hit: bool) -> int | None:
+        now_ms = int(self._clock() * 1000)
+        window_ms = limit.seconds * 1000
+        member = f"{now_ms}:{secrets.token_hex(4)}" if record_hit else ""
+        wait = int(
+            self._redis.eval(
+                _SLIDING_WINDOW_LUA,
+                1,
+                self._redis_key(limit, key),
+                now_ms,
+                window_ms,
+                limit.requests,
+                1 if record_hit else 0,
+                member,
+            )
+        )
+        return wait if wait > 0 else None
+
+    def hit(self, limit: Limit, key: str) -> int | None:
+        try:
+            return self._eval(limit, key, record_hit=True)
+        except RedisError:
+            logger.warning(
+                "Redis rate limiter unavailable; using in-memory fallback", exc_info=True
+            )
+            return self._fallback.hit(limit, key)
+
+    def wait(self, limit: Limit, key: str) -> int | None:
+        try:
+            return self._eval(limit, key, record_hit=False)
+        except RedisError:
+            logger.warning(
+                "Redis rate limiter unavailable; using in-memory fallback", exc_info=True
+            )
+            return self._fallback.wait(limit, key)
+
+    def forget(self, limit: Limit, key: str) -> None:
+        self._fallback.forget(limit, key)
+        try:
+            self._redis.delete(self._redis_key(limit, key))
+        except RedisError:
+            logger.warning("Failed to clear Redis rate-limit key %s", key, exc_info=True)
+
+
+def build_rate_limiter(settings: Settings | None = None) -> RateLimiter | RedisRateLimiter:
+    cfg = settings or get_settings()
+    if not cfg.redis_configured:
+        return RateLimiter()
+    client = Redis.from_url(
+        cfg.redis_url,
+        decode_responses=True,
+        socket_connect_timeout=2,
+        socket_timeout=2,
+    )
+    return RedisRateLimiter(client, prefix=cfg.redis_key_prefix)
+
+
 def too_many_requests(seconds: int) -> TooManyRequestsError:
     return TooManyRequestsError(
         f"Too many requests. Please try again in {seconds} second(s).",
@@ -134,14 +248,20 @@ def enforce(request: Request, limit: Limit, key: str) -> None:
 def rate_limit(limit: Limit, per: Literal["ip", "user"] = "ip"):
     """A route dependency counting requests per client address, or per signed-in account
     (falling back to the address for guests)."""
+    if per == "ip":
 
-    def dependency(
+        def ip_dependency(request: Request) -> None:
+            enforce(request, limit, f"ip:{client_ip(request)}")
+
+        return Depends(ip_dependency)
+
+    def user_dependency(
         request: Request, user: Annotated[User | None, Depends(get_optional_user)]
     ) -> None:
-        key = f"user:{user.id}" if per == "user" and user else f"ip:{client_ip(request)}"
+        key = f"user:{user.id}" if user else f"ip:{client_ip(request)}"
         enforce(request, limit, key)
 
-    return Depends(dependency)
+    return Depends(user_dependency)
 
 
 class RateLimitMiddleware:

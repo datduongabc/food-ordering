@@ -20,6 +20,15 @@ class Settings(BaseSettings):
     secret_key: str = DEFAULT_SECRET_KEY
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/food_ordering_db"
+    db_pool_size: int = 20
+    db_max_overflow: int = 20
+    db_pool_timeout: int = 30
+    db_pool_recycle: int = 1800
+
+    # Shared store for rate limits, brute-force counters, phantom reset codes and email queue
+    # across uvicorn workers. Empty falls back to in-process memory for local dev and unit tests.
+    redis_url: str = ""
+    redis_key_prefix: str = "dateno"
 
     # Uploaded and seeded images; served at /media. Mount a volume here in production.
     media_dir: Path = BACKEND_DIR / "media"
@@ -66,6 +75,10 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_username: str = ""
     smtp_password: str = ""
+    smtp_use_tls: bool = True
+    smtp_use_ssl: bool = False
+    smtp_timeout_seconds: int = 10
+    smtp_max_retries: int = 3
     mail_from: str = ""
 
     @model_validator(mode="after")
@@ -91,6 +104,10 @@ class Settings(BaseSettings):
     @property
     def smtp_configured(self) -> bool:
         return bool(self.smtp_username and self.smtp_password)
+
+    @property
+    def redis_configured(self) -> bool:
+        return bool(self.redis_url)
 
 
 @lru_cache
