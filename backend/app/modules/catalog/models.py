@@ -5,6 +5,7 @@ from sqlalchemy import (
     BigInteger,
     Column,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
@@ -55,6 +56,14 @@ class Location(Base):
 
 class Product(Base):
     __tablename__ = "products"
+    __table_args__ = (
+        Index(
+            "ix_products_search_text_trgm",
+            "search_text",
+            postgresql_using="gin",
+            postgresql_ops={"search_text": "gin_trgm_ops"},
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     category_id: Mapped[int | None] = mapped_column(
