@@ -713,6 +713,8 @@ export const vi = {
     date_too_far: 'Chỉ nhận đặt bàn trước tối đa {days} ngày.',
     time_passed: 'Giờ này đã qua. Vui lòng chọn giờ muộn hơn.',
     outside_opening_hours: 'Nhà hàng nhận đặt bàn từ {opening} đến {last_seating}.',
+    slot_full:
+      'Khung giờ này tại chi nhánh đã kín chỗ (còn {available_seats} chỗ). Vui lòng chọn giờ hoặc chi nhánh khác.',
     reservation_not_found: 'Không tìm thấy lịch đặt bàn.',
     reservation_not_cancellable: 'Chỉ có thể hủy lịch đặt bàn đang chờ xác nhận.',
     user_not_found: 'Không tìm thấy người dùng.',

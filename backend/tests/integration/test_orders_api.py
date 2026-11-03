@@ -301,3 +301,24 @@ class TestDeliveryDetails:
         assert paid["events"][-1]["to_status"] == "CONFIRMED"
         assert (paid["events"][-1]["actor"], paid["events"][-1]["note"]) == ("system", "")
         assert "actor_name" not in paid["events"][-1]  # staff identities stay internal
+
+    def test_idempotency_key_returns_same_order_on_retry(self, shopper, catalog):
+        fill_cart(shopper, catalog, pho_bo=1)
+        headers = {"Idempotency-Key": "checkout-retry-001"}
+        payload = {"payment_method": "COD", **delivery(shopper)}
+        first = shopper.post("/api/orders", json=payload, headers=headers)
+        second = shopper.post("/api/orders", json=payload, headers=headers)
+
+        assert first.status_code == 201
+        assert second.status_code == 201
+        assert first.json()["id"] == second.json()["id"]
+
+    def test_order_sse_stream_returns_snapshot(self, shopper, catalog):
+        fill_cart(shopper, catalog, pho_bo=1)
+        order_id = checkout(shopper).json()["id"]
+
+        res = shopper.get(f"/api/orders/{order_id}/stream?once=true")
+        assert res.status_code == 200
+        assert res.headers["content-type"].startswith("text/event-stream")
+        assert "event: snapshot" in res.text
+        assert f'"id": {order_id}' in res.text

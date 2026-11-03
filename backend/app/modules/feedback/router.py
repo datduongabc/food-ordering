@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, UploadFile, status
 
+from app.core.cache import CacheDep
 from app.core.deps import CurrentUser, DbSession
 from app.core.images import MAX_UPLOAD_BYTES
 from app.core.rate_limit import REVIEW_PHOTOS, REVIEWS, rate_limit
@@ -41,8 +42,10 @@ def review_eligibility(slug: str, db: DbSession, user: CurrentUser):
     status_code=status.HTTP_201_CREATED,
     dependencies=[rate_limit(REVIEWS, per="user")],
 )
-def add_review(slug: str, data: ReviewIn, db: DbSession, user: CurrentUser):
-    return service.add_review(db, user, slug, data)
+def add_review(slug: str, data: ReviewIn, db: DbSession, user: CurrentUser, cache: CacheDep):
+    review = service.add_review(db, user, slug, data)
+    cache.invalidate()
+    return review
 
 
 @router.post(

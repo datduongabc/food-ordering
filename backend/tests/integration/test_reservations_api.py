@@ -101,6 +101,22 @@ class TestCreate:
         assert too_many.json()["code"] == "too_many_guests"
         assert too_many.json()["params"] == {"max_guests": 10}
 
+    def test_enforces_branch_slot_capacity(self, client, catalog):
+        for _ in range(4):
+            assert book(client, catalog, guest_count=10).status_code == 201
+        overflow = book(client, catalog, guest_count=1)
+        assert overflow.status_code == 409
+        assert overflow.json()["code"] == "slot_full"
+        assert overflow.json()["params"] == {"available_seats": 0}
+
+    def test_idempotency_key_prevents_duplicate_bookings(self, client, catalog):
+        headers = {"Idempotency-Key": "booking-retry-123"}
+        first = client.post("/api/reservations", json=booking(catalog), headers=headers)
+        second = client.post("/api/reservations", json=booking(catalog), headers=headers)
+        assert first.status_code == 201
+        assert second.status_code == 201
+        assert first.json()["id"] == second.json()["id"]
+
     def test_unknown_branch(self, client, catalog):
         response = book(client, catalog, location_id=999)
         assert response.status_code == 400

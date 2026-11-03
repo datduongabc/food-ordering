@@ -3,8 +3,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response, UploadFile
 
+from app.core.cache import CacheDep
 from app.core.deps import AdminUser, DbSession, require_admin
 from app.core.email import Mailer, notify
+from app.core.events import BrokerDep
 from app.core.images import MAX_UPLOAD_BYTES
 from app.modules.admin import (
     audit,
@@ -42,7 +44,9 @@ from app.modules.admin.schemas import (
 )
 from app.modules.notifications import emails
 from app.modules.orders.models import OrderStatus
+from app.modules.orders.schemas import OrderOut
 from app.modules.reservations.models import ReservationStatus
+from app.modules.reservations.schemas import ReservationOut
 from app.modules.users.models import User
 
 # The dependency on the router guards every route, so a new endpoint cannot forget it.
@@ -92,30 +96,44 @@ def list_products(db: DbSession):
 
 
 @router.post("/products", response_model=AdminProductOut, status_code=201)
-def create_product(data: ProductCreate, db: DbSession, admin: AdminUser):
-    return products.create_product(db, admin, data)
+def create_product(data: ProductCreate, db: DbSession, admin: AdminUser, cache: CacheDep):
+    product = products.create_product(db, admin, data)
+    cache.invalidate()
+    return product
 
 
 @router.patch("/products/{product_id}", response_model=AdminProductOut)
-def update_product(product_id: int, data: ProductUpdate, db: DbSession, admin: AdminUser):
-    return products.update_product(db, admin, product_id, data)
+def update_product(
+    product_id: int, data: ProductUpdate, db: DbSession, admin: AdminUser, cache: CacheDep
+):
+    product = products.update_product(db, admin, product_id, data)
+    cache.invalidate()
+    return product
 
 
 @router.put("/products/{product_id}/image", response_model=AdminProductOut)
-async def replace_image(product_id: int, image: UploadFile, db: DbSession, admin: AdminUser):
+async def replace_image(
+    product_id: int, image: UploadFile, db: DbSession, admin: AdminUser, cache: CacheDep
+):
     # Read one byte past the limit so oversized files are rejected without loading them fully.
     data = await image.read(MAX_UPLOAD_BYTES + 1)
-    return products.replace_image(db, admin, product_id, data)
+    product = products.replace_image(db, admin, product_id, data)
+    cache.invalidate()
+    return product
 
 
 @router.post("/products/{product_id}/hide", response_model=AdminProductOut)
-def hide_product(product_id: int, db: DbSession, admin: AdminUser):
-    return products.hide_product(db, admin, product_id)
+def hide_product(product_id: int, db: DbSession, admin: AdminUser, cache: CacheDep):
+    product = products.hide_product(db, admin, product_id)
+    cache.invalidate()
+    return product
 
 
 @router.post("/products/{product_id}/restore", response_model=AdminProductOut)
-def restore_product(product_id: int, db: DbSession, admin: AdminUser):
-    return products.restore_product(db, admin, product_id)
+def restore_product(product_id: int, db: DbSession, admin: AdminUser, cache: CacheDep):
+    product = products.restore_product(db, admin, product_id)
+    cache.invalidate()
+    return product
 
 
 # --- Orders ---
@@ -141,9 +159,11 @@ def change_order_status(
     admin: AdminUser,
     background: BackgroundTasks,
     mailer: Mailer,
+    broker: BrokerDep,
 ):
     order = operations.change_order_status(db, admin, order_id, data.status, data.note)
     notify(background, mailer, emails.order_status_changed(order))
+    broker.publish(f"order:{order.id}", OrderOut.model_validate(order).model_dump(mode="json"))
     return order
 
 
@@ -169,6 +189,7 @@ def change_reservation_status(
     admin: AdminUser,
     background: BackgroundTasks,
     mailer: Mailer,
+    broker: BrokerDep,
 ):
     reservation = operations.change_reservation_status(db, admin, reservation_id, data.status)
     customer = db.get(User, reservation.user_id) if reservation.user_id else None
@@ -178,6 +199,10 @@ def change_reservation_status(
             mailer,
             emails.reservation_status_changed(reservation, customer.email, by_customer=False),
         )
+    broker.publish(
+        f"reservation:{reservation.id}",
+        ReservationOut.model_validate(reservation).model_dump(mode="json"),
+    )
     return reservation
 
 
@@ -259,18 +284,26 @@ def list_reviews(
 
 
 @router.post("/reviews/{review_id}/hide", response_model=AdminReviewOut)
-def hide_review(review_id: int, db: DbSession, admin: AdminUser):
-    return reviews.hide_review(db, admin, review_id)
+def hide_review(review_id: int, db: DbSession, admin: AdminUser, cache: CacheDep):
+    review = reviews.hide_review(db, admin, review_id)
+    cache.invalidate()
+    return review
 
 
 @router.post("/reviews/{review_id}/restore", response_model=AdminReviewOut)
-def restore_review(review_id: int, db: DbSession, admin: AdminUser):
-    return reviews.restore_review(db, admin, review_id)
+def restore_review(review_id: int, db: DbSession, admin: AdminUser, cache: CacheDep):
+    review = reviews.restore_review(db, admin, review_id)
+    cache.invalidate()
+    return review
 
 
 @router.put("/reviews/{review_id}/reply", response_model=AdminReviewOut)
-def reply_to_review(review_id: int, data: ReviewReplyIn, db: DbSession, admin: AdminUser):
-    return reviews.reply_to_review(db, admin, review_id, data.reply)
+def reply_to_review(
+    review_id: int, data: ReviewReplyIn, db: DbSession, admin: AdminUser, cache: CacheDep
+):
+    review = reviews.reply_to_review(db, admin, review_id, data.reply)
+    cache.invalidate()
+    return review
 
 
 # --- Reports ---

@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -71,6 +71,25 @@ def create_reservation(db: Session, user: User | None, data: ReservationIn) -> R
     if db.get(Location, data.location_id) is None:
         raise BadRequestError("Please choose one of our branches.", code="unknown_branch")
 
+    booked_guests = int(
+        db.scalar(
+            select(func.coalesce(func.sum(Reservation.guest_count), 0)).where(
+                Reservation.location_id == data.location_id,
+                Reservation.reservation_date == data.reservation_date,
+                Reservation.reservation_time == data.reservation_time,
+                Reservation.status != ReservationStatus.CANCELLED,
+            )
+        )
+        or 0
+    )
+    max_slot_guests = get_settings().reservation_slot_max_guests
+    if booked_guests + data.guest_count > max_slot_guests:
+        raise ConflictError(
+            "This time slot is fully booked at this branch. Please pick another time or branch.",
+            code="slot_full",
+            params={"available_seats": max(0, max_slot_guests - booked_guests)},
+        )
+
     reservation = Reservation(
         # Guests may book without an account; signed-in bookings appear in "My reservations".
         user_id=user.id if user else None,
@@ -92,6 +111,15 @@ def list_my_reservations(db: Session, user: User) -> Sequence[Reservation]:
             Reservation.id.desc(),
         )
     ).all()
+
+
+def get_my_reservation(db: Session, user: User, reservation_id: int) -> Reservation:
+    reservation = db.scalar(
+        select(Reservation).where(Reservation.id == reservation_id, Reservation.user_id == user.id)
+    )
+    if reservation is None:
+        raise NotFoundError("Reservation not found.", code="reservation_not_found")
+    return reservation
 
 
 def cancel_my_reservation(db: Session, user: User, reservation_id: int) -> Reservation:

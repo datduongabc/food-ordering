@@ -81,3 +81,24 @@ class TestSentry:
         assert options["environment"] == "test"
         assert options["send_default_pii"] is False
         assert options["max_request_body_size"] == "never"
+
+
+class TestReadinessAndMetrics:
+    def test_readiness_probe_reports_database_and_cache(self, client):
+        res = client.get("/api/health/ready")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["status"] == "ok"
+        assert body["database"]["status"] == "ok"
+        assert "pool" in body["database"]
+        assert "catalog_cache" in body
+
+    def test_prometheus_metrics_exposition(self, client):
+        client.get("/api/categories")
+        res = client.get("/api/metrics")
+        assert res.status_code == 200
+        assert res.headers["content-type"].startswith("text/plain")
+        assert "dateno_up 1" in res.text
+        assert "dateno_db_pool_connections" in res.text
+        assert "dateno_http_requests_total" in res.text
+        assert "dateno_http_request_duration_seconds_bucket" in res.text

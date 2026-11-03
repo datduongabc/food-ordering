@@ -6,6 +6,7 @@ from sqlalchemy import (
     Date,
     Enum,
     ForeignKey,
+    Index,
     Integer,
     SmallInteger,
     String,
@@ -28,7 +29,15 @@ class ReservationStatus(StrEnum):
 
 class Reservation(Base):
     __tablename__ = "reservations"
-    __table_args__ = (CheckConstraint("guest_count > 0", name="guest_count"),)
+    __table_args__ = (
+        CheckConstraint("guest_count > 0", name="guest_count"),
+        Index(
+            "ix_reservations_location_date_time",
+            "location_id",
+            "reservation_date",
+            "reservation_time",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int | None] = mapped_column(

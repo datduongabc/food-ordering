@@ -1,10 +1,17 @@
-from fastapi import FastAPI
+from typing import Any
+
+from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 
+from app.core.cache import build_catalog_cache
 from app.core.config import get_settings
 from app.core.csrf import CSRFMiddleware
+from app.core.deps import DbSession
 from app.core.errors import register_error_handlers
+from app.core.events import build_event_broker
 from app.core.headers import SecurityHeadersMiddleware
+from app.core.idempotency import build_idempotency_store
+from app.core.metrics import check_readiness, render_prometheus
 from app.core.observability import RequestLogMiddleware, configure_logging, init_sentry
 from app.core.rate_limit import RateLimitMiddleware, build_rate_limiter
 from app.modules.admin.router import router as admin_router
@@ -32,6 +39,9 @@ def create_app() -> FastAPI:
     )
     app.state.rate_limiter = build_rate_limiter(settings)
     app.state.phantom_reset_codes = build_phantom_reset_codes(settings)
+    app.state.catalog_cache = build_catalog_cache(settings)
+    app.state.idempotency_store = build_idempotency_store(settings)
+    app.state.event_broker = build_event_broker(settings)
     # Added last runs first: every request is logged, headers wrap every response, and floods
     # are refused before CSRF checks.
     # MoMo posts payment results server to server; they carry a signature instead of a token.
@@ -54,6 +64,18 @@ def create_app() -> FastAPI:
     @app.get("/api/health", tags=["meta"])
     def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.get("/api/health/ready", tags=["meta"])
+    def health_ready(request: Request, db: DbSession, response: Response) -> dict[str, Any]:
+        report = check_readiness(request.app, db)
+        if report["status"] != "ok":
+            response.status_code = 503
+        return report
+
+    @app.get("/api/metrics", tags=["meta"], response_class=Response)
+    def metrics(request: Request, db: DbSession) -> Response:
+        body = render_prometheus(request.app, db)
+        return Response(content=body, media_type="text/plain; version=0.0.4; charset=utf-8")
 
     return app
 

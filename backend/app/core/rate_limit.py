@@ -267,7 +267,7 @@ def rate_limit(limit: Limit, per: Literal["ip", "user"] = "ip"):
 class RateLimitMiddleware:
     """Applies the API-wide read and write limits before any route runs."""
 
-    EXEMPT = frozenset({"/api/health"})
+    EXEMPT = frozenset({"/api/health", "/api/health/ready", "/api/metrics"})
 
     def __init__(self, app: ASGIApp):
         self.app = app

@@ -710,6 +710,8 @@ export const en: Dictionary = {
     date_too_far: 'Tables can be booked at most {days} days ahead.',
     time_passed: 'That time has already passed. Please pick a later time.',
     outside_opening_hours: 'We take bookings from {opening} to {last_seating}.',
+    slot_full:
+      'This time slot is fully booked at this branch ({available_seats} seats left). Please pick another time or branch.',
     reservation_not_found: 'Booking not found.',
     reservation_not_cancellable: 'Only bookings awaiting confirmation can be cancelled.',
     user_not_found: 'User not found.',

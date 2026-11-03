@@ -69,6 +69,7 @@ class RedisEmailQueue:
         *,
         prefix: str = "dateno",
         max_retries: int = 3,
+        enqueue_only: bool = False,
         sleep: callable = time.sleep,
     ):
         self._redis = redis_client
@@ -76,6 +77,7 @@ class RedisEmailQueue:
         self._queue_key = f"{prefix}:email:queue"
         self._dead_key = f"{prefix}:email:dead"
         self._max_retries = max(1, max_retries)
+        self._enqueue_only = enqueue_only
         self._sleep = sleep
 
     def enqueue(self, email: Email) -> None:
@@ -84,10 +86,7 @@ class RedisEmailQueue:
         )
         self._redis.rpush(self._queue_key, payload)
 
-    def drain_one(self) -> bool:
-        raw = self._redis.lpop(self._queue_key)
-        if raw is None:
-            return False
+    def _deliver_payload(self, raw: str) -> bool:
         item = json.loads(raw)
         email = Email(to=item["to"], subject=item["subject"], text=item["text"])
         attempts = int(item.get("attempts", 0))
@@ -106,10 +105,34 @@ class RedisEmailQueue:
                     return False
                 self._sleep(min(2.0, 0.2 * (2 ** (attempts - 1))))
 
+    def drain_one(self) -> bool:
+        raw = self._redis.lpop(self._queue_key)
+        if raw is None:
+            return False
+        return self._deliver_payload(raw)
+
+    def consume_one(self, *, timeout: int = 5) -> bool:
+        """Blocks up to `timeout` seconds waiting for a queued email; used by `app.worker`."""
+        popped = self._redis.blpop(self._queue_key, timeout=timeout)
+        if popped is None:
+            return False
+        _, raw = popped
+        return self._deliver_payload(raw)
+
+    def queue_stats(self) -> dict[str, int]:
+        try:
+            return {
+                "queued": int(self._redis.llen(self._queue_key)),
+                "dead_letter": int(self._redis.llen(self._dead_key)),
+            }
+        except RedisError:
+            return {"queued": 0, "dead_letter": 0}
+
     def send(self, email: Email) -> None:
         try:
             self.enqueue(email)
-            self.drain_one()
+            if not self._enqueue_only:
+                self.drain_one()
         except RedisError:
             logger.warning("Redis email queue unavailable; sending directly", exc_info=True)
             self._sender.send(email)
@@ -131,6 +154,7 @@ def get_email_sender() -> EmailSender:
                 sender,
                 prefix=settings.redis_key_prefix,
                 max_retries=settings.smtp_max_retries,
+                enqueue_only=settings.email_worker_enabled,
             )
         return sender
     if settings.is_local:

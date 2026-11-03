@@ -16,10 +16,11 @@ from starlette.datastructures import MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.core.config import Settings
+from app.core.metrics import metrics_registry
 
 REQUEST_ID_HEADER = "X-Request-ID"
 # Polled every few seconds by the container health check; logging it would drown the rest.
-QUIET_PATHS = frozenset({"/api/health"})
+QUIET_PATHS = frozenset({"/api/health", "/api/health/ready", "/api/metrics"})
 request_id: ContextVar[str] = ContextVar("request_id", default="-")
 
 logger = logging.getLogger("app.requests")
@@ -114,6 +115,8 @@ class RequestLogMiddleware:
         try:
             await self.app(scope, receive, send_with_id)
         finally:
+            elapsed = time.perf_counter() - started
+            metrics_registry.record(scope["method"], scope["path"], status, elapsed)
             client = scope.get("client")
             logger.info(
                 "%s %s %s",
@@ -124,7 +127,7 @@ class RequestLogMiddleware:
                     "method": scope["method"],
                     "path": scope["path"],
                     "status": status,
-                    "duration_ms": round((time.perf_counter() - started) * 1000, 1),
+                    "duration_ms": round(elapsed * 1000, 1),
                     "client_ip": client[0] if client else None,
                 },
             )

@@ -1,10 +1,13 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, Response, status
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Header, Response, status
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.core.deps import CurrentUser, DbSession
 from app.core.email import Mailer, notify
 from app.core.errors import BadRequestError, NotFoundError
+from app.core.events import BrokerDep, EventBroker
+from app.core.idempotency import IdempotencyDep
 from app.core.rate_limit import ORDERS, PAYMENTS, rate_limit
 from app.modules.notifications import emails
 from app.modules.orders import payments, service
@@ -33,6 +36,12 @@ def _verified(gateway: MomoGateway | None, params: dict[str, Any]) -> MomoResult
     return result
 
 
+def _publish_order(broker: EventBroker, order) -> dict[str, Any]:
+    payload = OrderOut.model_validate(order).model_dump(mode="json")
+    broker.publish(f"order:{order.id}", payload)
+    return payload
+
+
 @router.post(
     "/orders",
     response_model=OrderOut,
@@ -40,10 +49,23 @@ def _verified(gateway: MomoGateway | None, params: dict[str, Any]) -> MomoResult
     dependencies=[rate_limit(ORDERS, per="user")],
 )
 def place_order(
-    data: CheckoutIn, db: DbSession, user: CurrentUser, background: BackgroundTasks, mailer: Mailer
+    data: CheckoutIn,
+    db: DbSession,
+    user: CurrentUser,
+    background: BackgroundTasks,
+    mailer: Mailer,
+    idempotency: IdempotencyDep,
+    broker: BrokerDep,
+    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", max_length=128)] = None,
 ):
+    scope = f"order:{user.id}"
+    cached = idempotency.get(scope, idempotency_key)
+    if cached is not None:
+        return JSONResponse(cached, status_code=status.HTTP_201_CREATED)
     order = service.place_order(db, user, data)
     notify(background, mailer, emails.order_placed(order))
+    payload = _publish_order(broker, order)
+    idempotency.set(scope, idempotency_key, payload)
     return order
 
 
@@ -57,12 +79,35 @@ def get_order(order_id: int, db: DbSession, user: CurrentUser):
     return service.get_order(db, user, order_id)
 
 
+@router.get("/orders/{order_id}/stream")
+async def stream_order(
+    order_id: int,
+    db: DbSession,
+    user: CurrentUser,
+    broker: BrokerDep,
+    once: bool = False,
+):
+    order = service.get_order(db, user, order_id)
+    initial = OrderOut.model_validate(order).model_dump(mode="json")
+    return StreamingResponse(
+        broker.stream(f"order:{order.id}", initial, once=once),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
 @router.post("/orders/{order_id}/cancel", response_model=OrderOut)
 def cancel_order(
-    order_id: int, db: DbSession, user: CurrentUser, background: BackgroundTasks, mailer: Mailer
+    order_id: int,
+    db: DbSession,
+    user: CurrentUser,
+    background: BackgroundTasks,
+    mailer: Mailer,
+    broker: BrokerDep,
 ):
     order = service.cancel_order(db, user, order_id)
     notify(background, mailer, emails.order_status_changed(order))
+    _publish_order(broker, order)
     return order
 
 
@@ -93,11 +138,13 @@ def complete_sandbox_payment(
     user: CurrentUser,
     background: BackgroundTasks,
     mailer: Mailer,
+    broker: BrokerDep,
 ):
     """Local development only: plays the part of the customer approving in the MoMo app."""
     order = payments.complete_sandbox_payment(db, user, data)
     if order.payment_status == PaymentStatus.PAID:
         notify(background, mailer, emails.order_status_changed(order))
+    _publish_order(broker, order)
     return order
 
 
@@ -109,6 +156,7 @@ def momo_return(
     gateway: Gateway,
     background: BackgroundTasks,
     mailer: Mailer,
+    broker: BrokerDep,
 ):
     """The query string MoMo appends to the redirect URL, forwarded by the SPA. It often
     arrives before the IPN, and is the only report a development machine ever gets."""
@@ -120,7 +168,9 @@ def momo_return(
         )
     if outcome.changed:
         notify(background, mailer, emails.order_status_changed(order))
-    return service.get_order(db, user, order.id)
+    refreshed = service.get_order(db, user, order.id)
+    _publish_order(broker, refreshed)
+    return refreshed
 
 
 @router.post("/payments/momo/ipn", status_code=status.HTTP_204_NO_CONTENT)
@@ -130,9 +180,11 @@ def momo_ipn(
     gateway: Gateway,
     background: BackgroundTasks,
     mailer: Mailer,
+    broker: BrokerDep,
 ):
     """MoMo's server-to-server notification; exempt from CSRF, trusted only by signature."""
     outcome = payments.apply_momo_result(db, _verified(gateway, params))
     if outcome.changed and outcome.order is not None:
         notify(background, mailer, emails.order_status_changed(outcome.order))
+        _publish_order(broker, outcome.order)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

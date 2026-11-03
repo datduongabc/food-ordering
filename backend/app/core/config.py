@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     restaurant_timezone: str = "Asia/Ho_Chi_Minh"
     reservation_max_days_ahead: int = 3
     reservation_max_guests: int = 10
+    reservation_slot_max_guests: int = 40
     # First and last time a table can be booked for; the kitchen closes an hour after.
     reservation_opening_time: time = time(10, 0)
     reservation_last_seating_time: time = time(21, 0)
@@ -80,6 +81,7 @@ class Settings(BaseSettings):
     smtp_timeout_seconds: int = 10
     smtp_max_retries: int = 3
     mail_from: str = ""
+    email_worker_enabled: bool = False
 
     @model_validator(mode="after")
     def _production_needs_a_real_secret(self) -> "Settings":
